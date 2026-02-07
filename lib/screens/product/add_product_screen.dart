@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -25,9 +26,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
         ),
-        title: const Text(
+        title: Text(
           'Add New Product',
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -64,9 +65,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Upload Product Images',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -75,7 +76,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Add up to 5 images (JPG, PNG)',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
@@ -86,9 +87,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 24),
 
             // Basic Information
-            const Text(
+            Text(
               'Basic Information',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -103,9 +104,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Category',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.gray700,
@@ -146,9 +147,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 24),
 
             // Pricing & Stock
-            const Text(
+            Text(
               'Pricing & Stock',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -169,9 +170,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 24),
 
             // Specifications
-            const Text(
+            Text(
               'Specifications',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -198,9 +199,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 24),
 
             // Wholesale Settings
-            const Text(
+            Text(
               'Wholesale Settings',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -221,9 +222,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Allow Price Negotiation',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
@@ -231,7 +232,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                         Text(
                           'Buyers can send price proposals',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
@@ -271,9 +272,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Save Draft',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -295,9 +296,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Publish Product',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -319,7 +320,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: AppColors.gray700,

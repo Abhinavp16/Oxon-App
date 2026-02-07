@@ -36,7 +36,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                       child: Text(
                         'Order Confirmation',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -78,7 +78,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                           // Title
                           Text(
                             'Order Confirmed!',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
                               color: textDark,
@@ -93,7 +93,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                             child: RichText(
                               textAlign: TextAlign.center,
                               text: TextSpan(
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   color: textSecondary,
                                   height: 1.5,
@@ -102,7 +102,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                                   const TextSpan(text: 'Your order '),
                                   TextSpan(
                                     text: '#AG-88291',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontWeight: FontWeight.w600,
                                       color: primary,
                                     ),
@@ -133,7 +133,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                               ),
                               child: Text(
                                 'Track Order',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.015 * 16,
@@ -158,7 +158,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Text(
                         'Delivery Address',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -188,7 +188,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'John Doe',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: textDark,
@@ -196,7 +196,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                                 ),
                                 Text(
                                   '123 Farm Road, Rural County, ST 54321',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     color: textSecondary,
                                   ),
@@ -252,7 +252,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                               bottom: 16,
                               child: Text(
                                 '1x Heavy Duty Tractor (Model 2024)',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white,
@@ -288,7 +288,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                       ),
                       child: Text(
                         'Continue Shopping',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.015 * 16,
@@ -299,7 +299,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   RichText(
                     text: TextSpan(
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: textSecondary,
                       ),
@@ -307,7 +307,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                         const TextSpan(text: 'Need help? '),
                         TextSpan(
                           text: 'Contact Support',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             color: primary,
                             decoration: TextDecoration.underline,
                           ),

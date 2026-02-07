@@ -50,7 +50,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                           child: Text(
                             'Alerts Hub',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: textDark,
@@ -83,7 +83,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                               ),
                               child: Text(
                                 _tabs[index],
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                   color: isSelected ? Colors.white : textDark,
@@ -240,7 +240,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                   ),
                   child: Text(
                     badgeText,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                       color: badgeTextColor ?? Colors.white,
@@ -250,7 +250,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                 ),
                 Text(
                   time,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: gray400,
@@ -283,7 +283,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -292,7 +292,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                       const SizedBox(height: 4),
                       Text(
                         description,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: gray600,
                           height: 1.4,
@@ -325,7 +325,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                                     ),
                                     child: Text(
                                       action.text,
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -343,7 +343,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                           children: [
                             Text(
                               linkText,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: primary,
@@ -397,7 +397,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
             const SizedBox(height: 4),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: isSelected ? primary : textDark,

@@ -48,7 +48,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                       child: Text(
                         'Add New Product',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -84,7 +84,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                       children: [
                         Text(
                           'Product Name',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: textDark,
@@ -104,7 +104,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                       children: [
                         Text(
                           'Category',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: textDark,
@@ -124,7 +124,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                               value: _selectedCategory,
                               hint: Text(
                                 'Select machinery category',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   color: placeholderColor,
                                 ),
@@ -153,7 +153,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                       children: [
                         Text(
                           'Description',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: textDark,
@@ -172,7 +172,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             expands: true,
                             decoration: InputDecoration(
                               hintText: 'Detailed product description and specifications...',
-                              hintStyle: GoogleFonts.inter(
+                              hintStyle: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 color: placeholderColor,
                               ),
@@ -213,7 +213,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Add Image',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       color: placeholderColor,
                                     ),
@@ -304,7 +304,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             children: [
                               Text(
                                 'Retail Price (\$)',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: textDark,
@@ -322,7 +322,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             children: [
                               Text(
                                 'Min. Bulk Qty',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: textDark,
@@ -350,7 +350,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             children: [
                               Text(
                                 'Initial Stock',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: textDark,
@@ -368,7 +368,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             children: [
                               Text(
                                 'Low Stock Alert',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: textDark,
@@ -404,7 +404,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             ),
                             child: Text(
                               'Save Product',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -427,7 +427,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
                             ),
                             child: Text(
                               'Cancel',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -453,7 +453,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         title,
-        style: GoogleFonts.inter(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: textDark,
@@ -475,7 +475,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: GoogleFonts.inter(
+          hintStyle: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             color: placeholderColor,
           ),

@@ -55,7 +55,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                         child: Text(
                           'Negotiations',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: textDark,
@@ -95,7 +95,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                       ),
                       child: Text(
                         _tabs[index],
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: isSelected ? primary : textSecondary,
@@ -121,7 +121,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       'Priority Quotes',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -207,7 +207,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                   children: [
                     Text(
                       'Manual Verification',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -215,7 +215,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                     ),
                     Text(
                       'UPI payments verified within 2-4 hours',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         color: textSecondary,
                       ),
@@ -231,7 +231,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                 ),
                 child: Text(
                   'HELP',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: primary,
@@ -303,7 +303,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                       children: [
                         Text(
                           requestId.toUpperCase(),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: textSecondary,
@@ -318,7 +318,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                           ),
                           child: Text(
                             badge.toUpperCase(),
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: badgeTextColor,
@@ -332,7 +332,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                     // Title
                     Text(
                       title,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -343,7 +343,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                     // Quantity
                     Text(
                       quantity,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: textSecondary,
@@ -379,7 +379,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
                             ],
                             Text(
                               buttonText,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -412,11 +412,11 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
             children: [
               Text(
                 'Your Quote:',
-                style: GoogleFonts.inter(fontSize: 14, color: textSecondary),
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
               ),
               Text(
                 yourQuote,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: textDark,
@@ -430,11 +430,11 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
             children: [
               Text(
                 'Admin Price:',
-                style: GoogleFonts.inter(fontSize: 14, color: textSecondary),
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
               ),
               Text(
                 adminPrice,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: primary,
@@ -460,11 +460,11 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
         children: [
           Text(
             'Negotiated Total:',
-            style: GoogleFonts.inter(fontSize: 14, color: textSecondary),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
           ),
           Text(
             total,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: green600,
@@ -481,12 +481,12 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
       children: [
         RichText(
           text: TextSpan(
-            style: GoogleFonts.inter(fontSize: 14, color: textSecondary),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
             children: [
               const TextSpan(text: 'Requested Price: '),
               TextSpan(
                 text: requestedPrice,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w600,
                   color: textDark,
                 ),
@@ -497,7 +497,7 @@ class _NegotiationsTrackerScreenState extends State<NegotiationsTrackerScreen> {
         const SizedBox(height: 4),
         Text(
           'Awaiting admin verification',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontStyle: FontStyle.italic,
             color: textSecondary,

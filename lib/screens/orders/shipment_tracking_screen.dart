@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -19,9 +20,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
         ),
-        title: const Text(
+        title: Text(
           'Shipment Details',
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -60,15 +61,15 @@ class ShipmentTrackingScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Order ID',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               '#AGRI-882910',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary,
@@ -82,9 +83,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                             color: AppColors.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text(
+                          child: Text(
                             'In Transit',
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
@@ -110,9 +111,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Industrial Seed Drill X200',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textPrimary,
@@ -120,7 +121,7 @@ class ShipmentTrackingScreen extends StatelessWidget {
                             ),
                             Text(
                               'Qty: 1 Unit • \$12,450.00',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
                               ),
@@ -140,9 +141,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Order Journey',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -150,9 +151,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {},
-                    child: const Text(
+                    child: Text(
                       'Update Status',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w600,
                         color: AppColors.primary,
                       ),
@@ -207,9 +208,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
             // Courier Information
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const Text(
+              child: Text(
                 'Courier Information',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -241,9 +242,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Tracking Link',
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: AppColors.textPrimary,
@@ -251,7 +252,7 @@ class ShipmentTrackingScreen extends StatelessWidget {
                           ),
                           Text(
                             'track.agri-logistics.com/SHP990123',
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
@@ -266,9 +267,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                         color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Copy',
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -294,9 +295,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Buyer: Robert Miller',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -350,9 +351,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Shipment Map',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -383,9 +384,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                               color: Colors.white.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Last sync: 2 mins ago',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -422,9 +423,9 @@ class ShipmentTrackingScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Update Status',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -470,7 +471,7 @@ class ShipmentTrackingScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: isCompleted ? AppColors.textPrimary : AppColors.textPrimary.withOpacity(0.5),
@@ -486,7 +487,7 @@ class ShipmentTrackingScreen extends StatelessWidget {
                         ),
                         child: Text(
                           badge,
-                          style: const TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
@@ -499,7 +500,7 @@ class ShipmentTrackingScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),

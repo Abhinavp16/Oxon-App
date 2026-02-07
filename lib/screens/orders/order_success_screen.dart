@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -32,9 +33,9 @@ class OrderSuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              const Text(
+              Text(
                 'Order Confirmed!',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -44,7 +45,7 @@ class OrderSuccessScreen extends StatelessWidget {
               Text(
                 'Your order has been placed successfully.\nWe\'ll notify you once it\'s shipped.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   color: AppColors.textSecondary,
                   fontSize: 16,
                   height: 1.5,
@@ -85,9 +86,9 @@ class OrderSuccessScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Track Order',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -104,9 +105,9 @@ class OrderSuccessScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Continue Shopping',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -123,14 +124,14 @@ class OrderSuccessScreen extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             color: AppColors.textSecondary,
             fontSize: 14,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w600,
             fontSize: 14,
             color: AppColors.textPrimary,

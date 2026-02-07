@@ -53,7 +53,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                           child: Text(
                             'Product Details',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: slate900,
@@ -152,7 +152,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                     ),
                                     child: Text(
                                       'AGRI-TECH SERIES',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         color: primary,
@@ -163,7 +163,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                   const SizedBox(height: 8),
                                   Text(
                                     'AGRI-PRO 500 Mini Mill',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w800,
                                       color: slate900,
@@ -178,7 +178,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                               children: [
                                 Text(
                                   '₹45,999',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w900,
                                     color: primary,
@@ -186,7 +186,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                 ),
                                 Text(
                                   '₹52,000',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     color: slate500,
                                     decoration: TextDecoration.lineThrough,
@@ -203,7 +203,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'High-efficiency grain processing unit suitable for wholesale distribution and small-scale farming. Features a 2HP copper motor, adjustable fineness, and stainless steel housing for long-term durability.',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: slate600,
                             height: 1.6,
@@ -219,7 +219,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                           children: [
                             Text(
                               'SPECIFICATIONS',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: slate900,
@@ -253,7 +253,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                           children: [
                             Text(
                               'CUSTOMER REVIEWS',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: slate900,
@@ -270,7 +270,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                   children: [
                                     Text(
                                       '4.8',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 40,
                                         fontWeight: FontWeight.w900,
                                         color: slate900,
@@ -289,7 +289,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       '124 reviews',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: slate500,
                                       ),
@@ -342,7 +342,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                         icon: const Icon(Icons.shopping_cart),
                         label: Text(
                           'Add to Cart',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: slate100,
@@ -365,7 +365,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                         icon: const Icon(Icons.handshake),
                         label: Text(
                           'Negotiate Bulk',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
@@ -435,7 +435,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                   children: [
                                     Text(
                                       'Bulk Negotiation',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w700,
                                         color: slate900,
@@ -443,7 +443,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                     ),
                                     Text(
                                       'Submit your best offer for 10+ units',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         color: slate500,
                                       ),
@@ -457,7 +457,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                             // Quantity Field
                             Text(
                               'QUANTITY (MIN. 10)',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: slate400,
@@ -475,12 +475,12 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   hintText: 'Enter quantity',
-                                  hintStyle: GoogleFonts.inter(color: slate400),
+                                  hintStyle: GoogleFonts.plusJakartaSans(color: slate400),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.all(16),
                                 ),
                                 controller: TextEditingController(text: '10'),
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w600,
                                   color: slate900,
                                 ),
@@ -491,7 +491,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                             // Target Price Field
                             Text(
                               'TARGET PRICE (PER UNIT)',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: slate400,
@@ -509,16 +509,16 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   prefixText: '₹ ',
-                                  prefixStyle: GoogleFonts.inter(
+                                  prefixStyle: GoogleFonts.plusJakartaSans(
                                     fontWeight: FontWeight.w700,
                                     color: slate500,
                                   ),
                                   hintText: '38,000',
-                                  hintStyle: GoogleFonts.inter(color: slate400),
+                                  hintStyle: GoogleFonts.plusJakartaSans(color: slate400),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.all(16),
                                 ),
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w600,
                                   color: slate900,
                                 ),
@@ -542,7 +542,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                   Expanded(
                                     child: Text(
                                       'Payments for bulk orders require manual UPI verification by our admins before processing.',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: yellow700,
                                         height: 1.4,
@@ -562,7 +562,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                     onPressed: () => setState(() => _showNegotiationSheet = false),
                                     child: Text(
                                       'Cancel',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
                                         color: slate500,
@@ -588,7 +588,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
                                       ),
                                       child: Text(
                                         'Submit Quotation',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -625,7 +625,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: slate500,
@@ -634,7 +634,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: slate900,
@@ -652,7 +652,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
           width: 20,
           child: Text(
             stars,
-            style: GoogleFonts.inter(fontSize: 12, color: slate600),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: slate600),
           ),
         ),
         Expanded(
@@ -679,7 +679,7 @@ class _ProductNegotiationScreenState extends State<ProductNegotiationScreen> {
           child: Text(
             label,
             textAlign: TextAlign.right,
-            style: GoogleFonts.inter(fontSize: 12, color: slate500),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: slate500),
           ),
         ),
       ],

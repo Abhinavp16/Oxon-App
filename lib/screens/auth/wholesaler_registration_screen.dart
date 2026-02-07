@@ -45,7 +45,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                     Expanded(
                       child: Text(
                         'Wholesaler Registration',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -76,7 +76,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                           children: [
                             Text(
                               'Registration Progress',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                                 color: textDark,
@@ -84,7 +84,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                             ),
                             Text(
                               '1 of 2',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: textDark,
                               ),
@@ -118,7 +118,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                     child: Text(
                       'Business Details',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -132,7 +132,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: Text(
                       'Complete this form to access wholesale pricing and unlock bulk machinery negotiations.',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         color: textDark,
                       ),
@@ -173,7 +173,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                       children: [
                         Text(
                           'Primary Interest',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: textDark,
@@ -193,7 +193,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                               value: _selectedCategory,
                               hint: Text(
                                 'Select category',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   color: textSecondary,
                                 ),
@@ -234,7 +234,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                         ),
                         child: Text(
                           'Next Step',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -249,7 +249,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                     child: Center(
                       child: RichText(
                         text: TextSpan(
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: gray500,
                           ),
@@ -257,7 +257,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
                             const TextSpan(text: 'Already have a wholesale account? '),
                             TextSpan(
                               text: 'Sign in here',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w600,
                                 color: primary,
                               ),
@@ -294,7 +294,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
             children: [
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: textDark,
@@ -303,7 +303,7 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
               if (isOptional)
                 Text(
                   'OPTIONAL',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: gray500,
                   ),
@@ -322,14 +322,14 @@ class _WholesalerRegistrationScreenState extends State<WholesalerRegistrationScr
               keyboardType: keyboardType,
               decoration: InputDecoration(
                 hintText: placeholder,
-                hintStyle: GoogleFonts.inter(
+                hintStyle: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   color: textSecondary,
                 ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(15),
               ),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 color: textDark,
               ),

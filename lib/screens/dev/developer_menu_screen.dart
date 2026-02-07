@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // Import all screens
-import '../home/home_screen.dart';
 import '../home/marketplace_home_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/role_login_screen.dart';
@@ -44,7 +43,7 @@ class DeveloperMenuScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Developer Menu',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
         ),
         backgroundColor: primary,
         foregroundColor: Colors.white,
@@ -60,8 +59,7 @@ class DeveloperMenuScreen extends StatelessWidget {
           ], context),
 
           _buildSection('Home & Marketplace', [
-            _ScreenItem('App Home Screen', const HomeScreen()),
-            _ScreenItem('Marketplace Home', const MarketplaceHomeScreen()),
+            _ScreenItem('Home Screen', const MarketplaceHomeScreen()),
           ], context),
 
           _buildSection('Product Screens', [
@@ -118,7 +116,7 @@ class DeveloperMenuScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Text(
             title.toUpperCase(),
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: Colors.grey[600],
@@ -146,7 +144,7 @@ class DeveloperMenuScreen extends StatelessWidget {
                   ListTile(
                     title: Text(
                       item.name,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/providers/auth_provider.dart';
 
 class AppleLoginScreen extends ConsumerStatefulWidget {
@@ -91,7 +92,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                     Center(
                       child: Text(
                         'Welcome Back',
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 34,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
@@ -103,7 +104,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                     Center(
                       child: Text(
                         'Sign in to continue',
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
                           color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
                         ),
@@ -126,7 +127,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                             Expanded(
                               child: Text(
                                 authState.error!,
-                                style: const TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   color: Color(0xFFFF3B30),
                                   fontSize: 14,
                                 ),
@@ -141,7 +142,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                     // Email Field
                     Text(
                       'Email',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
@@ -153,13 +154,13 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       textInputAction: TextInputAction.next,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? Colors.white : const Color(0xFF1D1D1F),
                       ),
                       decoration: InputDecoration(
                         hintText: 'your@email.com',
-                        hintStyle: TextStyle(
+                        hintStyle: GoogleFonts.plusJakartaSans(
                           color: isDark ? const Color(0xFF48484A) : const Color(0xFFC7C7CC),
                         ),
                         filled: true,
@@ -185,7 +186,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                     // Password Field
                     Text(
                       'Password',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
@@ -197,13 +198,13 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _handleLogin(),
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? Colors.white : const Color(0xFF1D1D1F),
                       ),
                       decoration: InputDecoration(
                         hintText: '••••••••',
-                        hintStyle: TextStyle(
+                        hintStyle: GoogleFonts.plusJakartaSans(
                           color: isDark ? const Color(0xFF48484A) : const Color(0xFFC7C7CC),
                         ),
                         filled: true,
@@ -244,9 +245,9 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Forgot Password?',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF007AFF),
@@ -280,9 +281,9 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Sign In',
-                                style: TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -303,7 +304,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             'or',
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
                             ),
@@ -341,16 +342,16 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                         children: [
                           Text(
                             "Don't have an account? ",
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
                             ),
                           ),
                           GestureDetector(
                             onTap: () => context.push('/signup'),
-                            child: const Text(
+                            child: Text(
                               'Sign Up',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF007AFF),
@@ -398,7 +399,7 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
             const SizedBox(width: 10),
             Text(
               label,
-              style: const TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
               ),

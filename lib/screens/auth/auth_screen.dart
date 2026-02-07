@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../core/providers/auth_provider.dart';
@@ -280,8 +281,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             ),
           ],
         ),
-        child: Icon(
-          _isWholesaler ? Icons.storefront_rounded : Icons.eco_rounded,
+        child: HugeIcon(
+          icon: _isWholesaler ? HugeIcons.strokeRoundedStore01 : HugeIcons.strokeRoundedPlant03,
           color: Colors.white,
           size: 36,
         ),
@@ -348,7 +349,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 20),
+          const HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Color(0xFFDC2626), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -374,7 +375,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
               controller: _nameController,
               label: 'Full Name',
               hint: 'Enter your name',
-              icon: Icons.person_outline_rounded,
+              icon: HugeIcons.strokeRoundedUser,
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
@@ -385,7 +386,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             controller: _phoneController,
             label: 'Phone Number',
             hint: '10-digit mobile number',
-            icon: Icons.phone_outlined,
+            icon: HugeIcons.strokeRoundedCall,
             keyboardType: TextInputType.phone,
             prefix: '+91 ',
             maxLength: 10,
@@ -397,7 +398,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             controller: _passwordController,
             label: 'Password',
             hint: 'Enter your password',
-            icon: Icons.lock_outline_rounded,
+            icon: HugeIcons.strokeRoundedLockPassword,
             isPassword: true,
             obscureText: _obscurePassword,
             onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -410,7 +411,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
               controller: _confirmPasswordController,
               label: 'Confirm Password',
               hint: 'Re-enter your password',
-              icon: Icons.lock_outline_rounded,
+              icon: HugeIcons.strokeRoundedLockPassword,
               isPassword: true,
               obscureText: _obscureConfirmPassword,
               onToggleObscure: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
@@ -424,7 +425,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
               controller: _businessNameController,
               label: 'Business Name',
               hint: 'Your shop or company name',
-              icon: Icons.store_outlined,
+              icon: HugeIcons.strokeRoundedStore01,
               required: false,
             ),
             const SizedBox(height: 16),
@@ -505,13 +506,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppFonts.bodyMedium(color: const Color(0xFFADB5BD)),
-              prefixIcon: Icon(icon, color: _textMuted, size: 22),
+              prefixIcon: HugeIcon(icon: icon, color: _textMuted, size: 22),
               prefixText: prefix,
               prefixStyle: AppFonts.bodyLarge(color: _textDark),
               suffixIcon: isPassword
                   ? IconButton(
-                      icon: Icon(
-                        obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      icon: HugeIcon(
+                        icon: obscureText ? HugeIcons.strokeRoundedViewOff : HugeIcons.strokeRoundedView,
                         color: _textMuted,
                         size: 22,
                       ),
@@ -563,8 +564,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                         : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    _documentFile != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                  child: HugeIcon(
+                    icon: _documentFile != null ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedFileUpload,
                     color: _documentFile != null ? _primaryColor : _textMuted,
                     size: 24,
                   ),
@@ -595,7 +596,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                 ),
                 if (_documentFile != null)
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20),
+                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: Colors.grey, size: 20),
                     onPressed: () => setState(() => _documentFile = null),
                     color: _textMuted,
                   ),

@@ -56,7 +56,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                 // Title
                 Text(
                   'Role-Based Login',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: slate900,
@@ -66,7 +66,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Welcome back, please sign in to continue.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     color: slate500,
                   ),
@@ -115,7 +115,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                                 alignment: Alignment.center,
                                 child: Text(
                                   'Customer',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: !_isWholesaler ? FontWeight.w700 : FontWeight.w500,
                                     color: !_isWholesaler ? primary : slate500,
@@ -132,7 +132,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                                 alignment: Alignment.center,
                                 child: Text(
                                   'Wholesaler',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: _isWholesaler ? FontWeight.w700 : FontWeight.w500,
                                     color: _isWholesaler ? primary : slate500,
@@ -151,7 +151,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                 // Subtext
                 Text(
                   _isWholesaler ? 'BULK DEALS & PRICE NEGOTIATIONS' : 'Direct buying at best prices',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: primary.withOpacity(0.8),
@@ -168,7 +168,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       padding: const EdgeInsets.only(left: 4, bottom: 6),
                       child: Text(
                         'Email Address',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: slate700,
@@ -185,14 +185,14 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       child: TextField(
                         decoration: InputDecoration(
                           hintText: 'name@farmcompany.com',
-                          hintStyle: GoogleFonts.inter(
+                          hintStyle: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: slate400,
                           ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
-                        style: GoogleFonts.inter(fontSize: 14),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14),
                       ),
                     ),
                   ],
@@ -207,7 +207,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       padding: const EdgeInsets.only(left: 4, bottom: 6),
                       child: Text(
                         'Password',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: slate700,
@@ -225,14 +225,14 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                         obscureText: true,
                         decoration: InputDecoration(
                           hintText: '••••••••',
-                          hintStyle: GoogleFonts.inter(
+                          hintStyle: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: slate400,
                           ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
-                        style: GoogleFonts.inter(fontSize: 14),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14),
                       ),
                     ),
                   ],
@@ -244,7 +244,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                   alignment: Alignment.centerRight,
                   child: Text(
                     'Forgot Password?',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: primary,
@@ -270,7 +270,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                     ),
                     child: Text(
                       'Sign In',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -287,7 +287,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'or continue with',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: slate400,
@@ -323,7 +323,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                             const SizedBox(width: 8),
                             Text(
                               'Google',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: slate700,
@@ -355,7 +355,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                             const SizedBox(width: 8),
                             Text(
                               'Apple',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: slate700,
@@ -372,7 +372,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                 // Create Account Link
                 RichText(
                   text: TextSpan(
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       color: slate500,
                     ),
@@ -380,7 +380,7 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       const TextSpan(text: "Don't have an account? "),
                       TextSpan(
                         text: 'Create Account',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w700,
                           color: primary,
                         ),

@@ -49,7 +49,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     Expanded(
                       child: Text(
                         'Edit Product',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -83,7 +83,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       children: [
                         Text(
                           'Product Images',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: textDark,
@@ -92,7 +92,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         ),
                         Text(
                           'Drag to reorder',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: gray500,
@@ -132,7 +132,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Add more images',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: textDark,
@@ -151,7 +151,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       'General Information',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -197,7 +197,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                             children: [
                               Text(
                                 'Active Status',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: textDark,
@@ -205,7 +205,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                               ),
                               Text(
                                 'Visible to customers in marketplace',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   color: gray500,
                                 ),
@@ -234,7 +234,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Last Updated: October 24, 2023 at 2:15 PM',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: gray500,
                           ),
@@ -273,7 +273,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
               ),
               child: Text(
                 'Update Changes',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -350,7 +350,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: textDark,
@@ -368,7 +368,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
               controller: TextEditingController(text: initialValue),
               decoration: InputDecoration(
                 prefixText: prefix != null ? '$prefix ' : null,
-                prefixStyle: GoogleFonts.inter(color: gray500),
+                prefixStyle: GoogleFonts.plusJakartaSans(color: gray500),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.only(
                   left: prefix != null ? 32 : 15,
@@ -377,7 +377,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   bottom: 15,
                 ),
               ),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 color: textDark,
               ),
@@ -399,7 +399,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: textDark,
@@ -421,7 +421,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(15),
               ),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 color: textDark,
               ),

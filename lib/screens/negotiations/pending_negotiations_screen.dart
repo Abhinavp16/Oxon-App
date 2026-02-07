@@ -57,7 +57,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                       child: Text(
                         'Pending Negotiations',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -104,7 +104,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                       children: [
                         Text(
                           'Active Requests',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: textDark,
@@ -114,7 +114,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                         const SizedBox(height: 4),
                         Text(
                           'Review 3 bulk purchase proposals',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: gray500,
                           ),
@@ -170,7 +170,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                       children: [
                                         Text(
                                           'REQ-8291',
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: primary,
@@ -180,7 +180,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                         const SizedBox(height: 4),
                                         Text(
                                           'Wholesale Farm Equipment Co.',
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 18,
                                             fontWeight: FontWeight.w700,
                                             color: textDark,
@@ -196,7 +196,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                       ),
                                       child: Text(
                                         'PENDING REVIEW',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                           color: yellow700,
@@ -210,7 +210,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                 // Product info
                                 Text(
                                   '15x Industrial Harvesters - Gen 4',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: Color(0xFF4b5563),
@@ -221,7 +221,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                   children: [
                                     Text(
                                       '\$1,400,000',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: gray400,
                                         decoration: TextDecoration.lineThrough,
@@ -230,7 +230,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                     const SizedBox(width: 8),
                                     Text(
                                       'Proposed: \$1,250,000',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
                                         color: textDark,
@@ -252,7 +252,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                     children: [
                                       Text(
                                         'NEGOTIATION HISTORY',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                           color: gray400,
@@ -287,7 +287,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                             children: [
                                               Text(
                                                 'Quote requested',
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600,
                                                   color: textDark,
@@ -295,7 +295,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                               ),
                                               Text(
                                                 'Oct 12, 10:30 AM',
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
                                                   color: gray500,
                                                 ),
@@ -322,7 +322,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                             children: [
                                               Text(
                                                 'Price Counter-proposal',
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600,
                                                   color: primary,
@@ -330,7 +330,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                               ),
                                               RichText(
                                                 text: TextSpan(
-                                                  style: GoogleFonts.inter(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 10,
                                                     color: gray500,
                                                   ),
@@ -338,7 +338,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                                     const TextSpan(text: 'Oct 14, 02:15 PM • '),
                                                     TextSpan(
                                                       text: 'Wholesaler',
-                                                      style: GoogleFonts.inter(
+                                                      style: GoogleFonts.plusJakartaSans(
                                                         fontSize: 10,
                                                         fontWeight: FontWeight.w700,
                                                         color: gray500,
@@ -374,7 +374,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                           ),
                                           child: Text(
                                             'Accept',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -398,7 +398,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                           ),
                                           child: Text(
                                             'Counter-offer',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -423,7 +423,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                     ),
                                     child: Text(
                                       'Reject',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -469,7 +469,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                   children: [
                                     Text(
                                       'REQ-8295',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         color: primary,
@@ -479,7 +479,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       'Agro-Logistics North',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
                                         color: textDark,
@@ -495,7 +495,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                   ),
                                   child: Text(
                                     'URGENT',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                       color: blue700,
@@ -509,7 +509,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                             // Product info
                             Text(
                               '8x Multi-Terrain Tractors',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFF4b5563),
@@ -518,7 +518,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                             const SizedBox(height: 4),
                             Text(
                               'Proposed: \$640,000',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: textDark,
@@ -542,7 +542,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
                                 ),
                                 child: Text(
                                   'Review Proposal',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -604,7 +604,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: isSelected ? primary : gray500,
@@ -631,7 +631,7 @@ class _PendingNegotiationsScreenState extends State<PendingNegotiationsScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w500,
               color: isSelected ? primary : gray400,

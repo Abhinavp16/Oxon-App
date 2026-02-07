@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Title
                   Text(
                     'Role-Based Login',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
                       color: slate900,
@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Welcome back, please sign in to continue.',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       color: slate500,
                     ),
@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         alignment: Alignment.center,
                                         child: Text(
                                           'Customer',
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: _isCustomer ? FontWeight.w700 : FontWeight.w500,
                                             color: _isCustomer ? primary : slate500,
@@ -175,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         alignment: Alignment.center,
                                         child: Text(
                                           'Wholesaler',
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: !_isCustomer ? FontWeight.w700 : FontWeight.w500,
                                             color: !_isCustomer ? primary : slate500,
@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 12),
                         Text(
                           _isCustomer ? 'DIRECT BUYING AT BEST PRICES' : 'BULK DEALS & NEGOTIATIONS',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: primary.withOpacity(0.8),
@@ -217,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               padding: const EdgeInsets.only(left: 4, bottom: 6),
                               child: Text(
                                 'Email Address',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: slate700,
@@ -227,10 +227,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              style: GoogleFonts.inter(fontSize: 14),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: 'name@farmcompany.com',
-                                hintStyle: GoogleFonts.inter(
+                                hintStyle: GoogleFonts.plusJakartaSans(
                                   color: slate400,
                                   fontSize: 14,
                                 ),
@@ -263,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               padding: const EdgeInsets.only(left: 4, bottom: 6),
                               child: Text(
                                 'Password',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: slate700,
@@ -273,10 +273,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextField(
                               controller: _passwordController,
                               obscureText: true,
-                              style: GoogleFonts.inter(fontSize: 14),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: '••••••••',
-                                hintStyle: GoogleFonts.inter(
+                                hintStyle: GoogleFonts.plusJakartaSans(
                                   color: slate400,
                                   fontSize: 14,
                                 ),
@@ -311,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: Text(
                               'Forgot Password?',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: primary,
@@ -338,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: Text(
                               'Sign In',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -355,7 +355,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
                                 'or continue with',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: slate400,
@@ -393,7 +393,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       const SizedBox(width: 8),
                                       Text(
                                         'Google',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: slate700,
@@ -428,7 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       const SizedBox(width: 8),
                                       Text(
                                         'Apple',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: slate700,
@@ -449,7 +449,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Text(
                               "Don't have an account?",
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: slate500,
                               ),
@@ -461,7 +461,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               child: Text(
                                 'Create Account',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: primary,

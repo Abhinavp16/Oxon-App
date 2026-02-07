@@ -42,7 +42,7 @@ class CounterOfferScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Create Counter-offer',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -72,7 +72,7 @@ class CounterOfferScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       'Original Request',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -128,14 +128,14 @@ class CounterOfferScreen extends StatelessWidget {
                             children: [
                               Text(
                                 'Retail Price',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   color: textSecondary,
                                 ),
                               ),
                               Text(
                                 '₹95,000 / unit',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: textDark,
@@ -164,7 +164,7 @@ class CounterOfferScreen extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             'Bid is 15.8% below retail price',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
                               color: textSecondary,
@@ -180,7 +180,7 @@ class CounterOfferScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                     child: Text(
                       'Proposed Counter-offer',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -209,7 +209,7 @@ class CounterOfferScreen extends StatelessWidget {
                         children: [
                           Text(
                             'New Counter Price (per unit)',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: textSecondary,
@@ -226,15 +226,15 @@ class CounterOfferScreen extends StatelessWidget {
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
                                 prefixText: '₹ ',
-                                prefixStyle: GoogleFonts.inter(
+                                prefixStyle: GoogleFonts.plusJakartaSans(
                                   color: Color(0xFF6b7280),
                                 ),
                                 hintText: '85,000',
-                                hintStyle: GoogleFonts.inter(color: textSecondary),
+                                hintStyle: GoogleFonts.plusJakartaSans(color: textSecondary),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w700,
                                 color: textDark,
                               ),
@@ -258,7 +258,7 @@ class CounterOfferScreen extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     Text(
                                       'PROFIT MARGIN IMPACT',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: green700,
@@ -269,7 +269,7 @@ class CounterOfferScreen extends StatelessWidget {
                                 ),
                                 Text(
                                   '+6.25% vs Bid',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                     color: green700,
@@ -303,7 +303,7 @@ class CounterOfferScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Message to Buyer',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: textSecondary,
@@ -322,14 +322,14 @@ class CounterOfferScreen extends StatelessWidget {
                               expands: true,
                               decoration: InputDecoration(
                                 hintText: 'Explain the reason for this counter-offer (e.g., freight costs, seasonal demand)...',
-                                hintStyle: GoogleFonts.inter(
+                                hintStyle: GoogleFonts.plusJakartaSans(
                                   color: textSecondary,
                                   fontSize: 14,
                                 ),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.all(12),
                               ),
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 color: textDark,
                                 fontSize: 14,
                               ),
@@ -370,7 +370,7 @@ class CounterOfferScreen extends StatelessWidget {
                       ),
                       child: Text(
                         'Send Counter-offer',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -392,7 +392,7 @@ class CounterOfferScreen extends StatelessWidget {
                       ),
                       child: Text(
                         'Save Draft',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -421,14 +421,14 @@ class CounterOfferScreen extends StatelessWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               color: textSecondary,
             ),
           ),
           Text(
             value,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: textDark,

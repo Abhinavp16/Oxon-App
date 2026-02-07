@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -50,9 +51,9 @@ class _CartScreenState extends State<CartScreen> {
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
         ),
-        title: const Text(
+        title: Text(
           'Shopping Cart',
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -101,9 +102,9 @@ class _CartScreenState extends State<CartScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Price Summary',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -122,9 +123,9 @@ class _CartScreenState extends State<CartScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Grand Total',
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -132,7 +133,7 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                       Text(
                         '\$${_grandTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -155,16 +156,16 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
                             'Proceed to Checkout',
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.chevron_right, size: 20),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right, size: 20),
                         ],
                       ),
                     ),
@@ -210,7 +211,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Text(
                   item['name'],
-                  style: const TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -219,7 +220,7 @@ class _CartScreenState extends State<CartScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '\$${item['price'].toStringAsFixed(2)}',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textSecondary,
@@ -246,9 +247,9 @@ class _CartScreenState extends State<CartScreen> {
                     width: 32,
                     height: 32,
                     alignment: Alignment.center,
-                    child: const Text(
+                    child: Text(
                       '-',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -260,7 +261,7 @@ class _CartScreenState extends State<CartScreen> {
                   alignment: Alignment.center,
                   child: Text(
                     '${item['quantity']}',
-                    style: const TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -274,9 +275,9 @@ class _CartScreenState extends State<CartScreen> {
                     width: 32,
                     height: 32,
                     alignment: Alignment.center,
-                    child: const Text(
+                    child: Text(
                       '+',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -297,14 +298,14 @@ class _CartScreenState extends State<CartScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: AppColors.textSecondary,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: valueColor ?? AppColors.textPrimary,

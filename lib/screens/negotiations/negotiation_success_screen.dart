@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -37,9 +38,9 @@ class NegotiationSuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Deal Accepted!',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -49,7 +50,7 @@ class NegotiationSuccessScreen extends StatelessWidget {
               Text(
                 'Congratulations! Your negotiation has been\nsuccessfully completed.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   color: AppColors.textSecondary,
                   height: 1.5,
@@ -92,9 +93,9 @@ class NegotiationSuccessScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Proceed to Payment',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -114,9 +115,9 @@ class NegotiationSuccessScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Back to Home',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -136,14 +137,14 @@ class NegotiationSuccessScreen extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: AppColors.textSecondary,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: valueColor ?? AppColors.textPrimary,

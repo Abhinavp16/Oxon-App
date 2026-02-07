@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -42,9 +43,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
         ),
-        title: const Text(
+        title: Text(
           'Payment Verification',
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -58,9 +59,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           children: [
             const SizedBox(height: 24),
             // Header
-            const Text(
+            Text(
               'Transfer via UPI',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -70,7 +71,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 8),
             Text(
               'Transfer the exact amount to the ID below',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: AppColors.textSecondary,
               ),
@@ -96,7 +97,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 children: [
                   Text(
                     'Order Total',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
@@ -105,7 +106,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 8),
                   Text(
                     '₹${_formatPrice(_orderTotal)}',
-                    style: const TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -117,7 +118,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 24),
                   Text(
                     'ADMIN UPI ID',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
@@ -137,10 +138,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       children: [
                         Text(
                           _upiId,
-                          style: const TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            fontFamily: 'monospace',
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -152,7 +152,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               const SizedBox(width: 4),
                               Text(
                                 'Copy',
-                                style: TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.primary,
@@ -174,7 +174,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Quick Pay via App',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -198,7 +198,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Upload Proof',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -210,7 +210,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Upload a screenshot of your successful transaction for verification',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                 ),
@@ -245,9 +245,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Select Screenshot',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -256,7 +256,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'PNG, JPG or PDF (Max 5MB)',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
@@ -291,9 +291,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Submit for Verification',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -304,7 +304,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Text(
                 'Verification usually takes 30-60 minutes during business hours.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   color: AppColors.textSecondary,
                 ),
@@ -332,7 +332,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(width: 8),
             Text(
               name,
-              style: const TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,

@@ -53,7 +53,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                       child: Text(
                         'Dispatch Management',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: gray900,
@@ -99,7 +99,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                         ),
                         child: Text(
                           _tabs[index],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: isSelected ? primary : gray500,
@@ -126,7 +126,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       'Verified Orders',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: gray900,
@@ -170,7 +170,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                     ),
                                     child: Text(
                                       'PAID',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         color: green700,
@@ -180,7 +180,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Order #AG-8821',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                       color: gray900,
@@ -188,7 +188,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                   ),
                                   Text(
                                     'Buyer: John Deere Farming Ltd.',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       color: gray500,
                                     ),
@@ -224,7 +224,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                   children: [
                                     Text(
                                       'Harvesting Combine X9',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                         color: gray900,
@@ -232,7 +232,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                     ),
                                     Text(
                                       'Quantity: 2 units',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: gray500,
                                       ),
@@ -255,7 +255,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                               children: [
                                 Text(
                                   'SHIPPING DETAILS',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: gray500,
@@ -271,7 +271,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                         children: [
                                           Text(
                                             'COURIER NAME',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 10,
                                               color: gray400,
                                             ),
@@ -285,14 +285,14 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                             child: TextField(
                                               decoration: InputDecoration(
                                                 hintText: 'e.g. FedEx',
-                                                hintStyle: GoogleFonts.inter(
+                                                hintStyle: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   color: gray400,
                                                 ),
                                                 border: InputBorder.none,
                                                 contentPadding: const EdgeInsets.all(8),
                                               ),
-                                              style: GoogleFonts.inter(fontSize: 14),
+                                              style: GoogleFonts.plusJakartaSans(fontSize: 14),
                                             ),
                                           ),
                                         ],
@@ -305,7 +305,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                         children: [
                                           Text(
                                             'TRACKING ID',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 10,
                                               color: gray400,
                                             ),
@@ -319,14 +319,14 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                             child: TextField(
                                               decoration: InputDecoration(
                                                 hintText: 'TRK-00219',
-                                                hintStyle: GoogleFonts.inter(
+                                                hintStyle: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   color: gray400,
                                                 ),
                                                 border: InputBorder.none,
                                                 contentPadding: const EdgeInsets.all(8),
                                               ),
-                                              style: GoogleFonts.inter(fontSize: 14),
+                                              style: GoogleFonts.plusJakartaSans(fontSize: 14),
                                             ),
                                           ),
                                         ],
@@ -343,7 +343,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                                     icon: const Icon(Icons.local_shipping, size: 16),
                                     label: Text(
                                       'Mark as Dispatched',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -372,7 +372,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: Text(
                       'Other Pending',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: gray900,
@@ -464,7 +464,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                     ),
                     child: Text(
                       'PAID',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: green700,
@@ -474,7 +474,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                   const SizedBox(height: 4),
                   Text(
                     orderId,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: gray900,
@@ -482,7 +482,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                   ),
                   Text(
                     buyer,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       color: gray500,
                     ),
@@ -495,7 +495,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                       Expanded(
                         child: Text(
                           product,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: Color(0xFF4b5563),
                           ),
@@ -517,7 +517,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Dispatch',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: primary,
@@ -555,7 +555,7 @@ class _DispatchManagementScreenState extends State<DispatchManagementScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               color: isSelected ? primary : gray400,
             ),

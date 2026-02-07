@@ -34,7 +34,7 @@ class UpiPaymentScreen extends StatelessWidget {
                     child: Text(
                       'Payment Verification',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -62,7 +62,7 @@ class UpiPaymentScreen extends StatelessWidget {
                         Text(
                           'Transfer via UPI',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: textDark,
@@ -73,7 +73,7 @@ class UpiPaymentScreen extends StatelessWidget {
                         Text(
                           'Transfer the exact amount to the ID below',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: textSecondary,
                           ),
@@ -104,7 +104,7 @@ class UpiPaymentScreen extends StatelessWidget {
                           // Order Total
                           Text(
                             'Order Total',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: textSecondary,
@@ -113,7 +113,7 @@ class UpiPaymentScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             '₹4,85,500',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 30,
                               fontWeight: FontWeight.w800,
                               color: textDark,
@@ -132,7 +132,7 @@ class UpiPaymentScreen extends StatelessWidget {
                             children: [
                               Text(
                                 'ADMIN UPI ID',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: textSecondary,
@@ -170,7 +170,7 @@ class UpiPaymentScreen extends StatelessWidget {
                                           const SizedBox(width: 4),
                                           Text(
                                             'Copy',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                               color: primary,
@@ -194,7 +194,7 @@ class UpiPaymentScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 8),
                     child: Text(
                       'Quick Pay via App',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -222,7 +222,7 @@ class UpiPaymentScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                     child: Text(
                       'Upload Proof',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -234,7 +234,7 @@ class UpiPaymentScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: Text(
                       'Upload a screenshot of your successful transaction for verification',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         color: textSecondary,
                       ),
@@ -273,7 +273,7 @@ class UpiPaymentScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           Text(
                             'Select Screenshot',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: textDark,
@@ -282,7 +282,7 @@ class UpiPaymentScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             'PNG, JPG or PDF (Max 5MB)',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: textSecondary,
                             ),
@@ -322,7 +322,7 @@ class UpiPaymentScreen extends StatelessWidget {
                       ),
                       child: Text(
                         'Submit for Verification',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -333,7 +333,7 @@ class UpiPaymentScreen extends StatelessWidget {
                   Text(
                     'Verification usually takes 30-60 minutes during business hours.',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       color: textSecondary,
                       height: 1.5,
@@ -364,7 +364,7 @@ class UpiPaymentScreen extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: textDark,

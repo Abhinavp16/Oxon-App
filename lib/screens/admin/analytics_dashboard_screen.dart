@@ -68,7 +68,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     const SizedBox(width: 12),
                     Text(
                       'Admin Dashboard',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -155,7 +155,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: Text(
                       'Demand Intelligence',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -192,7 +192,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                                 children: [
                                   Text(
                                     'Views vs. Stock Levels',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                       color: gray500,
@@ -200,7 +200,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                                   ),
                                   Text(
                                     '850 avg views',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 28,
                                       fontWeight: FontWeight.w700,
                                       color: textDark,
@@ -217,7 +217,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                                 ),
                                 child: Text(
                                   'LIVE',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: primary,
@@ -231,7 +231,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                             children: [
                               Text(
                                 'Last 30 days',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   color: gray500,
                                 ),
@@ -239,7 +239,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 '+15%',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: green600,
@@ -273,7 +273,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                     child: Text(
                       'Critical Alerts',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -394,7 +394,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               Expanded(
                 child: Text(
                   label.toUpperCase(),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: gray500,
@@ -408,7 +408,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               color: textDark,
@@ -426,7 +426,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               const SizedBox(width: 4),
               Text(
                 change,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: changeColor,
@@ -467,7 +467,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             const SizedBox(height: 8),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: gray500,
@@ -520,7 +520,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: titleColor,
@@ -529,7 +529,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 ),
                 RichText(
                   text: TextSpan(
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: subtitleColor,
                     ),
@@ -559,7 +559,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
             child: Text(
               buttonText,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -580,7 +580,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? primary : gray400,

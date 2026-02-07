@@ -50,7 +50,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                       child: Text(
                         'Wholesale Details',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: slate900,
@@ -147,7 +147,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                               ),
                               child: Text(
                                 'TOP RATED',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: blue700,
@@ -164,7 +164,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                               ),
                               child: Text(
                                 'WHOLESALE ONLY',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -179,7 +179,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                         // Title
                         Text(
                           'Multi-Crop Power Tiller',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF111827),
@@ -190,7 +190,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                         // Price
                         Text(
                           'Wholesale Price: Negotiable',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: primary,
@@ -199,7 +199,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           'Minimum Order Quantity: 5 Units',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: slate500,
                           ),
@@ -220,7 +220,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                       children: [
                         Text(
                           'KEY SPECIFICATIONS',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: slate500,
@@ -259,7 +259,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                             children: [
                               Text(
                                 'The Multi-Crop Power Tiller is a robust and versatile machine designed for modern agriculture. Equipped with a heavy-duty 7HP petrol engine, it provides exceptional power-to-weight ratio for tilling, weeding, and soil preparation across diverse terrains.',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   color: slate600,
                                   height: 1.6,
@@ -284,7 +284,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                               const SizedBox(width: 4),
                               Text(
                                 '4.9',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF111827),
@@ -318,7 +318,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                 Icon(Icons.chat, color: primary),
                 Text(
                   'EXPERT HELP',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: primary,
@@ -335,7 +335,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                   icon: Icon(Icons.handshake, size: 18),
                   label: Text(
                     'Initiate Negotiation',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -373,7 +373,7 @@ class WholesaleDetailScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF111827),
@@ -405,7 +405,7 @@ class WholesaleDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: expanded ? 18 : 16,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF111827),
@@ -439,7 +439,7 @@ class WholesaleDetailScreen extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               color: slate600,
             ),

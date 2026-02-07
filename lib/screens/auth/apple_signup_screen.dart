@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/providers/auth_provider.dart';
 
 class AppleSignupScreen extends ConsumerStatefulWidget {
@@ -97,7 +98,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                     // Title
                     Text(
                       'Create Account',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 34,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.5,
@@ -107,7 +108,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Join AgriMart today',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
                       ),
@@ -129,7 +130,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                             Expanded(
                               child: Text(
                                 authState.error!,
-                                style: const TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   color: Color(0xFFFF3B30),
                                   fontSize: 14,
                                 ),
@@ -149,7 +150,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                       keyboardType: TextInputType.name,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? Colors.white : const Color(0xFF1D1D1F),
                       ),
@@ -174,7 +175,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       textInputAction: TextInputAction.next,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? Colors.white : const Color(0xFF1D1D1F),
                       ),
@@ -198,7 +199,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.next,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? Colors.white : const Color(0xFF1D1D1F),
                       ),
@@ -232,7 +233,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                       obscureText: _obscureConfirmPassword,
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _handleSignup(),
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? Colors.white : const Color(0xFF1D1D1F),
                       ),
@@ -284,21 +285,21 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                             onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
                             child: RichText(
                               text: TextSpan(
-                                style: TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
                                   height: 1.4,
                                 ),
-                                children: const [
-                                  TextSpan(text: 'I agree to the '),
+                                children: [
+                                  const TextSpan(text: 'I agree to the '),
                                   TextSpan(
                                     text: 'Terms of Service',
-                                    style: TextStyle(color: Color(0xFF007AFF)),
+                                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF007AFF)),
                                   ),
-                                  TextSpan(text: ' and '),
+                                  const TextSpan(text: ' and '),
                                   TextSpan(
                                     text: 'Privacy Policy',
-                                    style: TextStyle(color: Color(0xFF007AFF)),
+                                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF007AFF)),
                                   ),
                                 ],
                               ),
@@ -333,9 +334,9 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Create Account',
-                                style: TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -351,16 +352,16 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                         children: [
                           Text(
                             'Already have an account? ',
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
                             ),
                           ),
                           GestureDetector(
                             onTap: () => context.pop(),
-                            child: const Text(
+                            child: Text(
                               'Sign In',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF007AFF),
@@ -384,7 +385,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
   Widget _buildLabel(String text, bool isDark) {
     return Text(
       text,
-      style: TextStyle(
+      style: GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
@@ -395,7 +396,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
   InputDecoration _buildInputDecoration(String hint, bool isDark) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(
+      hintStyle: GoogleFonts.plusJakartaSans(
         color: isDark ? const Color(0xFF48484A) : const Color(0xFFC7C7CC),
       ),
       filled: true,

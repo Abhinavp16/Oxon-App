@@ -59,7 +59,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                   ),
                   title: Text(
                     'Wholesale Details',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: gray900,
@@ -151,7 +151,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                               ),
                               child: Text(
                                 'TOP RATED',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: blue700,
@@ -168,7 +168,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                               ),
                               child: Text(
                                 'WHOLESALE ONLY',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -183,7 +183,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                         // Title
                         Text(
                           'Multi-Crop Power Tiller',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: gray900,
@@ -195,7 +195,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                         // Price
                         Text(
                           'Wholesale Price: Negotiable',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: primary,
@@ -204,7 +204,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                         const SizedBox(height: 4),
                         Text(
                           'Minimum Order Quantity: 5 Units',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: gray500,
                           ),
@@ -227,7 +227,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                       children: [
                         Text(
                           'KEY SPECIFICATIONS',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: gray500,
@@ -272,7 +272,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                               children: [
                                 Text(
                                   'Product Description',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                     color: gray900,
@@ -296,7 +296,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                               children: [
                                 Text(
                                   'The Multi-Crop Power Tiller is a robust and versatile machine designed for modern agriculture. Equipped with a heavy-duty 7HP petrol engine, it provides exceptional power-to-weight ratio for tilling, weeding, and soil preparation across diverse terrains.',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     color: gray600,
                                     height: 1.6,
@@ -321,7 +321,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                             children: [
                               Text(
                                 'Wholesale Logistics',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: gray900,
@@ -343,7 +343,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                             children: [
                               Text(
                                 'Bulk Order Reviews',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: gray900,
@@ -355,7 +355,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                                   const SizedBox(width: 4),
                                   Text(
                                     '4.9',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: gray900,
@@ -395,7 +395,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                     const SizedBox(height: 4),
                     Text(
                       'EXPERT HELP',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                         color: primary,
@@ -426,7 +426,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
                           const SizedBox(width: 8),
                           Text(
                             'Initiate Negotiation',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
@@ -459,7 +459,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
             const SizedBox(height: 4),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: gray900,
@@ -483,7 +483,7 @@ class _WholesaleProductDetailScreenState extends State<WholesaleProductDetailScr
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: gray600,
               ),

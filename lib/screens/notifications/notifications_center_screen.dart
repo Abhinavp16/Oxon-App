@@ -52,7 +52,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                       child: Text(
                         'Notifications',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -81,7 +81,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       'TODAY',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: gray500,
@@ -119,7 +119,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                     child: Text(
                       'EARLIER',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: gray500,
@@ -244,7 +244,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -252,7 +252,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                       ),
                       Text(
                         time,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           color: gray400,
                         ),
@@ -264,7 +264,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                   // Description
                   RichText(
                     text: TextSpan(
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         color: gray600,
                         height: 1.5,
@@ -289,7 +289,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                       children: [
                         Text(
                           actionText,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: primary,
@@ -323,7 +323,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                   color: isSelected ? primary : gray400,

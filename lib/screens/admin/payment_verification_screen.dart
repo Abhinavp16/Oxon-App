@@ -51,7 +51,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                     Expanded(
                       child: Text(
                         'Payment Verification',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -94,7 +94,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                       child: Text(
                         _tabs[index],
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: isSelected ? primary : textSecondary,
@@ -118,7 +118,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                   // Section Header
                   Text(
                     'Verification Details',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: textDark,
@@ -153,14 +153,14 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                               children: [
                                 Text(
                                   'Now',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     color: textSecondary,
                                   ),
                                 ),
                                 Text(
                                   'Buyer: GreenFields Agri',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color: textDark,
@@ -176,7 +176,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                               ),
                               child: Text(
                                 'REVIEWING',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: yellow700,
@@ -214,7 +214,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                                 opacity: 0.6,
                                 child: Text(
                                   'TRANSACTION RECORDED',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                     color: textDark,
@@ -244,7 +244,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                         // Flag Issues
                         Text(
                           'Flag Issues (Optional)',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: textDark,
@@ -273,7 +273,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                                   icon: const Icon(Icons.check_circle, size: 18),
                                   label: Text(
                                     'Approve Payment',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -297,7 +297,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                                   icon: Icon(Icons.cancel, size: 18, color: red600),
                                   label: Text(
                                     'Reject',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: red600,
@@ -323,7 +323,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                   // Other Pending Header
                   Text(
                     'Other Pending',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: textDark,
@@ -365,7 +365,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: FontWeight.w500,
             color: textSecondary,
@@ -373,7 +373,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
         ),
         Text(
           value,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: textDark,
@@ -393,7 +393,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: Color(0xFF4b5563),
@@ -431,14 +431,14 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
               children: [
                 Text(
                   time,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: textSecondary,
                   ),
                 ),
                 Text(
                   buyer,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: textDark,
@@ -447,7 +447,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                 ),
                 Text(
                   '$orderId | $amount',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: textSecondary,
                   ),
@@ -464,7 +464,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
                     children: [
                       Text(
                         'Review',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: textDark,

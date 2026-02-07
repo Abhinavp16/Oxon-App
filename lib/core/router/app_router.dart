@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../screens/splash/splash_screen.dart';
-import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/auth/role_login_screen.dart';
 import '../../screens/auth/wholesaler_registration_screen.dart';
-import '../../screens/auth/apple_login_screen.dart';
 import '../../screens/auth/apple_signup_screen.dart';
 import '../../screens/auth/auth_screen.dart';
-import '../../screens/home/home_screen.dart';
 import '../../screens/home/marketplace_home_screen.dart';
 import '../../screens/product/product_detail_screen.dart';
 import '../../screens/product/product_negotiation_screen.dart';
@@ -40,7 +36,6 @@ import '../../screens/inventory/inventory_management_screen.dart';
 import '../../screens/admin/analytics_dashboard_screen.dart';
 import '../../screens/admin/payment_verification_screen.dart';
 import '../../screens/dev/developer_menu_screen.dart';
-import '../providers/auth_provider.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -85,13 +80,21 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final initialTab = extra?['tab'] as int?;
+        return MarketplaceHomeScreen(initialTab: initialTab);
+      },
     ),
     GoRoute(
       path: '/product/:id',
-      builder: (context, state) => ProductDetailScreen(
-        productId: state.pathParameters['id'] ?? '',
-      ),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return ProductDetailScreen(
+          productId: state.pathParameters['id'] ?? '',
+          heroTag: extra?['heroTag']?.toString(),
+        );
+      },
     ),
     GoRoute(
       path: '/cart',
@@ -147,11 +150,7 @@ final appRouter = GoRouter(
       path: '/wholesaler-registration',
       builder: (context, state) => const WholesalerRegistrationScreen(),
     ),
-    GoRoute(
-      path: '/marketplace',
-      builder: (context, state) => const MarketplaceHomeScreen(),
-    ),
-    GoRoute(
+        GoRoute(
       path: '/product-negotiation',
       builder: (context, state) => const ProductNegotiationScreen(),
     ),

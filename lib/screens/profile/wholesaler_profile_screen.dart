@@ -53,7 +53,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                       child: Text(
                         'Wholesaler Profile',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: slate900,
@@ -128,7 +128,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                         // Company Name
                         Text(
                           'AgriMech Solutions Ltd.',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: slate900,
@@ -143,7 +143,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                           children: [
                             Text(
                               'Verified Wholesaler',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: primary,
@@ -155,7 +155,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                             ),
                             Text(
                               'Member since 2018',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: slate500,
                               ),
@@ -185,7 +185,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                                 const SizedBox(width: 8),
                                 Text(
                                   'Switch to Retail View',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.5,
@@ -230,7 +230,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                             child: Text(
                               'BUSINESS MANAGEMENT',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: slate900,
@@ -281,7 +281,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                             child: Text(
                               'SUPPORT',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: slate900,
@@ -360,7 +360,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
           children: [
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: slate500,
@@ -370,7 +370,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: valueColor,
@@ -412,7 +412,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
           Expanded(
             child: Text(
               title,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: titleColor != null ? FontWeight.w600 : FontWeight.w500,
                 color: titleColor ?? slate900,
@@ -436,7 +436,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: isSelected ? primary : slate400,

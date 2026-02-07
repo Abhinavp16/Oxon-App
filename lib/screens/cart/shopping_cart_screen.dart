@@ -76,7 +76,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                       child: Text(
                         'Shopping Cart',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: slate900,
@@ -130,7 +130,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                   children: [
                     Text(
                       'Price Summary',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: slate900,
@@ -160,7 +160,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                       children: [
                         Text(
                           'Grand Total',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: slate900,
@@ -168,7 +168,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                         ),
                         Text(
                           '\$${_grandTotal.toStringAsFixed(2)}',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: primary,
@@ -197,7 +197,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                           children: [
                             Text(
                               'Proceed to Checkout',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -256,7 +256,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
               children: [
                 Text(
                   item['name'],
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: slate900,
@@ -266,7 +266,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '\$${item['price'].toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: slate500,
@@ -295,7 +295,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                   child: Center(
                     child: Text(
                       '-',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: slate900,
@@ -309,7 +309,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                 alignment: Alignment.center,
                 child: Text(
                   '${item['quantity']}',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: slate900,
@@ -330,7 +330,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                   child: Center(
                     child: Text(
                       '+',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: slate900,
@@ -352,7 +352,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w400,
             color: labelColor,
@@ -360,7 +360,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
         ),
         Text(
           value,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: valueColor,

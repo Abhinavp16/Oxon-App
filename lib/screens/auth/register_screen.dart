@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -31,9 +32,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Create Account',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -42,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 8),
               Text(
                 'Join AgriMart to access wholesale agricultural equipment',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                 ),
@@ -50,9 +51,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 32),
 
               // Account Type
-              const Text(
+              Text(
                 'Account Type',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppColors.gray700,
@@ -83,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 8),
                             Text(
                               'Customer',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w600,
                                 color: !_isWholesaler ? AppColors.primary : AppColors.textPrimary,
                               ),
@@ -116,7 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 8),
                             Text(
                               'Wholesaler',
-                              style: TextStyle(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w600,
                                 color: _isWholesaler ? AppColors.primary : AppColors.textPrimary,
                               ),
@@ -151,9 +152,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               if (_isWholesaler) ...[
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Business Information',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -184,13 +185,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Text(
                     'Already have an account?',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
                   ),
                   TextButton(
                     onPressed: () => context.pop(),
-                    child: const Text(
+                    child: Text(
                       'Sign In',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
                       ),
@@ -211,7 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: AppColors.gray700,

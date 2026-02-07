@@ -57,7 +57,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                     Expanded(
                       child: Text(
                         'Inventory Management',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -150,7 +150,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                             child: TextField(
                               decoration: InputDecoration(
                                 hintText: 'Search machines (e.g. Tractors, Harvesters)',
-                                hintStyle: GoogleFonts.inter(
+                                hintStyle: GoogleFonts.plusJakartaSans(
                                   color: textSecondary,
                                   fontSize: 16,
                                 ),
@@ -188,7 +188,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                               ),
                               child: Text(
                                 _tabs[index],
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: isSelected ? primary : textSecondary,
@@ -329,7 +329,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
         children: [
           Text(
             label.toUpperCase(),
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: textSecondary,
@@ -339,7 +339,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: textDark,
@@ -353,7 +353,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
               Expanded(
                 child: Text(
                   subtitle,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: subtitleColor,
                   ),
@@ -430,7 +430,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                       Flexible(
                         child: Text(
                           name,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: textDark,
@@ -455,7 +455,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                               ],
                               Text(
                                 badge.toUpperCase(),
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: badgeTextColor,
@@ -470,7 +470,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Status: $status',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: statusColor,
@@ -478,7 +478,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                   ),
                   Text(
                     'Stock: $stock | $price',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: textSecondary,
                     ),
@@ -497,7 +497,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
               ),
               child: Text(
                 'Edit',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: textDark,
@@ -520,7 +520,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? primary : textSecondary,

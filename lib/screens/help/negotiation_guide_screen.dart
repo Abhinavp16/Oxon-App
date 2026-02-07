@@ -42,7 +42,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                       child: Text(
                         'Negotiation Guide',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: textDark,
@@ -98,7 +98,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                         bottom: 16,
                         child: Text(
                           'Bulk Pricing Guide',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -114,7 +114,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
                     child: Text(
                       'How Price Negotiation Works',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -128,7 +128,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Our wholesale platform allows you to negotiate directly with manufacturers for bulk agricultural equipment orders.',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         color: gray600,
                         height: 1.5,
@@ -141,7 +141,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 8),
                     child: Text(
                       'The 3-Step Process',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -185,7 +185,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       'Expert Tips',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: textDark,
@@ -212,7 +212,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               'Sellers are 40% more likely to accept offers if you include your desired delivery timeline in the message field.',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: gray700,
                               ),
@@ -234,7 +234,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Was this helpful?',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: textDark,
@@ -249,7 +249,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                               icon: Icon(Icons.thumb_up, color: gray500, size: 20),
                               label: Text(
                                 'Yes',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: textDark,
@@ -269,7 +269,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                               icon: Icon(Icons.thumb_down, color: gray500, size: 20),
                               label: Text(
                                 'No',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: textDark,
@@ -308,7 +308,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                             ),
                             child: Text(
                               'Start a New Negotiation',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -324,7 +324,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                             icon: Icon(Icons.support_agent, color: textDark),
                             label: Text(
                               'Contact Support',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: textDark,
@@ -386,7 +386,7 @@ class NegotiationGuideScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: textDark,
@@ -395,7 +395,7 @@ class NegotiationGuideScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     color: gray600,
                   ),
