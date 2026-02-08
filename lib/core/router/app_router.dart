@@ -20,6 +20,7 @@ import '../../screens/cart/shopping_cart_screen.dart';
 import '../../screens/payment/payment_screen.dart';
 import '../../screens/payment/upi_payment_screen.dart';
 import '../../screens/negotiations/negotiations_screen.dart';
+import '../../screens/negotiations/negotiation_detail_screen.dart';
 import '../../screens/negotiations/negotiation_success_screen.dart';
 import '../../screens/negotiations/counter_offer_screen.dart';
 import '../../screens/negotiations/negotiations_tracker_screen.dart';
@@ -27,6 +28,7 @@ import '../../screens/negotiations/pending_negotiations_screen.dart';
 import '../../screens/orders/order_success_screen.dart';
 import '../../screens/orders/shipment_tracking_screen.dart';
 import '../../screens/orders/dispatch_management_screen.dart';
+import '../../screens/orders/previous_orders_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/profile/wholesaler_profile_screen.dart';
 import '../../screens/help/help_support_screen.dart';
@@ -36,9 +38,10 @@ import '../../screens/inventory/inventory_management_screen.dart';
 import '../../screens/admin/analytics_dashboard_screen.dart';
 import '../../screens/admin/payment_verification_screen.dart';
 import '../../screens/dev/developer_menu_screen.dart';
+import '../../screens/wishlist/wishlist_screen.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/',
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
@@ -109,6 +112,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/negotiations',
       builder: (context, state) => const NegotiationsScreen(),
+    ),
+    GoRoute(
+      path: '/negotiation-detail/:id',
+      builder: (context, state) => NegotiationDetailScreen(
+        negotiationId: state.pathParameters['id'] ?? '',
+      ),
     ),
     GoRoute(
       path: '/negotiation-success',
@@ -195,6 +204,10 @@ final appRouter = GoRouter(
       builder: (context, state) => const DispatchManagementScreen(),
     ),
     GoRoute(
+      path: '/previous-orders',
+      builder: (context, state) => const PreviousOrdersScreen(),
+    ),
+    GoRoute(
       path: '/wholesaler-profile',
       builder: (context, state) => const WholesalerProfileScreen(),
     ),
@@ -217,6 +230,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/payment-verification',
       builder: (context, state) => const PaymentVerificationScreen(),
+    ),
+    GoRoute(
+      path: '/wishlist',
+      builder: (context, state) => const WishlistScreen(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

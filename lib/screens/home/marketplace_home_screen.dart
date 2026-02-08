@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/api_config.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/notification_service.dart';
 
 class MarketplaceHomeScreen extends ConsumerStatefulWidget {
   final int? initialTab;
@@ -22,6 +23,7 @@ class MarketplaceHomeScreen extends ConsumerStatefulWidget {
 
 class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   late int _selectedNavIndex;
+  bool _isCheckingOut = false;
   int _currentCarouselIndex = 0;
   final PageController _carouselController = PageController();
   final TextEditingController _searchController = TextEditingController();
@@ -55,6 +57,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Timer? _searchDebounce;
   final List<String> _recentSearches = ['Seed Drill', 'Tractor parts'];
 
+  // Filter state
+  String? _selectedFilterCategory;
+  String? _selectedFilterBrand;
+  List<String> _categories = [];
+
+  // Notification state
+  List<Map<String, dynamic>> _notifications = [];
+  int _unreadCount = 0;
+  bool _isLoadingNotifications = false;
+  StateSetter? _dialogSetter;
+
   // Sample carousel data
   final List<Map<String, String>> _carouselItems = [
     {
@@ -80,6 +93,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _selectedNavIndex = widget.initialTab ?? 0;
     _fetchBrands();
     _fetchProducts();
+    _fetchCategories();
+    _initNotifications();
+    _fetchNotificationCount();
+  }
+
+  Future<void> _initNotifications() async {
+    try {
+      await ref.read(notificationServiceProvider).initialize();
+    } catch (e) {
+      debugPrint('Notification init error: $e');
+    }
   }
 
   Future<void> _fetchBrands() async {
@@ -137,14 +161,35 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     }
   }
 
+  Future<void> _fetchCategories() async {
+    try {
+      final response = await _dio.get('/products/categories');
+      if (response.statusCode == 200) {
+        final List<dynamic> items = response.data['data'] ?? [];
+        setState(() {
+          _categories = items.map<String>((item) => item['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+    }
+  }
+
   Future<void> _searchProducts(String query) async {
-    if (query.trim().isEmpty) {
+    if (query.trim().isEmpty && _selectedFilterCategory == null && _selectedFilterBrand == null) {
       setState(() { _searchResults = []; _isSearching = false; _searchQuery = ''; });
       return;
     }
-    setState(() { _isSearching = true; _searchQuery = query; });
+    setState(() => _isSearching = true);
+    if (query.isNotEmpty) setState(() => _searchQuery = query);
     try {
-      final response = await _dio.get('/products/search', queryParameters: {'q': query});
+      final params = <String, dynamic>{};
+      if (query.trim().isNotEmpty) params['q'] = query;
+      if (_selectedFilterCategory != null) params['category'] = _selectedFilterCategory;
+      if (_selectedFilterBrand != null) params['brand'] = _selectedFilterBrand;
+
+      final endpoint = query.trim().isNotEmpty ? '/products/search' : '/products';
+      final response = await _dio.get(endpoint, queryParameters: params);
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
         setState(() {
@@ -167,11 +212,462 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     }
   }
 
+  void _showFilterSheet() {
+    String? tempCategory = _selectedFilterCategory;
+    String? tempBrand = _selectedFilterBrand;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.65),
+            decoration: const BoxDecoration(
+              color: surfaceWhite,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: borderLight, borderRadius: BorderRadius.circular(2)),
+                ),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Filters', style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary)),
+                      GestureDetector(
+                        onTap: () {
+                          setSheetState(() { tempCategory = null; tempBrand = null; });
+                        },
+                        child: Text('Reset', style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14, fontWeight: FontWeight.w600, color: primaryBlue)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Category section
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Category', style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary)),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8, runSpacing: 8,
+                          children: _categories.map((cat) {
+                            final selected = tempCategory == cat;
+                            return GestureDetector(
+                              onTap: () => setSheetState(() => tempCategory = selected ? null : cat),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: selected ? primaryBlue : surfaceWhite,
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(color: selected ? primaryBlue : borderLight),
+                                  boxShadow: selected ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
+                                ),
+                                child: Text(cat, style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13, fontWeight: FontWeight.w600,
+                                  color: selected ? Colors.white : textSecondary)),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 24),
+                        // Brand section
+                        Text('Brand', style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary)),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8, runSpacing: 8,
+                          children: _brands.map((brand) {
+                            final name = brand['name'] as String;
+                            final selected = tempBrand == name;
+                            return GestureDetector(
+                              onTap: () => setSheetState(() => tempBrand = selected ? null : name),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: selected ? primaryBlue : surfaceWhite,
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(color: selected ? primaryBlue : borderLight),
+                                  boxShadow: selected ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
+                                ),
+                                child: Text(name, style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13, fontWeight: FontWeight.w600,
+                                  color: selected ? Colors.white : textSecondary)),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+                // Apply button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: SizedBox(
+                    width: double.infinity, height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedFilterCategory = tempCategory;
+                          _selectedFilterBrand = tempBrand;
+                        });
+                        Navigator.pop(ctx);
+                        _searchProducts(_searchQuery);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
+                      child: Text('Apply Filters', style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _fetchNotificationCount() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get('/notifications/my', queryParameters: {'limit': 1});
+      if (response.statusCode == 200) {
+        setState(() {
+          _unreadCount = response.data['unreadCount'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching notification count: $e');
+    }
+  }
+
+  Future<void> _fetchNotifications([void Function(void Function())? dialogSetter]) async {
+    final update = dialogSetter ?? setState;
+    update(() => _isLoadingNotifications = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get('/notifications/my', queryParameters: {'limit': 10});
+      if (response.statusCode == 200) {
+        final List<dynamic> items = response.data['data'] ?? [];
+        final mapped = items.map<Map<String, dynamic>>((item) => <String, dynamic>{
+          'id': item['_id']?.toString() ?? '',
+          'title': item['title']?.toString() ?? '',
+          'body': item['body']?.toString() ?? '',
+          'type': item['type']?.toString() ?? 'general',
+          'isRead': item['isRead'] == true,
+          'createdAt': item['createdAt']?.toString() ?? '',
+          'data': item['data'] ?? {},
+        }).toList();
+        _notifications = mapped;
+        _unreadCount = response.data['unreadCount'] ?? 0;
+        _isLoadingNotifications = false;
+        update(() {});
+        // Also update parent so badge refreshes
+        if (dialogSetter != null && mounted) setState(() {});
+      } else {
+        _isLoadingNotifications = false;
+        update(() {});
+      }
+    } catch (e) {
+      debugPrint('Error fetching notifications: $e');
+      _isLoadingNotifications = false;
+      update(() {});
+    }
+  }
+
+  Future<void> _markNotificationsRead([void Function(void Function())? dialogSetter]) async {
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.post('/notifications/mark-read', data: {});
+      _unreadCount = 0;
+      for (var n in _notifications) { n['isRead'] = true; }
+      if (dialogSetter != null) dialogSetter(() {});
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error marking notifications read: $e');
+    }
+  }
+
+  void _showNotificationPopup() {
+    _isLoadingNotifications = true;
+    _dialogSetter = null;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black26,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          // Trigger fetch only once per dialog open, deferred to avoid setState-during-build
+          if (_dialogSetter == null) {
+            _dialogSetter = setDialogState;
+            Future.microtask(() => _fetchNotifications(setDialogState));
+          }
+          return GestureDetector(
+            onTap: () => Navigator.pop(ctx),
+            behavior: HitTestBehavior.opaque,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 60,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () {}, // absorb taps on the popup itself
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.88,
+                        constraints: const BoxConstraints(maxHeight: 420),
+                        decoration: BoxDecoration(
+                          color: surfaceWhite,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 24, offset: const Offset(0, 8)),
+                            BoxShadow(color: primaryBlue.withOpacity(0.06), blurRadius: 40, offset: const Offset(0, 4)),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Header
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(children: [
+                                    Text('Notifications', style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 17, fontWeight: FontWeight.w800, color: textPrimary)),
+                                    if (_unreadCount > 0) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(color: primaryBlue, borderRadius: BorderRadius.circular(100)),
+                                        child: Text('$_unreadCount', style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                                      ),
+                                    ],
+                                  ]),
+                                  Row(children: [
+                                    if (_unreadCount > 0)
+                                      GestureDetector(
+                                        onTap: () => _markNotificationsRead(setDialogState),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Text('Mark all read', style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12, fontWeight: FontWeight.w600, color: primaryBlue)),
+                                        ),
+                                      ),
+                                    IconButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      icon: const Icon(Icons.close_rounded, size: 20, color: textMuted),
+                                    ),
+                                  ]),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1, color: borderLight),
+                            // Content
+                            _isLoadingNotifications
+                              ? const Padding(
+                                  padding: EdgeInsets.all(40),
+                                  child: Center(child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 2)),
+                                )
+                              : _notifications.isEmpty
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 40),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 56, height: 56,
+                                          decoration: BoxDecoration(
+                                            color: primaryBlue.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          child: Icon(Icons.notifications_none_rounded, size: 28, color: primaryBlue.withOpacity(0.5)),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text('No notifications yet', style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary)),
+                                        const SizedBox(height: 4),
+                                        Text("You're all caught up!", style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13, color: textMuted)),
+                                      ],
+                                    ),
+                                  )
+                                : Flexible(
+                                    child: ListView.separated(
+                                      shrinkWrap: true,
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      itemCount: _notifications.length,
+                                      separatorBuilder: (_, __) => const Divider(height: 1, color: borderLight, indent: 60),
+                                      itemBuilder: (_, i) => _buildNotificationItem(_notifications[i]),
+                                    ),
+                                  ),
+                            // Footer
+                            if (_notifications.isNotEmpty) ...[
+                              const Divider(height: 1, color: borderLight),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pop(ctx);
+                                  context.push('/notifications');
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  child: Text('View All Notifications', style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14, fontWeight: FontWeight.w700, color: primaryBlue)),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ).then((_) => _dialogSetter = null);
+  }
+
+  Widget _buildNotificationItem(Map<String, dynamic> notification) {
+    final isRead = notification['isRead'] == true;
+    final type = notification['type']?.toString() ?? 'general';
+    final createdAt = notification['createdAt']?.toString() ?? '';
+
+    IconData icon;
+    Color iconColor;
+    Color iconBg;
+
+    switch (type) {
+      case 'payment_verified':
+        icon = Icons.check_circle_rounded;
+        iconColor = const Color(0xFF16A34A);
+        iconBg = const Color(0xFFF0FDF4);
+        break;
+      case 'payment_rejected':
+        icon = Icons.cancel_rounded;
+        iconColor = const Color(0xFFEF4444);
+        iconBg = const Color(0xFFFEF2F2);
+        break;
+      case 'order_update':
+        icon = Icons.local_shipping_rounded;
+        iconColor = const Color(0xFF2563EB);
+        iconBg = const Color(0xFFEFF6FF);
+        break;
+      case 'negotiation_update':
+        icon = Icons.handshake_rounded;
+        iconColor = const Color(0xFFF59E0B);
+        iconBg = const Color(0xFFFFFBEB);
+        break;
+      default:
+        icon = Icons.notifications_rounded;
+        iconColor = const Color(0xFF8B5CF6);
+        iconBg = const Color(0xFFF5F3FF);
+    }
+
+    String timeAgo = '';
+    if (createdAt.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(createdAt);
+        final diff = DateTime.now().difference(dt);
+        if (diff.inMinutes < 1) {
+          timeAgo = 'Just now';
+        } else if (diff.inMinutes < 60) {
+          timeAgo = '${diff.inMinutes}m ago';
+        } else if (diff.inHours < 24) {
+          timeAgo = '${diff.inHours}h ago';
+        } else {
+          timeAgo = '${diff.inDays}d ago';
+        }
+      } catch (_) {}
+    }
+
+    return Container(
+      color: isRead ? Colors.transparent : primaryBlue.withOpacity(0.02),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(notification['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14, fontWeight: isRead ? FontWeight.w600 : FontWeight.w700, color: textPrimary)),
+                    ),
+                    if (!isRead)
+                      Container(
+                        width: 8, height: 8, margin: const EdgeInsets.only(left: 6),
+                        decoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(notification['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSecondary, height: 1.4)),
+                if (timeAgo.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(timeAgo, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textMuted)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _carouselController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addr1Ctrl.dispose();
+    _cityCtrl.dispose();
+    _stateCtrl.dispose();
+    _pinCtrl.dispose();
     super.dispose();
   }
 
@@ -236,6 +732,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 _buildProductsSection('Popular Products', true),
                 const SizedBox(height: 32),
                 _buildProductsSection('Hot Deals', false),
+                const SizedBox(height: 32),
+                _buildWhyBuySection(),
                 const SizedBox(height: 100),
               ],
             ),
@@ -265,22 +763,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   color: textPrimary,
                   letterSpacing: -0.3,
                 ),
-              ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: surfaceWhite,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.notifications_outlined, color: textPrimary, size: 22),
               ),
             ],
           ),
@@ -345,9 +827,26 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     ),
                   )
                 else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal, color: textMuted, size: 22),
+                  GestureDetector(
+                    onTap: _showFilterSheet,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal,
+                            color: (_selectedFilterCategory != null || _selectedFilterBrand != null) ? primaryBlue : textMuted, size: 22),
+                          if (_selectedFilterCategory != null || _selectedFilterBrand != null)
+                            Positioned(
+                              top: -2, right: -4,
+                              child: Container(
+                                width: 8, height: 8,
+                                decoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -617,6 +1116,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildCartContent() {
+    if (_showAddressForm) return _buildAddressForm();
     final cart = ref.watch(cartProvider);
     return Column(
       children: [
@@ -891,21 +1391,28 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   const SizedBox(height: 16),
                   // Checkout Button
                   GestureDetector(
-                    onTap: () => context.push('/payment/order-${DateTime.now().millisecondsSinceEpoch}'),
+                    onTap: _isCheckingOut ? null : _proceedToCheckout,
                     child: Container(
                       width: double.infinity,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: primaryBlue,
+                        color: _isCheckingOut ? primaryBlue.withOpacity(0.6) : primaryBlue,
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [BoxShadow(color: primaryBlue.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Proceed to Checkout', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_rounded, size: 20, color: Colors.white),
+                          if (_isCheckingOut) ...[
+                            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                            const SizedBox(width: 12),
+                          ],
+                          Text(_isCheckingOut ? 'Creating Order...' : 'Proceed to Checkout',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                          if (!_isCheckingOut) ...[
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_rounded, size: 20, color: Colors.white),
+                          ],
                         ],
                       ),
                     ),
@@ -918,9 +1425,48 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  int _negotiationTab = 1; // 0=All, 1=Active, 2=Completed
+  int _negotiationTab = 0;
+  bool _isNegotiationsLoading = true;
+  List<Map<String, dynamic>> _negotiations = [];
+
+  Future<void> _fetchNegotiations() async {
+    setState(() => _isNegotiationsLoading = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get('/negotiations');
+      if (response.data['success'] == true) {
+        final List items = response.data['data'] ?? [];
+        setState(() { _negotiations = items.cast<Map<String, dynamic>>(); _isNegotiationsLoading = false; });
+      }
+    } catch (e) {
+      setState(() => _isNegotiationsLoading = false);
+    }
+  }
+
+  List<Map<String, dynamic>> get _filteredNegotiations {
+    if (_negotiationTab == 0) return _negotiations;
+    if (_negotiationTab == 1) {
+      return _negotiations.where((n) => ['pending', 'countered'].contains(n['status'])).toList();
+    }
+    return _negotiations.where((n) => ['accepted', 'rejected', 'expired', 'converted'].contains(n['status'])).toList();
+  }
+
+  Map<String, dynamic> _getNegStatusDisplay(String status) {
+    switch (status) {
+      case 'pending': return {'label': 'PENDING', 'color': const Color(0xFF6B7280), 'bg': const Color(0xFFF3F4F6)};
+      case 'countered': return {'label': 'COUNTER-OFFER', 'color': const Color(0xFFF59E0B), 'bg': const Color(0xFFFEF3C7)};
+      case 'accepted': return {'label': 'ACCEPTED', 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFDCFCE7)};
+      case 'rejected': return {'label': 'REJECTED', 'color': const Color(0xFFDC2626), 'bg': const Color(0xFFFEE2E2)};
+      case 'expired': return {'label': 'EXPIRED', 'color': const Color(0xFF9CA3AF), 'bg': const Color(0xFFF3F4F6)};
+      case 'converted': return {'label': 'CONVERTED', 'color': const Color(0xFF7C3AED), 'bg': const Color(0xFFF3E8FF)};
+      default: return {'label': status.toUpperCase(), 'color': const Color(0xFF6B7280), 'bg': const Color(0xFFF3F4F6)};
+    }
+  }
 
   Widget _buildNegotiationsContent() {
+    if (_isNegotiationsLoading && _negotiations.isEmpty) {
+      _fetchNegotiations();
+    }
     return Column(
       children: [
         // Header
@@ -929,21 +1475,14 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           color: backgroundWhite,
           child: Text(
             'Negotiations',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: textPrimary,
-              letterSpacing: -0.5,
-            ),
+            style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary, letterSpacing: -0.5),
           ),
         ),
         // Tabs
         Container(
           color: backgroundWhite,
           child: Container(
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderLight, width: 1)),
-            ),
+            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: borderLight, width: 1))),
             child: Row(
               children: [
                 _buildNegotiationTab('All', 0),
@@ -953,70 +1492,36 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             ),
           ),
         ),
-        // Section Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Row(
-            children: [
-              Text(
-                'Priority Quotes',
-                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
-              ),
-            ],
-          ),
-        ),
-        // Cards List
+        // Content
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              _buildNegotiationCard(
-                requestId: 'REQ-8821',
-                productName: 'Titan 5000 Harvester',
-                bulkOrder: 'Bulk Order: 10 units',
-                status: 'COUNTER-OFFER',
-                statusColor: const Color(0xFFF59E0B),
-                statusBg: const Color(0xFFFEF3C7),
-                imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAaGgwMFJfelXOECcbEE0PcOWEJYZG_IeWUQBS3eYYeR8WGclPWdSaSr02PbM2TR18rwhnkGYJXivBh6KDC4s1uOmrpgiRDhh6z_n_S41GhE5FSy-TUXj6NpNohO60LbL3jrhLu5FwgWn51hhzM0DfENdXiue6d4kSXkE6nKm356hu9fj5KaYlwkmIaLRnv1y2nmjXJaXuF4mKUlaYBKe3beGqIjylC9XPYHyiSoZLiSM3lz5YnD9dFy4XOHyxnfFPC0wT9m1ktUPXj',
-                priceRows: [
-                  {'label': 'Your Quote:', 'value': '₹1,20,000', 'color': textPrimary},
-                  {'label': 'Admin Price:', 'value': '₹1,25,000', 'color': primaryBlue},
-                ],
-                buttonLabel: 'View Details',
-                buttonStyle: 'primary',
-              ),
-              _buildNegotiationCard(
-                requestId: 'REQ-8790',
-                productName: 'Industrial Mini Mill',
-                bulkOrder: 'Bulk Order: 5 units',
-                status: 'ACCEPTED',
-                statusColor: const Color(0xFF16A34A),
-                statusBg: const Color(0xFFDCFCE7),
-                imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDeRnAVFtCPqADjT1xfxgQZUwnbDm7VXA9ZtB8Mx3smt-DQbKK30XiyblbS5DK0_BKbqx-oXRHyWv2Lup0rF6WlV8ArlL4OTx4vA9-kptmUcpYOQ7mq1ShcxTRW2p0JMw-kBheHInQujJ_LwAgIAh4WDhM9yIDHyLlquivu1NDI3Scj9aYrmL9LsMeKh49UKjV1yJmUsma6qz0NQF6IHWdr_eMyUgLNCMgfHBXskdsZfGu35NNpMmmO0eOu9hkoAX-jq80MrzIyYPB7',
-                priceRows: [
-                  {'label': 'Negotiated Total:', 'value': '₹45,000', 'color': const Color(0xFF16A34A)},
-                ],
-                showAccentBorder: true,
-                buttonLabel: 'Pay Now',
-                buttonStyle: 'primary',
-                buttonIcon: Icons.account_balance_wallet_rounded,
-              ),
-              _buildNegotiationCard(
-                requestId: 'REQ-8912',
-                productName: 'Smart Irrigator Pro',
-                bulkOrder: 'Bulk Order: 3 units',
-                status: 'PENDING REVIEW',
-                statusColor: const Color(0xFF6B7280),
-                statusBg: const Color(0xFFF3F4F6),
-                imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoAi8Z9AYnnHnksg3wzDv3tFls2Idq7TqPmxGitX58sgdDcWHvml_6hb-XPe3HzyhtZRtureb4wn6zRlR-WL493UOLq22iu3vXYo-q499bvG5FGFjVhC-lYehP356yiSmrfid1DCuuIOnA_Y4emJZj5728OBUNr_sdelqFN9PCDJRcxBkGzbCmFhkCybh8txJT4hNO_eEWTrK4-IWmsMhTNyD-_hJRiyNako1lCGLbh86uokS2UzNYiUc5xX1yEnFJNNz2ty4t5sqo',
-                pendingPrice: '₹88,000',
-                pendingNote: 'Awaiting admin verification',
-                buttonLabel: 'Under Review',
-                buttonStyle: 'disabled',
-                isOpaque: true,
-              ),
-            ],
-          ),
+          child: _isNegotiationsLoading
+              ? const Center(child: CircularProgressIndicator(color: primaryBlue))
+              : _filteredNegotiations.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.handshake_outlined, size: 48, color: textMuted.withOpacity(0.5)),
+                          const SizedBox(height: 12),
+                          Text(
+                            _negotiationTab == 1 ? 'No active negotiations' :
+                            _negotiationTab == 2 ? 'No completed negotiations' :
+                            'No negotiations yet',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: textMuted),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('Start negotiating on product pages', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF4C669A))),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _fetchNegotiations,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: _filteredNegotiations.length,
+                        itemBuilder: (context, index) => _buildNegotiationCard(_filteredNegotiations[index]),
+                      ),
+                    ),
         ),
       ],
     );
@@ -1030,69 +1535,54 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? primaryBlue : Colors.transparent,
-                width: 3,
-              ),
-            ),
+            border: Border(bottom: BorderSide(color: isSelected ? primaryBlue : Colors.transparent, width: 3)),
           ),
           child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-              color: isSelected ? primaryBlue : const Color(0xFF4C669A),
-            ),
+            label, textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: isSelected ? primaryBlue : const Color(0xFF4C669A)),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNegotiationCard({
-    required String requestId,
-    required String productName,
-    required String bulkOrder,
-    required String status,
-    required Color statusColor,
-    required Color statusBg,
-    String? imageUrl,
-    List<Map<String, dynamic>>? priceRows,
-    String? pendingPrice,
-    String? pendingNote,
-    bool showAccentBorder = false,
-    required String buttonLabel,
-    required String buttonStyle,
-    IconData? buttonIcon,
-    bool isOpaque = false,
-  }) {
+  Widget _buildNegotiationCard(Map<String, dynamic> negotiation) {
+    final status = negotiation['status'] as String? ?? 'pending';
+    final statusDisplay = _getNegStatusDisplay(status);
+    final product = negotiation['product'] as Map<String, dynamic>? ?? {};
+    final productName = product['name'] as String? ?? 'Unknown Product';
+    final imageUrl = product['image'] as String? ?? '';
+    final quantity = negotiation['requestedQuantity'] ?? 0;
+    final requestedPrice = negotiation['requestedPricePerUnit'] ?? 0;
+    final currentPrice = negotiation['currentPricePerUnit'] ?? 0;
+    final currentTotal = negotiation['currentTotalPrice'] ?? 0;
+    final currentOfferBy = negotiation['currentOfferBy'] as String? ?? '';
+    final negotiationNumber = negotiation['negotiationNumber'] as String? ?? '';
+    final negotiationId = (negotiation['id'] ?? negotiation['_id'] ?? '').toString();
+    final canPay = negotiation['canPay'] == true;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Opacity(
-        opacity: isOpaque ? 0.85 : 1.0,
+      child: GestureDetector(
+        onTap: () async {
+          final result = await context.push('/negotiation-detail/$negotiationId');
+          if (result == true) _fetchNegotiations();
+        },
         child: Container(
           decoration: BoxDecoration(
-            color: surfaceWhite,
-            borderRadius: BorderRadius.circular(12),
+            color: surfaceWhite, borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderLight),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
-            ],
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product Image
-              if (imageUrl != null)
+              if (imageUrl.isNotEmpty)
                 AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: 2.4,
                   child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
+                    imageUrl: imageUrl, fit: BoxFit.cover,
                     placeholder: (_, __) => Container(color: const Color(0xFFF1F5F9)),
                     errorWidget: (_, __, ___) => Container(
                       color: const Color(0xFFF1F5F9),
@@ -1100,174 +1590,74 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     ),
                   ),
                 ),
-              // Card Body
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Request ID + Status Badge
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'REQUEST #${requestId.replaceAll('REQ-', '')}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF4C669A),
-                            letterSpacing: 0.5,
-                          ),
+                          negotiationNumber.isNotEmpty ? negotiationNumber : 'NEGOTIATION',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF4C669A), letterSpacing: 0.5),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: statusBg,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
+                          decoration: BoxDecoration(color: statusDisplay['bg'] as Color, borderRadius: BorderRadius.circular(100)),
                           child: Text(
-                            status,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: statusColor,
-                              letterSpacing: 0.3,
-                            ),
+                            statusDisplay['label'] as String,
+                            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w800, color: statusDisplay['color'] as Color, letterSpacing: 0.3),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Product Name
-                    Text(
-                      productName,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: textPrimary,
-                        height: 1.2,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
+                    Text(productName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary, height: 1.2, letterSpacing: -0.3)),
                     const SizedBox(height: 4),
-                    // Bulk Order
-                    Text(
-                      bulkOrder,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF4C669A),
-                      ),
-                    ),
+                    Text('Qty: $quantity units', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF4C669A))),
                     const SizedBox(height: 16),
-                    // Price Details
-                    if (priceRows != null && priceRows.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: backgroundWhite,
-                          borderRadius: BorderRadius.circular(8),
-                          border: showAccentBorder
-                              ? const Border(left: BorderSide(color: Color(0xFF16A34A), width: 4))
-                              : null,
-                        ),
-                        child: Column(
-                          children: priceRows.map((row) {
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: row == priceRows.last ? 0 : 6),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    row['label'] as String,
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF4C669A)),
-                                  ),
-                                  Text(
-                                    row['value'] as String,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: row['color'] == const Color(0xFF16A34A) ? 18 : 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: row['color'] as Color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: backgroundWhite, borderRadius: BorderRadius.circular(8),
+                        border: status == 'accepted' ? const Border(left: BorderSide(color: Color(0xFF16A34A), width: 4)) : null,
                       ),
-                    // Pending Price (for pending review cards)
-                    if (pendingPrice != null)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Column(
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Requested Price: ',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF4C669A)),
-                              ),
-                              Text(
-                                pendingPrice,
-                                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
-                              ),
+                              Text('Your Price/unit:', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF4C669A))),
+                              Text('₹$requestedPrice', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary)),
                             ],
                           ),
-                          if (pendingNote != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              pendingNote,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontStyle: FontStyle.italic,
-                                color: const Color(0xFF4C669A),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                status == 'countered' && currentOfferBy == 'admin' ? 'Admin Counter:' : 'Current Price/unit:',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF4C669A)),
                               ),
-                            ),
-                          ],
+                              Text('₹$currentPrice', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: status == 'accepted' ? const Color(0xFF16A34A) : primaryBlue)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Divider(height: 1),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Total:', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text('₹$currentTotal', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: status == 'accepted' ? const Color(0xFF16A34A) : textPrimary)),
+                            ],
+                          ),
                         ],
                       ),
-                    const SizedBox(height: 16),
-                    // Action Button
-                    GestureDetector(
-                      onTap: buttonStyle == 'disabled' ? null : () {},
-                      child: Container(
-                        width: double.infinity,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: buttonStyle == 'primary'
-                              ? primaryBlue
-                              : buttonStyle == 'disabled'
-                                  ? borderLight
-                                  : surfaceWhite,
-                          borderRadius: BorderRadius.circular(10),
-                          border: buttonStyle == 'outline' ? Border.all(color: borderLight) : null,
-                          boxShadow: buttonStyle == 'primary' && buttonIcon != null
-                              ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))]
-                              : null,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (buttonIcon != null) ...[
-                              Icon(buttonIcon, size: 16, color: Colors.white),
-                              const SizedBox(width: 6),
-                            ],
-                            Text(
-                              buttonLabel,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: buttonStyle == 'primary'
-                                    ? Colors.white
-                                    : buttonStyle == 'disabled'
-                                        ? const Color(0xFF9CA3AF)
-                                        : textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
+                    const SizedBox(height: 16),
+                    _buildNegActionButton(status, currentOfferBy, canPay, negotiationId),
                   ],
                 ),
               ),
@@ -1278,10 +1668,51 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
+  Widget _buildNegActionButton(String status, String currentOfferBy, bool canPay, String negotiationId) {
+    String label; String style; IconData? icon; VoidCallback? onTap;
+    if (status == 'countered' && currentOfferBy == 'admin') {
+      label = 'Respond to Counter'; style = 'primary'; icon = Icons.reply_rounded;
+      onTap = () async { final r = await context.push('/negotiation-detail/$negotiationId'); if (r == true) _fetchNegotiations(); };
+    } else if (status == 'accepted' && canPay) {
+      label = 'Proceed to Order'; style = 'primary'; icon = Icons.account_balance_wallet_rounded;
+      onTap = () => _proceedToNegotiationOrder(negotiationId);
+    } else if (status == 'pending') {
+      label = 'Under Review'; style = 'disabled';
+    } else if (status == 'rejected') {
+      label = 'Rejected'; style = 'disabled';
+    } else if (status == 'expired') {
+      label = 'Expired'; style = 'disabled';
+    } else {
+      label = 'View Details'; style = 'outline';
+      onTap = () async { final r = await context.push('/negotiation-detail/$negotiationId'); if (r == true) _fetchNegotiations(); };
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity, height: 44,
+        decoration: BoxDecoration(
+          color: style == 'primary' ? primaryBlue : style == 'disabled' ? borderLight : surfaceWhite,
+          borderRadius: BorderRadius.circular(10),
+          border: style == 'outline' ? Border.all(color: borderLight) : null,
+          boxShadow: style == 'primary' && icon != null ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))] : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[Icon(icon, size: 16, color: Colors.white), const SizedBox(width: 6)],
+            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700,
+              color: style == 'primary' ? Colors.white : style == 'disabled' ? const Color(0xFF9CA3AF) : textPrimary)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileContent() {
     final settings = [
-      {'icon': HugeIcons.strokeRoundedShoppingBag01, 'color': Colors.teal, 'title': 'My Orders', 'subtitle': null, 'onTap': () => context.push('/tracking/sample')},
-      {'icon': HugeIcons.strokeRoundedFavourite, 'color': Colors.red, 'title': 'Wishlist', 'subtitle': null, 'onTap': () {}},
+      {'icon': HugeIcons.strokeRoundedShoppingBag01, 'color': Colors.teal, 'title': 'My Orders', 'subtitle': null, 'onTap': () => context.push('/previous-orders')},
+      {'icon': HugeIcons.strokeRoundedFavourite, 'color': Colors.red, 'title': 'Wishlist', 'subtitle': null, 'onTap': () => context.push('/wishlist')},
       {'icon': HugeIcons.strokeRoundedLocation01, 'color': Colors.green, 'title': 'Addresses', 'subtitle': null, 'onTap': () {}},
       {'icon': HugeIcons.strokeRoundedCreditCard, 'color': Colors.blue, 'title': 'Payment Methods', 'subtitle': null, 'onTap': () {}},
       {'icon': HugeIcons.strokeRoundedNotification02, 'color': Colors.purple, 'title': 'Notifications', 'subtitle': null, 'onTap': () {}},
@@ -1455,22 +1886,41 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: surfaceWhite,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: borderLight),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+              GestureDetector(
+                onTap: _showNotificationPopup,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: surfaceWhite,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: borderLight),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedNotification02, color: textPrimary, size: 20)),
                     ),
+                    if (_unreadCount > 0)
+                      Positioned(
+                        top: -2, right: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                          child: Text('$_unreadCount', textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white)),
+                        ),
+                      ),
                   ],
                 ),
-                child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedNotification02, color: textPrimary, size: 20)),
               ),
             ],
           ),
@@ -1882,22 +2332,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: textMuted, size: 32)),
                             ),
                     ),
-                    // Favorite Button (top right)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.favorite_border_rounded, size: 18, color: Colors.white),
-                        ),
-                      ),
-                    ),
                     // Badges (top left)
                     if (product['isHot'] == true || discount > 0)
                       Positioned(
@@ -2031,6 +2465,300 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       return result.toString().split('').reversed.join('');
     }
     return val.toStringAsFixed(val.truncateToDouble() == val ? 0 : 2);
+  }
+
+  // ── Checkout state for inline address form ──
+  bool _showAddressForm = false;
+  final _addrFormKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addr1Ctrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _stateCtrl = TextEditingController();
+  final _pinCtrl = TextEditingController();
+
+  Future<void> _proceedToCheckout() async {
+    final auth = ref.read(authProvider);
+    _nameCtrl.text = auth.user?.name ?? '';
+    _phoneCtrl.text = auth.user?.phone ?? '';
+    setState(() => _showAddressForm = true);
+  }
+
+  Future<void> _confirmAndPay() async {
+    if (!_addrFormKey.currentState!.validate()) return;
+
+    final address = {
+      'fullName': _nameCtrl.text.trim(),
+      'phone': _phoneCtrl.text.trim(),
+      'addressLine1': _addr1Ctrl.text.trim(),
+      'city': _cityCtrl.text.trim(),
+      'state': _stateCtrl.text.trim(),
+      'pincode': _pinCtrl.text.trim(),
+    };
+
+    setState(() { _showAddressForm = false; _isCheckingOut = true; });
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.post('/orders', data: {
+        'shippingAddress': address,
+      });
+
+      if (!mounted) return;
+      setState(() => _isCheckingOut = false);
+
+      if (response.data['success'] == true) {
+        final orderId = response.data['data']['orderId'].toString();
+        // Clear local cart (server already cleared it during order creation)
+        ref.read(cartProvider.notifier).clearCart();
+        // Navigate after a tick to let state settle
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) context.push('/payment/$orderId');
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _isCheckingOut = false);
+      final msg = e.response?.data?['message']?.toString() ?? 'Checkout failed';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isCheckingOut = false);
+    }
+  }
+
+  Widget _buildAddressForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Form(key: _addrFormKey, child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          GestureDetector(
+            onTap: () => setState(() => _showAddressForm = false),
+            child: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), shape: BoxShape.circle),
+              child: const Icon(Icons.arrow_back_ios_new, size: 18),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text('Shipping Address', style: GoogleFonts.plusJakartaSans(
+            fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
+        ]),
+        const SizedBox(height: 24),
+        _addrField('Full Name', _nameCtrl),
+        const SizedBox(height: 14),
+        _addrField('Phone', _phoneCtrl, keyboard: TextInputType.phone),
+        const SizedBox(height: 14),
+        _addrField('Address Line 1', _addr1Ctrl),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(child: _addrField('City', _cityCtrl)),
+          const SizedBox(width: 12),
+          Expanded(child: _addrField('State', _stateCtrl)),
+        ]),
+        const SizedBox(height: 14),
+        _addrField('Pincode', _pinCtrl, keyboard: TextInputType.number),
+        const SizedBox(height: 28),
+        SizedBox(width: double.infinity, height: 52,
+          child: ElevatedButton(
+            onPressed: _confirmAndPay,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue, foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: Text('Confirm & Pay', style: GoogleFonts.plusJakartaSans(
+              fontSize: 16, fontWeight: FontWeight.w700)))),
+      ])),
+    );
+  }
+
+  Future<void> _proceedToNegotiationOrder(String negotiationId) async {
+    final auth = ref.read(authProvider);
+    final nameC = TextEditingController(text: auth.user?.name ?? '');
+    final phoneC = TextEditingController(text: auth.user?.phone ?? '');
+    final addr1C = TextEditingController();
+    final cityC = TextEditingController();
+    final stateC = TextEditingController();
+    final pinC = TextEditingController();
+    final fk = GlobalKey<FormState>();
+
+    final address = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        margin: EdgeInsets.only(top: MediaQuery.of(ctx).padding.top + 40),
+        decoration: const BoxDecoration(color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Form(key: fk, child: SingleChildScrollView(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Center(child: Container(width: 40, height: 5,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(color: borderLight, borderRadius: BorderRadius.circular(100)))),
+            Text('Shipping Address', style: GoogleFonts.plusJakartaSans(
+              fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
+            const SizedBox(height: 20),
+            _addrField('Full Name', nameC),
+            const SizedBox(height: 12),
+            _addrField('Phone', phoneC, keyboard: TextInputType.phone),
+            const SizedBox(height: 12),
+            _addrField('Address Line 1', addr1C),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: _addrField('City', cityC)),
+              const SizedBox(width: 12),
+              Expanded(child: _addrField('State', stateC)),
+            ]),
+            const SizedBox(height: 12),
+            _addrField('Pincode', pinC, keyboard: TextInputType.number),
+            const SizedBox(height: 20),
+            SizedBox(width: double.infinity, height: 52,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (fk.currentState!.validate()) {
+                    Navigator.of(ctx).pop({
+                      'fullName': nameC.text.trim(),
+                      'phone': phoneC.text.trim(),
+                      'addressLine1': addr1C.text.trim(),
+                      'city': cityC.text.trim(),
+                      'state': stateC.text.trim(),
+                      'pincode': pinC.text.trim(),
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: Text('Confirm & Proceed', style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16, fontWeight: FontWeight.w700)))),
+          ]))))),
+    );
+
+    nameC.dispose(); phoneC.dispose(); addr1C.dispose();
+    cityC.dispose(); stateC.dispose(); pinC.dispose();
+
+    if (address == null || !mounted) return;
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.post('/orders/from-negotiation', data: {
+        'negotiationId': negotiationId,
+        'shippingAddress': address,
+      });
+
+      if (!mounted) return;
+      if (response.data['success'] == true) {
+        final orderId = response.data['data']['orderId'].toString();
+        context.push('/payment/$orderId');
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final msg = e.response?.data?['message']?.toString() ?? 'Failed to create order';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: $e', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16)));
+    }
+  }
+
+  Widget _addrField(String label, TextEditingController ctrl, {TextInputType? keyboard}) {
+    return TextFormField(
+      controller: ctrl,
+      keyboardType: keyboard,
+      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+      style: GoogleFonts.plusJakartaSans(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildWhyBuySection() {
+    final items = [
+      {'icon': Icons.verified_rounded, 'color': const Color(0xFF2563EB), 'bg': const Color(0xFFEFF6FF), 'title': 'Premium Quality', 'subtitle': 'Certified products'},
+      {'icon': Icons.local_offer_rounded, 'color': const Color(0xFF7C3AED), 'bg': const Color(0xFFF5F3FF), 'title': 'Bulk Pricing', 'subtitle': 'Best wholesale rates'},
+      {'icon': Icons.local_shipping_rounded, 'color': const Color(0xFF0891B2), 'bg': const Color(0xFFECFEFF), 'title': 'Fast Delivery', 'subtitle': 'Pan-India shipping'},
+      {'icon': Icons.support_agent_rounded, 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFF0FDF4), 'title': '24/7 Support', 'subtitle': 'Always here to help'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            colors: [const Color(0xFFF8FAFC), const Color(0xFFEFF6FF)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.7)),
+        ),
+        child: Column(
+          children: [
+            Text('Why Buy From Us?', style: GoogleFonts.plusJakartaSans(
+              fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary, letterSpacing: -0.3)),
+            const SizedBox(height: 6),
+            Text('Trusted by 500+ businesses across India', style: GoogleFonts.plusJakartaSans(
+              fontSize: 13, fontWeight: FontWeight.w500, color: textSecondary)),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                for (int i = 0; i < items.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 12),
+                  Expanded(child: _buildWhyBuyItem(
+                    items[i]['icon'] as IconData,
+                    items[i]['color'] as Color,
+                    items[i]['bg'] as Color,
+                    items[i]['title'] as String,
+                    items[i]['subtitle'] as String,
+                  )),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWhyBuyItem(IconData icon, Color color, Color bg, String title, String subtitle) {
+    return Column(
+      children: [
+        Container(
+          width: 56, height: 56,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
+          ),
+          child: Icon(icon, color: color, size: 26),
+        ),
+        const SizedBox(height: 10),
+        Text(title, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(
+          fontSize: 11, fontWeight: FontWeight.w700, color: textPrimary, height: 1.2)),
+        const SizedBox(height: 2),
+        Text(subtitle, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(
+          fontSize: 9, fontWeight: FontWeight.w500, color: textMuted)),
+      ],
+    );
   }
 
   Widget _buildBottomNav() {

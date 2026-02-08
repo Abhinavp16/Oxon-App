@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../models/user_model.dart';
@@ -48,6 +49,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = await StorageService.getAccessToken();
       final userData = await StorageService.getUserData();
       
+      debugPrint('[Auth] Token: ${token != null ? 'exists' : 'null'}, UserData: ${userData != null ? 'exists' : 'null'}');
+      
       if (token != null && userData != null) {
         final user = UserModel.fromJson(userData);
         state = state.copyWith(
@@ -59,6 +62,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(isLoading: false, isAuthenticated: false);
       }
     } catch (e) {
+      debugPrint('[Auth] _checkAuthStatus error: $e');
       state = state.copyWith(isLoading: false, isAuthenticated: false);
     }
   }

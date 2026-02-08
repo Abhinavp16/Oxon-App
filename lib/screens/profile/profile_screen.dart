@@ -159,9 +159,9 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedShoppingBag01,
-                    title: 'Orders',
-                    subtitle: '3 pending shipments',
-                    onTap: () {},
+                    title: 'Previous Orders',
+                    subtitle: 'View all your orders',
+                    onTap: () => context.push('/previous-orders'),
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedHandGrip,

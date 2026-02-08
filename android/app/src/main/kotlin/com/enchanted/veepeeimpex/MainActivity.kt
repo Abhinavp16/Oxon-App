@@ -1,4 +1,4 @@
-package com.agrimart.agri_mart
+package com.enchanted.veepeeimpex
 
 import io.flutter.embedding.android.FlutterActivity
 

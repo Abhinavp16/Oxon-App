@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
 
-class PaymentVerificationScreen extends StatefulWidget {
+import '../../core/theme/app_theme.dart';
+import '../../core/providers/auth_provider.dart';
+
+class PaymentVerificationScreen extends ConsumerStatefulWidget {
   const PaymentVerificationScreen({super.key});
 
   @override
-  State<PaymentVerificationScreen> createState() => _PaymentVerificationScreenState();
+  ConsumerState<PaymentVerificationScreen> createState() => _PaymentVerificationScreenState();
 }
 
-class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
+class _PaymentVerificationScreenState extends ConsumerState<PaymentVerificationScreen> {
   int _selectedTab = 0;
+  List<Map<String, dynamic>> _payments = [];
+  bool _isLoading = true;
+  String? _error;
+  String? _actionInProgress; // paymentId being processed
 
-  // Colors from design
   static const Color primary = Color(0xFF135bec);
   static const Color backgroundLight = Color(0xFFf6f6f8);
   static const Color textDark = Color(0xFF0d121b);
@@ -22,484 +32,295 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
   static const Color gray200 = Color(0xFFe5e7eb);
   static const Color yellow100 = Color(0xFFfef9c3);
   static const Color yellow700 = Color(0xFFa16207);
+  static const Color green50 = Color(0xFFf0fdf4);
+  static const Color green600 = Color(0xFF16a34a);
   static const Color red50 = Color(0xFFfef2f2);
   static const Color red200 = Color(0xFFfecaca);
   static const Color red600 = Color(0xFFdc2626);
 
-  final List<String> _tabs = ['Pending', 'Approved', 'Rejected'];
+  final List<String> _tabs = ['Pending', 'Verified', 'Rejected'];
+  final List<String> _statusFilter = ['pending', 'verified', 'rejected'];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPayments();
+  }
+
+  Future<void> _fetchPayments() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get('/admin/payments', queryParameters: {
+        'status': _statusFilter[_selectedTab],
+      });
+      if (response.data['success'] == true) {
+        final data = response.data['data'] as List<dynamic>? ?? [];
+        if (!mounted) return;
+        setState(() { _payments = data.cast<Map<String, dynamic>>(); _isLoading = false; });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = 'Failed to load payments'; _isLoading = false; });
+    }
+  }
+
+  Future<void> _approvePayment(String paymentId) async {
+    setState(() => _actionInProgress = paymentId);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.put('/admin/payments/$paymentId/verify');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Payment verified successfully',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+        backgroundColor: green600, behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16)));
+      _fetchPayments();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final msg = e.response?.data?['message']?.toString() ?? 'Failed to verify';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+        backgroundColor: red600, behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16)));
+    } finally {
+      if (mounted) setState(() => _actionInProgress = null);
+    }
+  }
+
+  Future<void> _rejectPayment(String paymentId) async {
+    final reasonCtrl = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Reject Payment', style: GoogleFonts.plusJakartaSans(
+          fontSize: 18, fontWeight: FontWeight.w700)),
+        content: TextField(controller: reasonCtrl, maxLines: 3,
+          decoration: InputDecoration(hintText: 'Reason for rejection...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, reasonCtrl.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: red600, foregroundColor: Colors.white),
+            child: const Text('Reject')),
+        ],
+      ),
+    );
+    reasonCtrl.dispose();
+    if (reason == null || reason.isEmpty) return;
+
+    setState(() => _actionInProgress = paymentId);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.put('/admin/payments/$paymentId/reject', data: {'reason': reason});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Payment rejected', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+        backgroundColor: red600, behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16)));
+      _fetchPayments();
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _actionInProgress = null);
+    }
+  }
+
+  String _fmt(num price) {
+    return price.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  }
+
+  String _timeAgo(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final dt = DateTime.parse(dateStr);
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return DateFormat('MMM dd, yyyy').format(dt.toLocal());
+    } catch (_) { return ''; }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundLight,
-      body: Column(
-        children: [
-          // TopAppBar
-          Container(
-            color: backgroundLight,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: Icon(Icons.arrow_back_ios, color: textDark),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Payment Verification',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: textDark,
-                          letterSpacing: -0.015 * 18,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: Icon(Icons.tune, color: textDark),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Tabs
-          Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
-            child: Row(
-              children: List.generate(_tabs.length, (index) {
-                final isSelected = _selectedTab == index;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedTab = index),
-                    child: Container(
-                      padding: const EdgeInsets.only(top: 16, bottom: 13),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: isSelected ? primary : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        _tabs[index],
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected ? primary : textSecondary,
-                          letterSpacing: 0.015 * 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-
-          // Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section Header
-                  Text(
-                    'Verification Details',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: textDark,
-                      letterSpacing: -0.015 * 18,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Active Expanded Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: gray100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Now',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    color: textSecondary,
-                                  ),
-                                ),
-                                Text(
-                                  'Buyer: GreenFields Agri',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: textDark,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: yellow100,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'REVIEWING',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: yellow700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Receipt Image
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHTOJcn3axqC434_7cyS78EaI-gJkzE0BsN5Pjum_h5-KGRUCXSyfgZsKNLR10kWiNn0sa-hYeTeINCLeaeICFgtexMvJbL86fsoU1f3xfm8MQYwlE_zAc6KOTbMZyq_P5P0XqVR_JDEe_Wm1ZprRAdEJWSBkmnwwin8Mn0Ael6virFIE1MxLU6yJvFomPMC5ZBjNG0w3nlH2G57sZBjN3SO2Kwf05avRIXaqqnblHJ1HNOP6igMO0O_rBkoJJ48cDQ8_kZxhqgfrj',
-                            width: double.infinity,
-                            height: 256,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(height: 256, color: gray200),
-                            errorWidget: (context, url, error) => Container(height: 256, color: gray200),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Transaction Details
-                        Container(
-                          padding: const EdgeInsets.only(top: 16),
-                          decoration: BoxDecoration(
-                            border: Border(top: BorderSide(color: gray100)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Opacity(
-                                opacity: 0.6,
-                                child: Text(
-                                  'TRANSACTION RECORDED',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: textDark,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(child: _buildDetailItem('Order ID', '#AGR-8821')),
-                                  Expanded(child: _buildDetailItem('Amount', '₹4,50,000')),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(child: _buildDetailItem('Date', 'Oct 24, 2023')),
-                                  Expanded(child: _buildDetailItem('UPI ID Ref', '324901XXXX77')),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Flag Issues
-                        Text(
-                          'Flag Issues (Optional)',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _buildFlagChip('Wrong Amount'),
-                            _buildFlagChip('Blurred Image'),
-                            _buildFlagChip('Invalid Ref ID'),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Action Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 48,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.check_circle, size: 18),
-                                  label: Text(
-                                    'Approve Payment',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primary,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 48,
-                                child: OutlinedButton.icon(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.cancel, size: 18, color: red600),
-                                  label: Text(
-                                    'Reject',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: red600,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: red50,
-                                    side: BorderSide(color: red200),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Other Pending Header
-                  Text(
-                    'Other Pending',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: textDark,
-                      letterSpacing: -0.015 * 18,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Pending Card 1
-                  _buildPendingCard(
-                    time: '15 mins ago',
-                    buyer: 'Buyer: Kissan Motors',
-                    orderId: '#AGR-8742',
-                    amount: '₹1,20,000',
-                    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBjoZtOm2sJfrmiWIsqupzPTAfKMV2mfbZjRjzToSSaE74MmMcBXRimmw3fC7uVScV3bVEwRni74UOMS0sw4QbO4IRk0A_iVOLr2Xb536xBSbtUR5TETxY61lp39YYCsmQRCQcBAyISmyHWDnMP9peTrXtcacpUr5yL_joeGY7WZYUkKUdQy1dF8RdBpnqK9TH9t2JJhgOvqdEk5Do737A0eRtmWGPf0lLDhGYrznrhgO-zXiWe33DM82XWNqT-hVPMwK6bWRuqEHmI',
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Pending Card 2
-                  _buildPendingCard(
-                    time: '1 hour ago',
-                    buyer: 'Buyer: AgroPioneer Ltd',
-                    orderId: '#AGR-8700',
-                    amount: '₹8,90,000',
-                    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9J2dffGbM4jsqY0y-Uj294VFdm8uCh2cA8bxj32Y_NOihfSy9b2kRTEy3NuVrmsfkQTzG3o4M_tkb291zqV87gLKZZ980oiWy2jKe0q0f3yGeAYuzfjAv9nxUEJA3pB75FWvvpVmw_Y-tRsOqsn2w0Qp3VyzIB_g76KKxLwl0OGNe-52pxy8HNJtN4J-YWsSAE9otslPO6-vMqVDOwKmbOwsWDTWh42j8Za8zvxIq2-6OKUEZ2WpuWXzcrhtdw3fuqSWrQpFPOdYm',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      appBar: AppBar(
+        backgroundColor: backgroundLight, elevation: 0,
+        leading: IconButton(onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back_ios, color: textDark)),
+        title: Text('Payment Verification', style: GoogleFonts.plusJakartaSans(
+          fontSize: 18, fontWeight: FontWeight.w700, color: textDark)),
+        centerTitle: true,
       ),
+      body: Column(children: [
+        // Tabs
+        Container(
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor))),
+          child: Row(children: List.generate(_tabs.length, (index) {
+            final isSelected = _selectedTab == index;
+            return Expanded(child: GestureDetector(
+              onTap: () { setState(() => _selectedTab = index); _fetchPayments(); },
+              child: Container(
+                padding: const EdgeInsets.only(top: 16, bottom: 13),
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(
+                  color: isSelected ? primary : Colors.transparent, width: 3))),
+                child: Text(_tabs[index], textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700,
+                    color: isSelected ? primary : textSecondary)))));
+          }))),
+
+        // Content
+        Expanded(child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+            ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.error_outline, size: 48, color: red600),
+                const SizedBox(height: 12),
+                Text(_error!, style: GoogleFonts.plusJakartaSans(fontSize: 16, color: textSecondary)),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: _fetchPayments, child: const Text('Retry'))]))
+            : _payments.isEmpty
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.payment_rounded, size: 56, color: AppColors.gray300),
+                  const SizedBox(height: 12),
+                  Text('No ${_tabs[_selectedTab].toLowerCase()} payments',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600,
+                      color: textSecondary))]))
+              : RefreshIndicator(onRefresh: _fetchPayments,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _payments.length,
+                    itemBuilder: (_, i) => _buildPaymentCard(_payments[i])))),
+      ]),
+    );
+  }
+
+  Widget _buildPaymentCard(Map<String, dynamic> payment) {
+    final id = payment['_id']?.toString() ?? '';
+    final status = payment['status']?.toString() ?? 'pending';
+    final amount = payment['amount'] ?? 0;
+    final screenshot = payment['screenshotUrl']?.toString();
+    final uploadedAt = payment['uploadedAt']?.toString();
+    final order = payment['orderId'] as Map<String, dynamic>?;
+    final user = payment['userId'] as Map<String, dynamic>?;
+    final orderNumber = order?['orderNumber']?.toString() ?? '';
+    final buyerName = user?['name']?.toString() ?? 'Unknown';
+    final buyerPhone = user?['phone']?.toString() ?? '';
+    final rejectionReason = payment['rejectionReason']?.toString();
+    final isProcessing = _actionInProgress == id;
+
+    Color statusBg, statusFg;
+    String statusLabel;
+    if (status == 'verified') {
+      statusBg = green50; statusFg = green600; statusLabel = 'VERIFIED';
+    } else if (status == 'rejected') {
+      statusBg = red50; statusFg = red600; statusLabel = 'REJECTED';
+    } else {
+      statusBg = yellow100; statusFg = yellow700; statusLabel = 'PENDING';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: gray100),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Header
+        Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(_timeAgo(uploadedAt), style: GoogleFonts.plusJakartaSans(
+                fontSize: 12, color: textSecondary)),
+              Text(buyerName, style: GoogleFonts.plusJakartaSans(
+                fontSize: 16, fontWeight: FontWeight.w700, color: textDark)),
+              if (buyerPhone.isNotEmpty)
+                Text(buyerPhone, style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12, color: textSecondary)),
+            ])),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(4)),
+              child: Text(statusLabel, style: GoogleFonts.plusJakartaSans(
+                fontSize: 10, fontWeight: FontWeight.w700, color: statusFg))),
+          ])),
+
+        // Screenshot
+        if (screenshot != null && screenshot.isNotEmpty)
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(imageUrl: screenshot, width: double.infinity,
+                height: 220, fit: BoxFit.cover,
+                placeholder: (_, __) => Container(height: 220, color: gray200),
+                errorWidget: (_, __, ___) => Container(height: 220, color: gray200,
+                  child: const Center(child: Icon(Icons.broken_image, size: 40)))))),
+
+        // Details
+        Padding(padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: _buildDetailItem('Order', orderNumber)),
+              Expanded(child: _buildDetailItem('Amount', '₹${_fmt(amount)}')),
+            ]),
+            if (rejectionReason != null && rejectionReason.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: red50, borderRadius: BorderRadius.circular(8)),
+                child: Row(children: [
+                  Icon(Icons.info_outline, size: 16, color: red600),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Reason: $rejectionReason', style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12, color: red600))),
+                ])),
+            ],
+          ])),
+
+        // Actions (only for pending)
+        if (status == 'pending')
+          Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(children: [
+              Expanded(child: SizedBox(height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: isProcessing ? null : () => _approvePayment(id),
+                  icon: isProcessing
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check_circle, size: 18),
+                  label: Text('Approve', style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14, fontWeight: FontWeight.w700)),
+                  style: ElevatedButton.styleFrom(backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))))),
+              const SizedBox(width: 12),
+              Expanded(child: SizedBox(height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: isProcessing ? null : () => _rejectPayment(id),
+                  icon: Icon(Icons.cancel, size: 18, color: red600),
+                  label: Text('Reject', style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: red600)),
+                  style: OutlinedButton.styleFrom(backgroundColor: red50,
+                    side: BorderSide(color: red200),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))))),
+            ])),
+      ]),
     );
   }
 
   Widget _buildDetailItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: textDark,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFlagChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: gray200),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF4b5563),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPendingCard({
-    required String time,
-    required String buyer,
-    required String orderId,
-    required String amount,
-    required String imageUrl,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: gray100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  time,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: textSecondary,
-                  ),
-                ),
-                Text(
-                  buyer,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: textDark,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '$orderId | $amount',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFe7ebf3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Review',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: textDark,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(Icons.open_in_full, size: 14, color: textDark),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              width: 96,
-              height: 96,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                width: 96,
-                height: 96,
-                color: gray200,
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 96,
-                height: 96,
-                color: gray200,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: GoogleFonts.plusJakartaSans(
+        fontSize: 11, fontWeight: FontWeight.w500, color: textSecondary)),
+      Text(value, style: GoogleFonts.plusJakartaSans(
+        fontSize: 14, fontWeight: FontWeight.w700, color: textDark),
+        overflow: TextOverflow.ellipsis),
+    ]);
   }
 }

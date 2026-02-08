@@ -3,15 +3,23 @@ import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-class NegotiationsScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../core/providers/auth_provider.dart';
+
+class NegotiationsScreen extends ConsumerStatefulWidget {
   const NegotiationsScreen({super.key});
 
   @override
-  State<NegotiationsScreen> createState() => _NegotiationsScreenState();
+  ConsumerState<NegotiationsScreen> createState() => _NegotiationsScreenState();
 }
 
-class _NegotiationsScreenState extends State<NegotiationsScreen> {
-  int _selectedTab = 1;
+class _NegotiationsScreenState extends ConsumerState<NegotiationsScreen> {
+  int _selectedTab = 0;
+  bool _isLoading = true;
+  String? _error;
+  List<Map<String, dynamic>> _negotiations = [];
 
   static const Color primaryBlue = Color(0xFF2563EB);
   static const Color backgroundWhite = Color(0xFFF8FAFC);
@@ -20,6 +28,41 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
   static const Color textMuted = Color(0xFF94A3B8);
   static const Color borderLight = Color(0xFFE2E8F0);
   static const Color slateBlue = Color(0xFF4C669A);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNegotiations();
+  }
+
+  Future<void> _fetchNegotiations() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get('/negotiations');
+      final data = response.data;
+      if (data['success'] == true) {
+        final List items = data['data'] ?? [];
+        setState(() {
+          _negotiations = items.cast<Map<String, dynamic>>();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() { _error = 'Failed to load negotiations'; _isLoading = false; });
+    }
+  }
+
+  List<Map<String, dynamic>> get _filteredNegotiations {
+    if (_selectedTab == 0) return _negotiations;
+    if (_selectedTab == 1) {
+      return _negotiations.where((n) =>
+        ['pending', 'countered'].contains(n['status'])).toList();
+    }
+    // Completed tab
+    return _negotiations.where((n) =>
+      ['accepted', 'rejected', 'expired', 'converted'].contains(n['status'])).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +88,8 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
                         'Negotiations',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: textPrimary,
-                          letterSpacing: -0.3,
+                          fontSize: 18, fontWeight: FontWeight.w700,
+                          color: textPrimary, letterSpacing: -0.3,
                         ),
                       ),
                     ),
@@ -74,113 +115,51 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
                   ),
                 ),
               ),
-              // Section Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Priority Quotes',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -0.3),
-                  ),
-                ),
-              ),
-              // Cards
+              // Content
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                  children: [
-                    _buildNegotiationCard(
-                      requestId: '8821',
-                      productName: 'John Deere 5050D Tractor',
-                      bulkOrder: 'Bulk Order: 10 units',
-                      status: 'COUNTER-OFFER',
-                      statusColor: const Color(0xFFF59E0B),
-                      statusBg: const Color(0xFFFEF3C7),
-                      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAaGgwMFJfelXOECcbEE0PcOWEJYZG_IeWUQBS3eYYeR8WGclPWdSaSr02PbM2TR18rwhnkGYJXivBh6KDC4s1uOmrpgiRDhh6z_n_S41GhE5FSy-TUXj6NpNohO60LbL3jrhLu5FwgWn51hhzM0DfENdXiue6d4kSXkE6nKm356hu9fj5KaYlwkmIaLRnv1y2nmjXJaXuF4mKUlaYBKe3beGqIjylC9XPYHyiSoZLiSM3lz5YnD9dFy4XOHyxnfFPC0wT9m1ktUPXj',
-                      priceRows: [
-                        {'label': 'Your Quote:', 'value': '\$120,000', 'color': textPrimary},
-                        {'label': 'Admin Price:', 'value': '\$125,000', 'color': primaryBlue},
-                      ],
-                      buttonLabel: 'View Details',
-                      buttonStyle: 'primary',
-                    ),
-                    _buildNegotiationCard(
-                      requestId: '8790',
-                      productName: 'Mahindra Arjun 555 DI',
-                      bulkOrder: 'Bulk Order: 5 units',
-                      status: 'ACCEPTED',
-                      statusColor: const Color(0xFF16A34A),
-                      statusBg: const Color(0xFFDCFCE7),
-                      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDeRnAVFtCPqADjT1xfxgQZUwnbDm7VXA9ZtB8Mx3smt-DQbKK30XiyblbS5DK0_BKbqx-oXRHyWv2Lup0rF6WlV8ArlL4OTx4vA9-kptmUcpYOQ7mq1ShcxTRW2p0JMw-kBheHInQujJ_LwAgIAh4WDhM9yIDHyLlquivu1NDI3Scj9aYrmL9LsMeKh49UKjV1yJmUsma6qz0NQF6IHWdr_eMyUgLNCMgfHBXskdsZfGu35NNpMmmO0eOu9hkoAX-jq80MrzIyYPB7',
-                      priceRows: [
-                        {'label': 'Negotiated Total:', 'value': '\$45,000', 'color': const Color(0xFF16A34A)},
-                      ],
-                      showAccentBorder: true,
-                      buttonLabel: 'Pay Now',
-                      buttonStyle: 'primary',
-                      buttonIcon: Icons.account_balance_wallet_rounded,
-                    ),
-                    _buildNegotiationCard(
-                      requestId: '8912',
-                      productName: 'New Holland T6 Series',
-                      bulkOrder: 'Bulk Order: 3 units',
-                      status: 'PENDING REVIEW',
-                      statusColor: const Color(0xFF6B7280),
-                      statusBg: const Color(0xFFF3F4F6),
-                      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoAi8Z9AYnnHnksg3wzDv3tFls2Idq7TqPmxGitX58sgdDcWHvml_6hb-XPe3HzyhtZRtureb4wn6zRlR-WL493UOLq22iu3vXYo-q499bvG5FGFjVhC-lYehP356yiSmrfid1DCuuIOnA_Y4emJZj5728OBUNr_sdelqFN9PCDJRcxBkGzbCmFhkCybh8txJT4hNO_eEWTrK4-IWmsMhTNyD-_hJRiyNako1lCGLbh86uokS2UzNYiUc5xX1yEnFJNNz2ty4t5sqo',
-                      pendingPrice: '\$88,000',
-                      pendingNote: 'Awaiting admin verification',
-                      buttonLabel: 'Under Review',
-                      buttonStyle: 'disabled',
-                      isOpaque: true,
-                    ),
-                  ],
-                ),
-              ),
-              // Bottom Verification Banner
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                decoration: BoxDecoration(
-                  color: surfaceWhite,
-                  border: const Border(top: BorderSide(color: borderLight)),
-                ),
-                child: SafeArea(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: primaryBlue.withOpacity(0.08),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(child: Icon(Icons.verified_user_outlined, color: primaryBlue, size: 22)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Manual Verification', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary)),
-                            Text('UPI payments verified within 2-4 hours', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: slateBlue)),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {},
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: primaryBlue.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text('HELP', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: primaryBlue))
+                    : _error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_error!, style: GoogleFonts.plusJakartaSans(color: textMuted)),
+                                const SizedBox(height: 12),
+                                TextButton(onPressed: _fetchNegotiations, child: const Text('Retry')),
+                              ],
+                            ),
+                          )
+                        : _filteredNegotiations.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.handshake_outlined, size: 48, color: textMuted.withOpacity(0.5)),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _selectedTab == 1 ? 'No active negotiations' :
+                                      _selectedTab == 2 ? 'No completed negotiations' :
+                                      'No negotiations yet',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: textMuted),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Start negotiating on product pages',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: slateBlue),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : RefreshIndicator(
+                                onRefresh: _fetchNegotiations,
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                                  itemCount: _filteredNegotiations.length,
+                                  itemBuilder: (context, index) =>
+                                      _buildNegotiationCard(_filteredNegotiations[index]),
+                                ),
+                              ),
               ),
             ],
           ),
@@ -206,8 +185,7 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
         child: Text(
           label,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontSize: 14, fontWeight: FontWeight.w700,
             letterSpacing: 0.3,
             color: isSelected ? primaryBlue : slateBlue,
           ),
@@ -216,27 +194,55 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
     );
   }
 
-  Widget _buildNegotiationCard({
-    required String requestId,
-    required String productName,
-    required String bulkOrder,
-    required String status,
-    required Color statusColor,
-    required Color statusBg,
-    String? imageUrl,
-    List<Map<String, dynamic>>? priceRows,
-    String? pendingPrice,
-    String? pendingNote,
-    bool showAccentBorder = false,
-    required String buttonLabel,
-    required String buttonStyle,
-    IconData? buttonIcon,
-    bool isOpaque = false,
-  }) {
+  Map<String, dynamic> _getStatusDisplay(String status) {
+    switch (status) {
+      case 'pending':
+        return {'label': 'PENDING', 'color': const Color(0xFF6B7280), 'bg': const Color(0xFFF3F4F6)};
+      case 'countered':
+        return {'label': 'COUNTER-OFFER', 'color': const Color(0xFFF59E0B), 'bg': const Color(0xFFFEF3C7)};
+      case 'accepted':
+        return {'label': 'ACCEPTED', 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFDCFCE7)};
+      case 'rejected':
+        return {'label': 'REJECTED', 'color': const Color(0xFFDC2626), 'bg': const Color(0xFFFEE2E2)};
+      case 'expired':
+        return {'label': 'EXPIRED', 'color': const Color(0xFF9CA3AF), 'bg': const Color(0xFFF3F4F6)};
+      case 'converted':
+        return {'label': 'CONVERTED', 'color': const Color(0xFF7C3AED), 'bg': const Color(0xFFF3E8FF)};
+      default:
+        return {'label': status.toUpperCase(), 'color': const Color(0xFF6B7280), 'bg': const Color(0xFFF3F4F6)};
+    }
+  }
+
+  Widget _buildNegotiationCard(Map<String, dynamic> negotiation) {
+    final status = negotiation['status'] as String? ?? 'pending';
+    final statusDisplay = _getStatusDisplay(status);
+    final product = negotiation['product'] as Map<String, dynamic>? ?? {};
+    final productName = product['name'] as String? ?? 'Unknown Product';
+    final imageUrl = product['image'] as String? ?? '';
+    final quantity = negotiation['requestedQuantity'] ?? 0;
+    final requestedPrice = negotiation['requestedPricePerUnit'] ?? 0;
+    final currentPrice = negotiation['currentPricePerUnit'] ?? 0;
+    final currentTotal = negotiation['currentTotalPrice'] ?? 0;
+    final currentOfferBy = negotiation['currentOfferBy'] as String? ?? '';
+    final negotiationNumber = negotiation['negotiationNumber'] as String? ?? '';
+    final negotiationId = (negotiation['id'] ?? negotiation['_id'] ?? '').toString();
+    final canPay = negotiation['canPay'] == true;
+    final createdAt = negotiation['createdAt'] as String? ?? '';
+
+    String formattedDate = '';
+    if (createdAt.isNotEmpty) {
+      try {
+        formattedDate = DateFormat('MMM d, yyyy').format(DateTime.parse(createdAt));
+      } catch (_) {}
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Opacity(
-        opacity: isOpaque ? 0.85 : 1.0,
+      child: GestureDetector(
+        onTap: () async {
+          final result = await context.push('/negotiation-detail/$negotiationId');
+          if (result == true) _fetchNegotiations();
+        },
         child: Container(
           decoration: BoxDecoration(
             color: surfaceWhite,
@@ -251,9 +257,9 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Product Image
-              if (imageUrl != null)
+              if (imageUrl.isNotEmpty)
                 AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: 2.4,
                   child: CachedNetworkImage(
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
@@ -275,26 +281,23 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'REQUEST #$requestId',
+                          negotiationNumber.isNotEmpty ? negotiationNumber : 'NEGOTIATION',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: slateBlue,
-                            letterSpacing: 0.5,
+                            fontSize: 12, fontWeight: FontWeight.w600,
+                            color: slateBlue, letterSpacing: 0.5,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: statusBg,
+                            color: statusDisplay['bg'] as Color,
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: Text(
-                            status,
+                            statusDisplay['label'] as String,
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: statusColor,
+                              fontSize: 10, fontWeight: FontWeight.w800,
+                              color: statusDisplay['color'] as Color,
                               letterSpacing: 0.3,
                             ),
                           ),
@@ -306,128 +309,171 @@ class _NegotiationsScreenState extends State<NegotiationsScreen> {
                     Text(
                       productName,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: textPrimary,
-                        height: 1.2,
-                        letterSpacing: -0.3,
+                        fontSize: 18, fontWeight: FontWeight.w700,
+                        color: textPrimary, height: 1.2, letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Bulk Order
-                    Text(
-                      bulkOrder,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: slateBlue,
-                      ),
+                    // Quantity + Date
+                    Row(
+                      children: [
+                        Text(
+                          'Qty: $quantity units',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: slateBlue),
+                        ),
+                        if (formattedDate.isNotEmpty) ...[
+                          Text('  •  ', style: GoogleFonts.plusJakartaSans(color: textMuted)),
+                          Text(formattedDate, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textMuted)),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    // Price Details
-                    if (priceRows != null && priceRows.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: backgroundWhite,
-                          borderRadius: BorderRadius.circular(8),
-                          border: showAccentBorder
-                              ? const Border(left: BorderSide(color: Color(0xFF16A34A), width: 4))
-                              : null,
-                        ),
-                        child: Column(
-                          children: priceRows.map((row) {
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: row == priceRows.last ? 0 : 6),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    row['label'] as String,
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, color: slateBlue),
-                                  ),
-                                  Text(
-                                    row['value'] as String,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: row['color'] == const Color(0xFF16A34A) ? 18 : 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: row['color'] as Color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                    // Price Info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: backgroundWhite,
+                        borderRadius: BorderRadius.circular(8),
+                        border: status == 'accepted'
+                            ? const Border(left: BorderSide(color: Color(0xFF16A34A), width: 4))
+                            : null,
                       ),
-                    // Pending Price
-                    if (pendingPrice != null)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Column(
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Requested Price: ', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: slateBlue)),
-                              Text(pendingPrice, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary)),
+                              Text('Your Price/unit:', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: slateBlue)),
+                              Text(
+                                '₹${NumberFormat('#,##,###').format(requestedPrice)}',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
+                              ),
                             ],
                           ),
-                          if (pendingNote != null) ...[
-                            const SizedBox(height: 4),
-                            Text(pendingNote, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontStyle: FontStyle.italic, color: slateBlue)),
-                          ],
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                status == 'countered' && currentOfferBy == 'admin'
+                                    ? 'Admin Counter:'
+                                    : 'Current Price/unit:',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: slateBlue),
+                              ),
+                              Text(
+                                '₹${NumberFormat('#,##,###').format(currentPrice)}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14, fontWeight: FontWeight.w700,
+                                  color: status == 'accepted' ? const Color(0xFF16A34A) : primaryBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Divider(height: 1),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Total:', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text(
+                                '₹${NumberFormat('#,##,###').format(currentTotal)}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16, fontWeight: FontWeight.w800,
+                                  color: status == 'accepted' ? const Color(0xFF16A34A) : textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
+                    ),
                     const SizedBox(height: 16),
                     // Action Button
-                    GestureDetector(
-                      onTap: buttonStyle == 'disabled' ? null : () {
-                        if (buttonLabel == 'Pay Now') {
-                          context.push('/payment/negotiation-$requestId');
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: buttonStyle == 'primary'
-                              ? primaryBlue
-                              : buttonStyle == 'disabled'
-                                  ? borderLight
-                                  : surfaceWhite,
-                          borderRadius: BorderRadius.circular(10),
-                          border: buttonStyle == 'outline' ? Border.all(color: borderLight) : null,
-                          boxShadow: buttonStyle == 'primary' && buttonIcon != null
-                              ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))]
-                              : null,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (buttonIcon != null) ...[
-                              Icon(buttonIcon, size: 16, color: Colors.white),
-                              const SizedBox(width: 6),
-                            ],
-                            Text(
-                              buttonLabel,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: buttonStyle == 'primary'
-                                    ? Colors.white
-                                    : buttonStyle == 'disabled'
-                                        ? const Color(0xFF9CA3AF)
-                                        : textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _buildActionButton(status, currentOfferBy, canPay, negotiationId),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String status, String currentOfferBy, bool canPay, String negotiationId) {
+    String label;
+    String style;
+    IconData? icon;
+    VoidCallback? onTap;
+
+    if (status == 'countered' && currentOfferBy == 'admin') {
+      label = 'Respond to Counter';
+      style = 'primary';
+      icon = Icons.reply_rounded;
+      onTap = () async {
+        final result = await context.push('/negotiation-detail/$negotiationId');
+        if (result == true) _fetchNegotiations();
+      };
+    } else if (status == 'accepted' && canPay) {
+      label = 'Proceed to Order';
+      style = 'primary';
+      icon = Icons.account_balance_wallet_rounded;
+      onTap = () {};
+    } else if (status == 'pending') {
+      label = 'Under Review';
+      style = 'disabled';
+    } else if (status == 'rejected') {
+      label = 'Rejected';
+      style = 'disabled';
+    } else if (status == 'expired') {
+      label = 'Expired';
+      style = 'disabled';
+    } else {
+      label = 'View Details';
+      style = 'outline';
+      onTap = () async {
+        final result = await context.push('/negotiation-detail/$negotiationId');
+        if (result == true) _fetchNegotiations();
+      };
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 44,
+        decoration: BoxDecoration(
+          color: style == 'primary'
+              ? primaryBlue
+              : style == 'disabled'
+                  ? borderLight
+                  : surfaceWhite,
+          borderRadius: BorderRadius.circular(10),
+          border: style == 'outline' ? Border.all(color: borderLight) : null,
+          boxShadow: style == 'primary' && icon != null
+              ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: Colors.white),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14, fontWeight: FontWeight.w700,
+                color: style == 'primary'
+                    ? Colors.white
+                    : style == 'disabled'
+                        ? const Color(0xFF9CA3AF)
+                        : textPrimary,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -22,10 +22,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _checkAuthAndNavigate() async {
+    // Wait minimum splash time, but also ensure auth check has completed
     await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
     
+    // Wait for auth loading to finish (max 3 more seconds)
+    for (int i = 0; i < 30; i++) {
+      if (!mounted) return;
+      final authState = ref.read(authProvider);
+      if (!authState.isLoading) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    
+    if (!mounted) return;
     final authState = ref.read(authProvider);
+    
+    debugPrint('[Splash] Auth check done: isAuthenticated=${authState.isAuthenticated}, user=${authState.user?.name}');
     
     if (authState.isAuthenticated) {
       context.go('/home');
