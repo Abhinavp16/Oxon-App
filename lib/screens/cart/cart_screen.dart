@@ -18,17 +18,23 @@ class CartScreen extends ConsumerStatefulWidget {
 
 class _CartScreenState extends ConsumerState<CartScreen> {
   bool _isCheckingOut = false;
+  bool _isValidating = false;
 
   @override
   void initState() {
     super.initState();
-    // Only fetch from server if local cart is empty; otherwise items are already loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final cart = ref.read(cartProvider);
-      if (cart.items.isEmpty && !cart.isLoading) {
-        ref.read(cartProvider.notifier).fetchCart();
-      }
+      _refreshCartAndValidate();
     });
+  }
+
+  Future<void> _refreshCartAndValidate() async {
+    await ref.read(cartProvider.notifier).fetchCart();
+    if (!mounted) return;
+    final cart = ref.read(cartProvider);
+    if (cart.items.isNotEmpty) {
+      await ref.read(cartProvider.notifier).validateStock();
+    }
   }
 
   String _fmt(double price) {
@@ -39,6 +45,19 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   Future<void> _proceedToCheckout() async {
     final cart = ref.read(cartProvider);
     if (cart.items.isEmpty) return;
+
+    // Validate stock before checkout
+    setState(() => _isValidating = true);
+    final result = await ref.read(cartProvider.notifier).validateStock();
+    if (!mounted) return;
+    setState(() => _isValidating = false);
+
+    final bool valid = result['valid'] ?? true;
+    if (!valid) {
+      final issues = (result['issues'] as List<dynamic>?) ?? [];
+      _showStockIssueDialog(issues.cast<Map<String, dynamic>>());
+      return;
+    }
 
     // Show shipping address dialog
     final address = await _showAddressDialog();
@@ -63,6 +82,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
       final msg = e.response?.data?['message']?.toString() ?? 'Checkout failed';
+      final code = e.response?.data?['code']?.toString();
+      // If stock issue from server, refresh cart to show updated stock
+      if (code == 'INSUFFICIENT_STOCK') {
+        await ref.read(cartProvider.notifier).fetchCart();
+        await ref.read(cartProvider.notifier).validateStock();
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
         backgroundColor: AppColors.error,
@@ -73,6 +99,53 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
     }
+  }
+
+  void _showStockIssueDialog(List<Map<String, dynamic>> issues) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+          const SizedBox(width: 8),
+          Text('Stock Issues', style: GoogleFonts.plusJakartaSans(
+            fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Some items in your cart have stock issues. Please update quantities before checkout.',
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary)),
+            const SizedBox(height: 16),
+            ...issues.map((issue) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(
+                  issue['type'] == 'out_of_stock' || issue['type'] == 'unavailable'
+                    ? Icons.cancel_rounded : Icons.error_rounded,
+                  color: issue['type'] == 'out_of_stock' || issue['type'] == 'unavailable'
+                    ? AppColors.error : Colors.orange,
+                  size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text(
+                  issue['message']?.toString() ?? 'Stock issue',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary))),
+              ]),
+            )),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Got it', style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700, color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<Map<String, String>?> _showAddressDialog() async {
@@ -229,18 +302,43 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary)),
                   ]),
                   const SizedBox(height: 20),
+                  if (cart.hasStockIssues)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.orange.shade200)),
+                        child: Row(children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('Some items have stock issues. Please adjust quantities.',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.orange.shade800))),
+                        ]),
+                      ),
+                    ),
                   SizedBox(width: double.infinity, height: 56,
                     child: ElevatedButton(
-                      onPressed: _isCheckingOut ? null : _proceedToCheckout,
+                      onPressed: (_isCheckingOut || _isValidating || cart.hasStockIssues) ? null : _proceedToCheckout,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary, foregroundColor: Colors.white,
+                        backgroundColor: cart.hasStockIssues ? AppColors.gray300 : AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.gray300,
+                        disabledForegroundColor: Colors.white70,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: _isCheckingOut
-                        ? const SizedBox(width: 24, height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                      child: (_isCheckingOut || _isValidating)
+                        ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const SizedBox(width: 24, height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)),
+                            const SizedBox(width: 12),
+                            Text(_isValidating ? 'Checking stock...' : 'Processing...',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
+                          ])
                         : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Text('Proceed to Checkout', style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
+                            Text(cart.hasStockIssues ? 'Fix Stock Issues' : 'Proceed to Checkout',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
                             const SizedBox(width: 8),
                             const Icon(Icons.chevron_right, size: 20),
                           ]))),
@@ -250,40 +348,139 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Widget _buildCartItem(CartItem item) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Row(children: [
-        ClipRRect(borderRadius: BorderRadius.circular(8),
-          child: item.image != null
-            ? CachedNetworkImage(imageUrl: item.image!, width: 80, height: 80, fit: BoxFit.cover,
-                placeholder: (_, __) => Container(color: AppColors.gray100, width: 80, height: 80),
-                errorWidget: (_, __, ___) => Container(color: AppColors.gray100, width: 80, height: 80,
-                  child: const Icon(Icons.image)))
-            : Container(color: AppColors.gray100, width: 80, height: 80,
-                child: const Icon(Icons.image))),
-        const SizedBox(width: 16),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(item.name, style: GoogleFonts.plusJakartaSans(
-            fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-            maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text('₹${_fmt(item.price)}', style: GoogleFonts.plusJakartaSans(
-            fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
-        ])),
-        Container(
-          decoration: BoxDecoration(color: AppColors.gray100, borderRadius: BorderRadius.circular(8)),
-          child: Row(children: [
-            InkWell(onTap: () => ref.read(cartProvider.notifier).updateQuantity(item.productId, item.quantity - 1),
-              child: Container(width: 32, height: 32, alignment: Alignment.center,
-                child: Text('-', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600)))),
-            Container(width: 24, alignment: Alignment.center,
-              child: Text('${item.quantity}', style: GoogleFonts.plusJakartaSans(
-                fontSize: 14, fontWeight: FontWeight.w700))),
-            InkWell(onTap: () => ref.read(cartProvider.notifier).updateQuantity(item.productId, item.quantity + 1),
-              child: Container(width: 32, height: 32, alignment: Alignment.center,
-                child: Text('+', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600)))),
-          ])),
-      ]),
+    final hasIssue = item.hasStockIssue;
+    final isOutOfStock = item.stock == 0;
+    final bool atStockLimit = item.stock > 0 && item.quantity >= item.stock;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: hasIssue ? Colors.red.shade50 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: hasIssue ? Border.all(color: Colors.red.shade200, width: 1) : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              ClipRRect(borderRadius: BorderRadius.circular(8),
+                child: item.image != null
+                  ? CachedNetworkImage(imageUrl: item.image!, width: 72, height: 72, fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(color: AppColors.gray100, width: 72, height: 72),
+                      errorWidget: (_, __, ___) => Container(color: AppColors.gray100, width: 72, height: 72,
+                        child: const Icon(Icons.image)))
+                  : Container(color: AppColors.gray100, width: 72, height: 72,
+                      child: const Icon(Icons.image))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(item.name, style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text('₹${_fmt(item.price)}', style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                if (item.stock > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('${item.stock} in stock', style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11, fontWeight: FontWeight.w500,
+                      color: item.stock <= 5 ? Colors.orange.shade700 : AppColors.textSecondary)),
+                  ),
+              ])),
+              if (!isOutOfStock)
+                Container(
+                  decoration: BoxDecoration(
+                    color: hasIssue ? Colors.red.shade100 : AppColors.gray100,
+                    borderRadius: BorderRadius.circular(8)),
+                  child: Row(children: [
+                    InkWell(
+                      onTap: () => ref.read(cartProvider.notifier).updateQuantity(item.productId, item.quantity - 1),
+                      child: Container(width: 32, height: 32, alignment: Alignment.center,
+                        child: Text('-', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600)))),
+                    Container(width: 28, alignment: Alignment.center,
+                      child: Text('${item.quantity}', style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14, fontWeight: FontWeight.w700,
+                        color: hasIssue ? AppColors.error : AppColors.textPrimary))),
+                    InkWell(
+                      onTap: atStockLimit ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Only ${item.stock} units available',
+                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                          backgroundColor: Colors.orange,
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.all(16)));
+                      } : () async {
+                        final err = await ref.read(cartProvider.notifier).updateQuantity(item.productId, item.quantity + 1);
+                        if (err != null && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(err, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                            backgroundColor: Colors.orange,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            margin: const EdgeInsets.all(16)));
+                        }
+                      },
+                      child: Container(width: 32, height: 32, alignment: Alignment.center,
+                        child: Text('+', style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16, fontWeight: FontWeight.w600,
+                          color: atStockLimit ? AppColors.gray300 : AppColors.textPrimary)))),
+                  ])),
+              if (isOutOfStock)
+                IconButton(
+                  onPressed: () => ref.read(cartProvider.notifier).removeItem(item.productId),
+                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 22),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+            ]),
+            // Stock issue message
+            if (hasIssue)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isOutOfStock ? Colors.red.shade100 : Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(6)),
+                  child: Row(children: [
+                    Icon(
+                      isOutOfStock ? Icons.cancel_rounded : Icons.warning_amber_rounded,
+                      color: isOutOfStock ? AppColors.error : Colors.orange.shade800,
+                      size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(
+                      item.stockIssue ?? (isOutOfStock
+                        ? 'Out of stock — please remove this item'
+                        : 'Only ${item.stock} available (you selected ${item.quantity})'),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11, fontWeight: FontWeight.w600,
+                        color: isOutOfStock ? AppColors.error : Colors.orange.shade800))),
+                    if (!isOutOfStock && item.stock > 0)
+                      GestureDetector(
+                        onTap: () {
+                          ref.read(cartProvider.notifier).updateQuantity(item.productId, item.stock);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade700,
+                            borderRadius: BorderRadius.circular(4)),
+                          child: Text('Set to ${item.stock}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ),
+                      ),
+                  ]),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

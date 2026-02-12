@@ -7,8 +7,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/wishlist_provider.dart';
@@ -81,7 +83,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     if (id == null) return;
     _ytCtrl = YoutubePlayerController(initialVideoId: id,
       flags: const YoutubePlayerFlags(autoPlay: false, mute: false,
-        enableCaption: false, showLiveFullscreenButton: false));
+        enableCaption: false, showLiveFullscreenButton: false,
+        disableDragSeek: false, forceHD: false));
+  }
+
+  void _openFullscreenVideo() {
+    final url = _product?['videoUrl']?.toString() ?? '';
+    if (url.isEmpty) return;
+    final vid = YoutubePlayer.convertUrlToId(url);
+    if (vid == null) return;
+
+    // Pause inline player if playing
+    _ytCtrl?.pause();
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            _FullscreenVideoPage(videoId: vid),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
   }
 
   Future<void> _fetchProduct() async {
@@ -99,13 +123,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   Future<void> _trackView() async {
     try {
-      await _dio.post('/products/${widget.productId}/view', data: {'source': 'direct'});
+      final token = await StorageService.getAccessToken();
+      await _dio.post('/products/${widget.productId}/view',
+        data: {'source': 'direct'},
+        options: token != null ? Options(headers: {'Authorization': 'Bearer $token'}) : null,
+      );
     } catch (_) {}
   }
 
   Future<void> _trackEvent(String event) async {
     try {
-      await _dio.post('/products/${widget.productId}/event', data: {'event': event, 'source': 'direct'});
+      final token = await StorageService.getAccessToken();
+      await _dio.post('/products/${widget.productId}/event',
+        data: {'event': event, 'source': 'direct'},
+        options: token != null ? Options(headers: {'Authorization': 'Bearer $token'}) : null,
+      );
     } catch (_) {}
   }
 
@@ -267,7 +299,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     color: inStock ? _green : _red)),
               ])),
               const SizedBox(width: 4),
-              _circleBtn(Icons.share_outlined, () {}),
+              _circleBtn(Icons.share_outlined, () {
+                final p = _product;
+                if (p == null) return;
+                final pName = p['name']?.toString() ?? 'Product';
+                final pPrice = p['price'] ?? p['retailPrice'];
+                final shareText = 'Check out $pName'
+                    '${pPrice != null ? ' - ₹${_fmt(pPrice)}' : ''}'
+                    ' on AgriMart!\n\nhttps://agrimart.app/product/${widget.productId}';
+                SharePlus.instance.share(ShareParams(text: shareText));
+              }),
               Builder(builder: (ctx) {
                 final isFav = ref.watch(wishlistProvider).contains(widget.productId);
                 return _circleBtn(
@@ -435,43 +476,157 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   // ── SPECIFICATIONS ──
   Widget _specsSection() {
+    final previewCount = _specs.length > 3 ? 3 : _specs.length;
+    final hasMore = _specs.length > 3;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       decoration: BoxDecoration(color: _card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _border.withOpacity(0.5)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
           blurRadius: 10, offset: const Offset(0, 2))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Specifications', style: GoogleFonts.plusJakartaSans(
-          fontSize: 16, fontWeight: FontWeight.w700, color: _txt)),
+        Row(children: [
+          Icon(Icons.settings_suggest_outlined, color: _blue, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Specifications', style: GoogleFonts.plusJakartaSans(
+            fontSize: 16, fontWeight: FontWeight.w700, color: _txt))),
+          Text('${_specs.length} specs', style: GoogleFonts.plusJakartaSans(
+            fontSize: 12, color: _txtMuted)),
+        ]),
         const SizedBox(height: 14),
-        SizedBox(height: 90,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _specs.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (_, i) {
-              final key = _specs[i]['key']?.toString() ?? '';
-              final val = _specs[i]['value']?.toString() ?? '';
-              return Container(width: 110, padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: _bg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _border.withOpacity(0.5))),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(_specIcon(key), color: _blue, size: 20),
-                  const SizedBox(height: 6),
-                  Text(key, style: GoogleFonts.plusJakartaSans(fontSize: 11,
-                    fontWeight: FontWeight.w500, color: _txtSec),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text(val, style: GoogleFonts.plusJakartaSans(fontSize: 13,
-                    fontWeight: FontWeight.w700, color: _txt),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                ]));
-            }))]));
+        // Vertical spec list with fade
+        Stack(children: [
+          Column(children: List.generate(previewCount, (i) {
+            final key = _specs[i]['key']?.toString() ?? '';
+            final val = _specs[i]['value']?.toString() ?? '';
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: i < previewCount - 1
+                  ? Border(bottom: BorderSide(color: _border.withOpacity(0.4)))
+                  : null),
+              child: Row(children: [
+                Container(width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    borderRadius: BorderRadius.circular(10)),
+                  child: Icon(_specIcon(key), color: _blue, size: 18)),
+                const SizedBox(width: 14),
+                Expanded(child: Text(key, style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, fontWeight: FontWeight.w500, color: _txtSec))),
+                Text(val, style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14, fontWeight: FontWeight.w700, color: _txt)),
+              ]));
+          })),
+          // Fade overlay at the bottom
+          if (hasMore) Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_card.withOpacity(0.0), _card])))),
+        ]),
+        // View All button
+        if (hasMore) GestureDetector(
+          onTap: _openSpecsSheet,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: _border.withOpacity(0.4)))),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('View all ${_specs.length} specifications',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
+              const SizedBox(width: 6),
+              Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: _blue),
+            ])),
+        ),
+        if (!hasMore) const SizedBox(height: 20),
+      ]));
+  }
+
+  void _openSpecsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // Handle bar
+          Center(child: Container(width: 40, height: 5,
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            decoration: BoxDecoration(color: _border,
+              borderRadius: BorderRadius.circular(100)))),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+            child: Row(children: [
+              Container(padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _blue.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.settings_suggest_outlined,
+                  color: _blue, size: 22)),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('All Specifications', style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18, fontWeight: FontWeight.w700, color: _txt)),
+                Text('${_specs.length} specs', style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, color: _txtSec)),
+              ])),
+              IconButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                icon: const Icon(Icons.close_rounded, color: _txtMuted, size: 22)),
+            ])),
+          const SizedBox(height: 8),
+          Divider(height: 1, color: _border.withOpacity(0.5)),
+          // Specs list
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              itemCount: _specs.length,
+              separatorBuilder: (_, __) => Divider(
+                height: 1, color: _border.withOpacity(0.4)),
+              itemBuilder: (_, i) {
+                final key = _specs[i]['key']?.toString() ?? '';
+                final val = _specs[i]['value']?.toString() ?? '';
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(children: [
+                    Container(width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: _bg,
+                        borderRadius: BorderRadius.circular(10)),
+                      child: Icon(_specIcon(key), color: _blue, size: 18)),
+                    const SizedBox(width: 14),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(key, style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12, fontWeight: FontWeight.w500,
+                        color: _txtSec, letterSpacing: 0.2)),
+                      const SizedBox(height: 2),
+                      Text(val, style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15, fontWeight: FontWeight.w700, color: _txt)),
+                    ])),
+                  ]));
+              }),
+          ),
+        ]),
+      ),
+    );
   }
 
   // ── NEGOTIATE CARD ──
@@ -631,14 +786,31 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     if (_ytCtrl == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: ClipRRect(borderRadius: BorderRadius.circular(20),
-        child: YoutubePlayer(
-          controller: _ytCtrl!,
-          showVideoProgressIndicator: true,
-          progressIndicatorColor: _blue,
-          progressColors: const ProgressBarColors(
-            playedColor: Color(0xFFFF0000),
-            handleColor: Color(0xFFFF0000)))));
+      child: Stack(
+        children: [
+          ClipRRect(borderRadius: BorderRadius.circular(20),
+            child: YoutubePlayer(
+              controller: _ytCtrl!,
+              showVideoProgressIndicator: true,
+              progressIndicatorColor: _blue,
+              progressColors: const ProgressBarColors(
+                playedColor: Color(0xFFFF0000),
+                handleColor: Color(0xFFFF0000)))),
+          Positioned(
+            top: 8, right: 8,
+            child: GestureDetector(
+              onTap: _openFullscreenVideo,
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  shape: BoxShape.circle),
+                child: const Icon(Icons.fullscreen_rounded,
+                  color: Colors.white, size: 22)),
+            ),
+          ),
+        ],
+      ));
   }
 
   // ── SHIPPING ──
@@ -649,6 +821,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         'in original packaging.';
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(color: _card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _border.withOpacity(0.5)),
@@ -668,14 +841,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   fontWeight: FontWeight.w600, color: _txt))),
               AnimatedRotation(
                 turns: _shippingOpen ? 0.25 : 0,
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 300),
                 child: const Icon(Icons.chevron_right,
                   color: _txtMuted, size: 20)),
             ]))),
-        if (_shippingOpen) Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Text(terms, style: GoogleFonts.plusJakartaSans(
-            fontSize: 13, color: _txtSec, height: 1.6))),
+        AnimatedCrossFade(
+          firstChild: const SizedBox(width: double.infinity),
+          secondChild: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Text(terms, style: GoogleFonts.plusJakartaSans(
+              fontSize: 13, color: _txtSec, height: 1.6))),
+          crossFadeState: _shippingOpen
+            ? CrossFadeState.showSecond
+            : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 300),
+          sizeCurve: Curves.easeInOut,
+        ),
       ]));
   }
 
@@ -1235,5 +1416,93 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16)));
     }
+  }
+}
+
+// ══════════════════════════════════════════
+// FULLSCREEN VIDEO PAGE (overlay)
+// ══════════════════════════════════════════
+class _FullscreenVideoPage extends StatefulWidget {
+  final String videoId;
+  const _FullscreenVideoPage({required this.videoId});
+
+  @override
+  State<_FullscreenVideoPage> createState() => _FullscreenVideoPageState();
+}
+
+class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
+  late YoutubePlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
+        mute: false,
+        enableCaption: false,
+        showLiveFullscreenButton: false,
+        hideControls: false,
+        forceHD: true,
+      ),
+    );
+    // Lock to landscape for the fullscreen video page
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    // Restore portrait orientation and system UI
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: YoutubePlayer(
+              controller: _controller,
+              showVideoProgressIndicator: true,
+              progressIndicatorColor: const Color(0xFF2563EB),
+              progressColors: const ProgressBarColors(
+                playedColor: Color(0xFFFF0000),
+                handleColor: Color(0xFFFF0000),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close_rounded,
+                  color: Colors.white, size: 24),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

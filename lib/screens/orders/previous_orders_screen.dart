@@ -332,15 +332,31 @@ class _PreviousOrdersScreenState extends ConsumerState<PreviousOrdersScreen> {
       );
     }
 
-    // All other statuses (payment_uploaded, payment_verified, processing) → "View Status"
+    // payment_uploaded → still show "View Status" → payment screen
+    if (status == 'payment_uploaded') {
+      return OutlinedButton.icon(
+        onPressed: () => context.push('/payment/$orderId'),
+        icon: const Icon(Icons.visibility_rounded, size: 16),
+        label: Text('View Status', style: GoogleFonts.plusJakartaSans(
+          fontSize: 12, fontWeight: FontWeight.w700)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          side: BorderSide(color: AppColors.primary.withOpacity(0.5)),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+      );
+    }
+
+    // payment_verified, processing → "Track Order" → tracking screen
     return OutlinedButton.icon(
-      onPressed: () => context.push('/payment/$orderId'),
-      icon: const Icon(Icons.visibility_rounded, size: 16),
-      label: Text('View Status', style: GoogleFonts.plusJakartaSans(
+      onPressed: () => context.push('/tracking/$orderId'),
+      icon: const Icon(Icons.local_shipping_rounded, size: 16),
+      label: Text('Track Order', style: GoogleFonts.plusJakartaSans(
         fontSize: 12, fontWeight: FontWeight.w700)),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        side: BorderSide(color: AppColors.primary.withOpacity(0.5)),
+        foregroundColor: const Color(0xFF0ea5e9),
+        side: BorderSide(color: const Color(0xFF0ea5e9).withOpacity(0.5)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),

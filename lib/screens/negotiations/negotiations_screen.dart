@@ -15,7 +15,8 @@ class NegotiationsScreen extends ConsumerStatefulWidget {
   ConsumerState<NegotiationsScreen> createState() => _NegotiationsScreenState();
 }
 
-class _NegotiationsScreenState extends ConsumerState<NegotiationsScreen> {
+class _NegotiationsScreenState extends ConsumerState<NegotiationsScreen>
+    with WidgetsBindingObserver {
   int _selectedTab = 0;
   bool _isLoading = true;
   String? _error;
@@ -32,7 +33,21 @@ class _NegotiationsScreenState extends ConsumerState<NegotiationsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchNegotiations();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _fetchNegotiations();
+    }
   }
 
   Future<void> _fetchNegotiations() async {
@@ -117,49 +132,69 @@ class _NegotiationsScreenState extends ConsumerState<NegotiationsScreen> {
               ),
               // Content
               Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: primaryBlue))
-                    : _error != null
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                child: RefreshIndicator(
+                  color: primaryBlue,
+                  onRefresh: _fetchNegotiations,
+                  child: _isLoading
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            SizedBox(height: 200),
+                            Center(child: CircularProgressIndicator(color: primaryBlue)),
+                          ],
+                        )
+                      : _error != null
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
                               children: [
-                                Text(_error!, style: GoogleFonts.plusJakartaSans(color: textMuted)),
-                                const SizedBox(height: 12),
-                                TextButton(onPressed: _fetchNegotiations, child: const Text('Retry')),
+                                const SizedBox(height: 200),
+                                Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(_error!, style: GoogleFonts.plusJakartaSans(color: textMuted)),
+                                      const SizedBox(height: 12),
+                                      TextButton(onPressed: _fetchNegotiations, child: const Text('Retry')),
+                                    ],
+                                  ),
+                                ),
                               ],
-                            ),
-                          )
-                        : _filteredNegotiations.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                            )
+                          : _filteredNegotiations.isEmpty
+                              ? ListView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
                                   children: [
-                                    Icon(Icons.handshake_outlined, size: 48, color: textMuted.withOpacity(0.5)),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      _selectedTab == 1 ? 'No active negotiations' :
-                                      _selectedTab == 2 ? 'No completed negotiations' :
-                                      'No negotiations yet',
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: textMuted),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Start negotiating on product pages',
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: slateBlue),
+                                    const SizedBox(height: 200),
+                                    Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.handshake_outlined, size: 48, color: textMuted.withOpacity(0.5)),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            _selectedTab == 1 ? 'No active negotiations' :
+                                            _selectedTab == 2 ? 'No completed negotiations' :
+                                            'No negotiations yet',
+                                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: textMuted),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Start negotiating on product pages',
+                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: slateBlue),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
-                                ),
-                              )
-                            : RefreshIndicator(
-                                onRefresh: _fetchNegotiations,
-                                child: ListView.builder(
+                                )
+                              : ListView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(),
                                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                                   itemCount: _filteredNegotiations.length,
                                   itemBuilder: (context, index) =>
                                       _buildNegotiationCard(_filteredNegotiations[index]),
                                 ),
-                              ),
+                ),
               ),
             ],
           ),

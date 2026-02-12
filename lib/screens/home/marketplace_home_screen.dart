@@ -96,6 +96,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _fetchCategories();
     _initNotifications();
     _fetchNotificationCount();
+    // Fetch cart from server so it persists across app restarts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(cartProvider.notifier).fetchCart();
+    });
   }
 
   Future<void> _initNotifications() async {
@@ -2478,10 +2482,45 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   final _pinCtrl = TextEditingController();
 
   Future<void> _proceedToCheckout() async {
+    // Validate stock before showing address form
+    setState(() => _isCheckingOut = true);
+    final result = await ref.read(cartProvider.notifier).validateStock();
+    if (!mounted) return;
+    setState(() => _isCheckingOut = false);
+
+    final bool valid = result['valid'] ?? true;
+    if (!valid) {
+      final issues = ((result['issues'] as List<dynamic>?) ?? []).cast<Map<String, dynamic>>();
+      _showStockIssueSnackbar(issues);
+      return;
+    }
+
     final auth = ref.read(authProvider);
     _nameCtrl.text = auth.user?.name ?? '';
     _phoneCtrl.text = auth.user?.phone ?? '';
     setState(() => _showAddressForm = true);
+  }
+
+  void _showStockIssueSnackbar(List<Map<String, dynamic>> issues) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Cannot proceed — stock issues:', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13)),
+          const SizedBox(height: 4),
+          ...issues.map((i) => Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text('• ${i['message'] ?? 'Stock issue'}',
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500)),
+          )),
+        ],
+      ),
+      backgroundColor: const Color(0xFFDC2626),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16)));
   }
 
   Future<void> _confirmAndPay() async {
@@ -2508,9 +2547,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
       if (response.data['success'] == true) {
         final orderId = response.data['data']['orderId'].toString();
-        // Clear local cart (server already cleared it during order creation)
         ref.read(cartProvider.notifier).clearCart();
-        // Navigate after a tick to let state settle
         await Future.delayed(const Duration(milliseconds: 100));
         if (mounted) context.push('/payment/$orderId');
       }
@@ -2518,6 +2555,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
       final msg = e.response?.data?['message']?.toString() ?? 'Checkout failed';
+      // If it's a stock issue from the server, refresh cart to show updated stock
+      final code = e.response?.data?['code']?.toString();
+      if (code == 'INSUFFICIENT_STOCK') {
+        ref.read(cartProvider.notifier).fetchCart();
+        ref.read(cartProvider.notifier).validateStock();
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
         backgroundColor: const Color(0xFFDC2626),

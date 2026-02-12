@@ -81,6 +81,18 @@ class WishlistScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+              if (wishlist.items.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.swipe_left_rounded, size: 14, color: textMuted.withOpacity(0.6)),
+                      const SizedBox(width: 6),
+                      Text('Swipe left on an item to remove it',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textMuted)),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 12),
               // Content
               Expanded(
