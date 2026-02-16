@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
@@ -39,6 +41,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   bool _videoReady = false;
   Map<String, dynamic>? _product;
   bool _isLoading = true;
+  String _whatsappNumber = '';
   String? _error;
   final Dio _dio = Dio(BaseOptions(
     baseUrl: ApiConfig.baseUrl,
@@ -66,6 +69,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     _cartScale = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _cartBounce, curve: Curves.easeOutBack));
     _fetchProduct();
+    _fetchWhatsappNumber();
   }
 
   @override
@@ -262,6 +266,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
             SliverToBoxAdapter(child: _infoSection(name, sku, price, mrp, disc,
                 stock, inStock, isFeatured, isHot)),
             if (_specs.isNotEmpty) SliverToBoxAdapter(child: _specsSection()),
+            SliverToBoxAdapter(child: _trustBadgesStrip()),
             if (negEnabled) SliverToBoxAdapter(child: _negotiateCard(
                 name, price, wsPrice, minWsQty)),
             if (desc.isNotEmpty) SliverToBoxAdapter(child: _descSection(desc)),
@@ -860,6 +865,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       ]));
   }
 
+  Future<void> _fetchWhatsappNumber() async {
+    try {
+      final response = await _dio.get('/settings/banners');
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? {};
+        final wa = data['whatsapp']?.toString() ?? '';
+        if (wa.isNotEmpty && mounted) setState(() => _whatsappNumber = wa);
+      }
+    } catch (_) {}
+  }
+
+  void _openWhatsApp(String name, dynamic price) {
+    final pPrice = price != null ? '₹${_fmt(price)}' : '';
+    final msg = 'Hi, I need help with this product:\n\n'
+        '*$name*${pPrice.isNotEmpty ? ' - $pPrice' : ''}\n\n'
+        'https://agrimart.app/product/${widget.productId}\n\n'
+        'Please share more details.';
+    final encoded = Uri.encodeComponent(msg);
+    final phone = _whatsappNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final url = Uri.parse('https://wa.me/$phone?text=$encoded');
+    launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
   // ── BOTTOM BAR ──
   Widget _bottomBar(String name, dynamic price, dynamic mrp, dynamic stock,
       bool inStock, double bp, bool negEnabled,
@@ -905,7 +933,18 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       : Icons.shopping_cart_outlined,
                   size: 20,
                   color: _addedToCart ? Colors.white : _blue)))),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
+          // WhatsApp
+          GestureDetector(
+            onTap: () => _openWhatsApp(name, price),
+            child: Container(width: 52, height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFF25D366).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3))),
+              child: const Icon(Icons.chat_rounded,
+                size: 20, color: Color(0xFF25D366)))),
+          const SizedBox(width: 8),
           // Buy Now
           Expanded(child: GestureDetector(
             onTap: inStock ? () {
@@ -918,7 +957,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     : (mrp as num?)?.toDouble(),
                 quantity: 1, stock: stock is int ? stock : 99);
               _trackEvent('cart_add');
-              context.go('/home', extra: {'tab': 2});
+              final isWholesaler = ref.read(authProvider).user?.isWholesaler == true;
+              context.go('/home', extra: {'tab': isWholesaler ? 2 : 3});
             } : null,
             child: Container(height: 52,
               decoration: BoxDecoration(
@@ -1417,6 +1457,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         margin: const EdgeInsets.all(16)));
     }
   }
+
+  Widget _trustBadgesStrip() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: SizedBox(
+        height: 36,
+        child: _ProductTrustBadgeMarquee(),
+      ),
+    );
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1502,6 +1552,94 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+}
+
+// ══════════════════════════════════════════
+// TRUST BADGE MARQUEE for product detail
+// ══════════════════════════════════════════
+class _ProductTrustBadgeMarquee extends StatefulWidget {
+  @override
+  State<_ProductTrustBadgeMarquee> createState() => _ProductTrustBadgeMarqueeState();
+}
+
+class _ProductTrustBadgeMarqueeState extends State<_ProductTrustBadgeMarquee> {
+  late final ScrollController _sc;
+  Timer? _timer;
+
+  static const Color _blue = Color(0xFF2563EB);
+  static const Color _txtSec = Color(0xFF64748B);
+
+  static final List<Map<String, dynamic>> _badges = [
+    {'icon': Icons.verified_user_rounded, 'text': 'Verified Products'},
+    {'icon': Icons.star_rounded, 'text': 'Trusted Reviews'},
+    {'icon': Icons.support_agent_rounded, 'text': 'Guaranteed Support'},
+    {'icon': Icons.local_shipping_rounded, 'text': 'Fast Delivery'},
+    {'icon': Icons.shield_rounded, 'text': 'Secure Payments'},
+    {'icon': Icons.autorenew_rounded, 'text': 'Easy Returns'},
+    {'icon': Icons.verified_user_rounded, 'text': 'Verified Products'},
+    {'icon': Icons.star_rounded, 'text': 'Trusted Reviews'},
+    {'icon': Icons.support_agent_rounded, 'text': 'Guaranteed Support'},
+    {'icon': Icons.local_shipping_rounded, 'text': 'Fast Delivery'},
+    {'icon': Icons.shield_rounded, 'text': 'Secure Payments'},
+    {'icon': Icons.autorenew_rounded, 'text': 'Easy Returns'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _sc = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScroll());
+  }
+
+  void _startScroll() {
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (_) {
+      if (!_sc.hasClients) return;
+      final max = _sc.position.maxScrollExtent;
+      final cur = _sc.offset;
+      if (cur >= max) {
+        _sc.jumpTo(0);
+      } else {
+        _sc.jumpTo(cur + 0.8);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _sc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _blue.withOpacity(0.04),
+      child: ListView.builder(
+        controller: _sc,
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _badges.length,
+        itemBuilder: (_, i) {
+          final item = _badges[i];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(item['icon'] as IconData, size: 16, color: _blue),
+                const SizedBox(width: 6),
+                Text(item['text'] as String,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12, fontWeight: FontWeight.w600, color: _txtSec)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

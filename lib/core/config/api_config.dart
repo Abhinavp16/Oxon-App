@@ -7,7 +7,7 @@ class ApiConfig {
   // For Physical Device: use your computer's local IP (e.g., 192.168.1.100)
   // Run 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux) to find your IP
   
-  static const String baseUrl = 'http://10.205.253.247:5000/api/v1';
+  static const String baseUrl = 'http://192.168.1.6:5000/api/v1';
   
   // Alternative URLs for different environments
   static const String emulatorUrl = 'http://10.0.2.2:5000/api/v1';

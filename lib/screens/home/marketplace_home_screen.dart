@@ -7,11 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/notification_service.dart';
+import '../categories/categories_screen.dart';
 
 class MarketplaceHomeScreen extends ConsumerStatefulWidget {
   final int? initialTab;
@@ -62,30 +64,21 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   String? _selectedFilterBrand;
   List<String> _categories = [];
 
+  // Hero banners from API (top carousel)
+  List<Map<String, dynamic>> _heroBanners = [];
+  Timer? _heroAutoRotateTimer;
+
+  // Promo banners from API (second carousel)
+  List<Map<String, dynamic>> _promoBanners = [];
+  int _currentPromoBannerIndex = 0;
+  final PageController _promoBannerController = PageController();
+  Timer? _promoAutoRotateTimer;
+
   // Notification state
   List<Map<String, dynamic>> _notifications = [];
   int _unreadCount = 0;
   bool _isLoadingNotifications = false;
   StateSetter? _dialogSetter;
-
-  // Sample carousel data
-  final List<Map<String, String>> _carouselItems = [
-    {
-      'title': 'Next-Gen Tractors',
-      'subtitle': 'Up to 20% off for bulk wholesaler orders',
-      'tag': 'NEW ARRIVAL',
-    },
-    {
-      'title': 'Premium Harvesters',
-      'subtitle': 'Best deals on agricultural machinery',
-      'tag': 'FEATURED',
-    },
-    {
-      'title': 'Smart Irrigation',
-      'subtitle': 'Modern solutions for your farm',
-      'tag': 'TRENDING',
-    },
-  ];
 
   @override
   void initState() {
@@ -94,6 +87,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _fetchBrands();
     _fetchProducts();
     _fetchCategories();
+    _fetchPromoBanners();
     _initNotifications();
     _fetchNotificationCount();
     // Fetch cart from server so it persists across app restarts
@@ -176,6 +170,59 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       }
     } catch (e) {
       debugPrint('Error fetching categories: $e');
+    }
+  }
+
+  Future<void> _fetchPromoBanners() async {
+    try {
+      final response = await _dio.get('/settings/banners');
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? {};
+        final List<dynamic> heroItems = data['heroBanners'] ?? [];
+        final List<dynamic> promoItems = data['promoBanners'] ?? [];
+        setState(() {
+          _heroBanners = heroItems.map<Map<String, dynamic>>((item) => <String, dynamic>{
+            'title': item['title']?.toString() ?? '',
+            'subtitle': item['subtitle']?.toString() ?? '',
+            'tag': item['tag']?.toString() ?? '',
+            'imageUrl': item['imageUrl']?.toString() ?? '',
+            'linkUrl': item['linkUrl']?.toString() ?? '',
+          }).toList();
+          _promoBanners = promoItems.map<Map<String, dynamic>>((item) => <String, dynamic>{
+            'title': item['title']?.toString() ?? '',
+            'subtitle': item['subtitle']?.toString() ?? '',
+            'tag': item['tag']?.toString() ?? '',
+            'imageUrl': item['imageUrl']?.toString() ?? '',
+            'linkUrl': item['linkUrl']?.toString() ?? '',
+          }).toList();
+        });
+        _startAutoRotate();
+      }
+    } catch (e) {
+      debugPrint('Error fetching banners: $e');
+    }
+  }
+
+  void _startAutoRotate() {
+    _heroAutoRotateTimer?.cancel();
+    _promoAutoRotateTimer?.cancel();
+    if (_heroBanners.length > 1) {
+      _heroAutoRotateTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (_carouselController.hasClients) {
+          final next = (_currentCarouselIndex + 1) % _heroBanners.length;
+          _carouselController.animateToPage(next,
+              duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+        }
+      });
+    }
+    if (_promoBanners.length > 1) {
+      _promoAutoRotateTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (_promoBannerController.hasClients) {
+          final next = (_currentPromoBannerIndex + 1) % _promoBanners.length;
+          _promoBannerController.animateToPage(next,
+              duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+        }
+      });
     }
   }
 
@@ -663,6 +710,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
   @override
   void dispose() {
+    _heroAutoRotateTimer?.cancel();
+    _promoAutoRotateTimer?.cancel();
     _carouselController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
@@ -672,6 +721,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _cityCtrl.dispose();
     _stateCtrl.dispose();
     _pinCtrl.dispose();
+    _promoBannerController.dispose();
     super.dispose();
   }
 
@@ -681,16 +731,23 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   List<Widget> get _bodyPages {
+    if (_isWholesaler) {
+      return [
+        _buildHomeContent(),
+        _buildSearchContent(),
+        _buildCartContent(),
+        _buildNegotiationsContent(),
+        _buildProfileContent(),
+      ];
+    }
     return [
       _buildHomeContent(),
       _buildSearchContent(),
+      const CategoriesScreen(),
       _buildCartContent(),
-      if (_isWholesaler) _buildNegotiationsContent(),
       _buildProfileContent(),
     ];
   }
-
-  int get _profileIndex => _isWholesaler ? 4 : 3;
 
   @override
   Widget build(BuildContext context) {
@@ -734,7 +791,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 _buildBrandsSection(),
                 const SizedBox(height: 24),
                 _buildProductsSection('Popular Products', true),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                if (_promoBanners.isNotEmpty) ...[
+                  _buildPromoBannerCarousel(),
+                  const SizedBox(height: 24),
+                ],
                 _buildProductsSection('Hot Deals', false),
                 const SizedBox(height: 32),
                 _buildWhyBuySection(),
@@ -1934,140 +1995,159 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildCarousel() {
+    if (_heroBanners.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Column(
       children: [
         SizedBox(
           height: 180,
           child: PageView.builder(
             controller: _carouselController,
-            itemCount: _carouselItems.length,
+            itemCount: _heroBanners.length,
             onPageChanged: (index) {
               setState(() => _currentCarouselIndex = index);
             },
             itemBuilder: (context, index) {
-              final item = _carouselItems[index];
+              final item = _heroBanners[index];
+              final hasImage = (item['imageUrl'] ?? '').toString().isNotEmpty;
+              final linkUrl = item['linkUrl']?.toString() ?? '';
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        primaryBlue,
-                        primaryBlueDark,
+                child: GestureDetector(
+                  onTap: () => _handleBannerTap(linkUrl),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: hasImage ? null : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [primaryBlue, primaryBlueDark],
+                      ),
+                      image: hasImage ? DecorationImage(
+                        image: CachedNetworkImageProvider(item['imageUrl']),
+                        fit: BoxFit.cover,
+                      ) : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryBlue.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
                       ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryBlue.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      // Background Pattern
-                      Positioned(
-                        right: -20,
-                        bottom: -20,
-                        child: Opacity(
-                          opacity: 0.1,
-                          child: Icon(
-                            Icons.agriculture,
-                            size: 150,
-                            color: Colors.white,
+                    child: Stack(
+                      children: [
+                        // Gradient overlay for text readability when image
+                        if (hasImage)
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      
-                      // Content
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Tag
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                item['tag']!,
+                        // Background Pattern (only when no image)
+                        if (!hasImage)
+                          Positioned(
+                            right: -20, bottom: -20,
+                            child: Opacity(
+                              opacity: 0.1,
+                              child: Icon(Icons.agriculture, size: 150, color: Colors.white),
+                            ),
+                          ),
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if ((item['tag'] ?? '').toString().isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    item['tag'] ?? '',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11, fontWeight: FontWeight.w600,
+                                      color: Colors.white, letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                              if ((item['tag'] ?? '').toString().isNotEmpty) const SizedBox(height: 12),
+                              Text(
+                                item['title'] ?? '',
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                  letterSpacing: 1,
+                                  fontSize: 26, fontWeight: FontWeight.w700,
+                                  color: Colors.white, letterSpacing: -0.5,
                                 ),
                               ),
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Title
-                            Text(
-                              item['title']!,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 4),
-                            
-                            // Subtitle
-                            Text(
-                              item['subtitle']!,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                color: Colors.white.withOpacity(0.85),
-                              ),
-                            ),
-                          ],
+                              if ((item['subtitle'] ?? '').toString().isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  item['subtitle'] ?? '',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14, color: Colors.white.withOpacity(0.85),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
             },
           ),
         ),
-        
-        const SizedBox(height: 12),
-        
-        // Carousel Indicators
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            _carouselItems.length,
-            (index) => AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: _currentCarouselIndex == index ? 24 : 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: _currentCarouselIndex == index 
-                    ? primaryBlue 
-                    : primaryBlue.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(4),
+        if (_heroBanners.length > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _heroBanners.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentCarouselIndex == index ? 24 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _currentCarouselIndex == index 
+                      ? primaryBlue 
+                      : primaryBlue.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
+  }
+
+  void _handleBannerTap(String linkUrl) {
+    if (linkUrl.isEmpty) return;
+    if (linkUrl.startsWith('/product/')) {
+      context.push(linkUrl);
+    } else if (linkUrl.startsWith('/category/')) {
+      final catName = linkUrl.replaceFirst('/category/', '');
+      setState(() {
+        _selectedFilterCategory = catName;
+        _isSearching = true;
+      });
+      _searchProducts('');
+    } else if (linkUrl.startsWith('http')) {
+      launchUrl(Uri.parse(linkUrl), mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildBrandsSection() {
@@ -2734,6 +2814,88 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
+  Widget _buildPromoBannerCarousel() {
+    return SizedBox(
+      height: 160,
+      child: PageView.builder(
+        controller: _promoBannerController,
+        itemCount: _promoBanners.length,
+        onPageChanged: (i) => setState(() => _currentPromoBannerIndex = i),
+        itemBuilder: (context, index) {
+          final banner = _promoBanners[index];
+          final hasImage = (banner['imageUrl'] ?? '').toString().isNotEmpty;
+          final linkUrl = banner['linkUrl']?.toString() ?? '';
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: GestureDetector(
+              onTap: () => _handleBannerTap(linkUrl),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: hasImage ? null : LinearGradient(
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    colors: [primaryBlue, primaryBlueDark],
+                  ),
+                  image: hasImage ? DecorationImage(
+                    image: CachedNetworkImageProvider(banner['imageUrl']),
+                    fit: BoxFit.cover,
+                  ) : null,
+                  boxShadow: [BoxShadow(
+                    color: primaryBlue.withOpacity(0.2),
+                    blurRadius: 20, offset: const Offset(0, 10),
+                  )],
+                ),
+                child: Stack(children: [
+                  if (hasImage) Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if ((banner['tag'] ?? '').toString().isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(banner['tag'], style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10, fontWeight: FontWeight.w600,
+                              color: Colors.white, letterSpacing: 1)),
+                          ),
+                        if ((banner['tag'] ?? '').toString().isNotEmpty) const SizedBox(height: 8),
+                        Text(banner['title'] ?? '', style: GoogleFonts.plusJakartaSans(
+                          fontSize: 22, fontWeight: FontWeight.w700,
+                          color: Colors.white, letterSpacing: -0.3)),
+                        if ((banner['subtitle'] ?? '').toString().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(banner['subtitle'], style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13, color: Colors.white.withOpacity(0.85))),
+                        ],
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildWhyBuySection() {
     final items = [
       {'icon': Icons.verified_rounded, 'color': const Color(0xFF2563EB), 'bg': const Color(0xFFEFF6FF), 'title': 'Premium Quality', 'subtitle': 'Certified products'},
@@ -2805,7 +2967,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildBottomNav() {
-    final showNegotiate = _isWholesaler;
     return Container(
       decoration: BoxDecoration(
         color: surfaceWhite,
@@ -2821,14 +2982,21 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
-            children: [
-              _buildNavItem(HugeIcons.strokeRoundedHome01, 'Home', 0),
-              _buildNavItem(HugeIcons.strokeRoundedSearch01, 'Search', 1),
-              _buildCartNavItem(2),
-              if (showNegotiate)
-                _buildNavItem(HugeIcons.strokeRoundedHandGrip, 'Negotiate', 3),
-              _buildNavItem(HugeIcons.strokeRoundedUser, 'Profile', _profileIndex),
-            ],
+            children: _isWholesaler
+              ? [
+                  _buildNavItem(HugeIcons.strokeRoundedHome01, 'Home', 0),
+                  _buildNavItem(HugeIcons.strokeRoundedSearch01, 'Search', 1),
+                  _buildCartNavItem(2),
+                  _buildNavItem(HugeIcons.strokeRoundedHandGrip, 'Negotiate', 3),
+                  _buildNavItem(HugeIcons.strokeRoundedUser, 'Profile', 4),
+                ]
+              : [
+                  _buildNavItem(HugeIcons.strokeRoundedHome01, 'Home', 0),
+                  _buildNavItem(HugeIcons.strokeRoundedSearch01, 'Search', 1),
+                  _buildNavItem(HugeIcons.strokeRoundedDashboardSquare01, 'Categories', 2),
+                  _buildCartNavItem(3),
+                  _buildNavItem(HugeIcons.strokeRoundedUser, 'Profile', 4),
+                ],
           ),
         ),
       ),
@@ -2944,6 +3112,82 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════
+// TRUST BADGE MARQUEE (auto-scrolling strip)
+// ══════════════════════════════════════════
+class _TrustBadgeMarquee extends StatefulWidget {
+  final List<Map<String, dynamic>> items;
+  const _TrustBadgeMarquee({required this.items});
+
+  @override
+  State<_TrustBadgeMarquee> createState() => _TrustBadgeMarqueeState();
+}
+
+class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee>
+    with SingleTickerProviderStateMixin {
+  late final ScrollController _scrollController;
+  Timer? _timer;
+
+  static const Color _blue = Color(0xFF2563EB);
+  static const Color _txtSec = Color(0xFF64748B);
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScroll());
+  }
+
+  void _startScroll() {
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (_) {
+      if (!_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      final current = _scrollController.offset;
+      if (current >= max) {
+        _scrollController.jumpTo(0);
+      } else {
+        _scrollController.jumpTo(current + 0.8);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _blue.withOpacity(0.04),
+      child: ListView.builder(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: widget.items.length,
+        itemBuilder: (_, i) {
+          final item = widget.items[i];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(item['icon'] as IconData, size: 16, color: _blue),
+                const SizedBox(width: 6),
+                Text(item['text'] as String,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12, fontWeight: FontWeight.w600, color: _txtSec)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
