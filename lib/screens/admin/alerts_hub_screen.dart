@@ -18,7 +18,6 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
   static const Color textDark = Color(0xFF111b0d);
   static const Color urgent = Color(0xFFff3b30);
   static const Color warning = Color(0xFFffcc00);
-  static const Color success = Color(0xFF34c759);
   static const Color info = Color(0xFF007aff);
   static const Color gray200 = Color(0xFFe5e7eb);
   static const Color gray400 = Color(0xFF9ca3af);
@@ -35,7 +34,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
         children: [
           // Header
           Container(
-            color: backgroundLight.withOpacity(0.8),
+            color: backgroundLight.withValues(alpha: 0.8),
             child: SafeArea(
               bottom: false,
               child: Column(
@@ -45,7 +44,10 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                     child: Row(
                       children: [
-                        const SizedBox(width: 40, child: Icon(Icons.menu, color: textDark)),
+                        const SizedBox(
+                          width: 40,
+                          child: Icon(Icons.menu, color: textDark),
+                        ),
                         Expanded(
                           child: Text(
                             'Alerts Hub',
@@ -58,7 +60,10 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 40, child: Icon(Icons.settings, color: textDark)),
+                        const SizedBox(
+                          width: 40,
+                          child: Icon(Icons.settings, color: textDark),
+                        ),
                       ],
                     ),
                   ),
@@ -75,17 +80,24 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                           child: GestureDetector(
                             onTap: () => setState(() => _selectedTab = index),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected ? textDark : Colors.white,
                                 borderRadius: BorderRadius.circular(999),
-                                border: isSelected ? null : Border.all(color: gray200),
+                                border: isSelected
+                                    ? null
+                                    : Border.all(color: gray200),
                               ),
                               child: Text(
                                 _tabs[index],
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
                                   color: isSelected ? Colors.white : textDark,
                                 ),
                               ),
@@ -111,13 +123,18 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                   badgeColor: urgent,
                   badgeText: 'URGENT',
                   time: '2m ago',
-                  iconBgColor: primary.withOpacity(0.2),
+                  iconBgColor: primary.withValues(alpha: 0.2),
                   iconColor: primary,
                   icon: Icons.handshake,
                   title: 'New Negotiation Request',
-                  description: "AgriCorp is requesting a 15% discount on bulk order for 'Tractor Series X'.",
+                  description:
+                      "AgriCorp is requesting a 15% discount on bulk order for 'Tractor Series X'.",
                   actions: [
-                    _ActionButton(text: 'Review Offer', isPrimary: true, primaryColor: primary),
+                    _ActionButton(
+                      text: 'Review Offer',
+                      isPrimary: true,
+                      primaryColor: primary,
+                    ),
                     _ActionButton(text: 'Ignore', isPrimary: false),
                   ],
                 ),
@@ -128,11 +145,12 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                   badgeColor: info,
                   badgeText: 'PAYMENT VERIFICATION',
                   time: '15m ago',
-                  iconBgColor: info.withOpacity(0.1),
+                  iconBgColor: info.withValues(alpha: 0.1),
                   iconColor: info,
                   icon: Icons.receipt_long,
                   title: 'Payment Screenshot Uploaded',
-                  description: 'Order #456: GreenField Farms has uploaded proof of payment (\$12,450.00).',
+                  description:
+                      'Order #456: GreenField Farms has uploaded proof of payment (\$12,450.00).',
                   linkText: 'TAP TO VERIFY RECEIPT',
                 ),
                 const SizedBox(height: 16),
@@ -143,13 +161,19 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                   badgeText: 'INVENTORY ALERT',
                   badgeTextColor: Colors.black,
                   time: '1h ago',
-                  iconBgColor: warning.withOpacity(0.2),
+                  iconBgColor: warning.withValues(alpha: 0.2),
                   iconColor: warning,
                   icon: Icons.inventory_2,
                   title: 'Low Stock: Portable Mini Mills',
-                  description: 'Only 3 units remaining. Restock recommended to fulfill pending pre-orders.',
+                  description:
+                      'Only 3 units remaining. Restock recommended to fulfill pending pre-orders.',
                   actions: [
-                    _ActionButton(text: 'Open Inventory', isPrimary: true, primaryColor: textDark, textColor: Colors.white),
+                    _ActionButton(
+                      text: 'Open Inventory',
+                      isPrimary: true,
+                      primaryColor: textDark,
+                      textColor: Colors.white,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -163,7 +187,8 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                   iconColor: Color(0xFF6b7280),
                   icon: Icons.person_add,
                   title: 'New Wholesaler Verified',
-                  description: 'RuralSupply Co. has completed their profile and is now active on the platform.',
+                  description:
+                      'RuralSupply Co. has completed their profile and is now active on the platform.',
                   opacity: 0.8,
                 ),
               ],
@@ -175,7 +200,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
       // Bottom Navigation
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: Colors.white.withValues(alpha: 0.9),
           border: Border(top: BorderSide(color: gray200)),
         ),
         child: SafeArea(
@@ -184,10 +209,31 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildNavItem(Icons.dashboard, 'Home', 0, false),
-                _buildNavItem(Icons.notifications, 'Alerts', 1, true, hasNotification: true),
-                _buildNavItem(Icons.inventory, 'Catalog', 2, false),
-                _buildNavItem(Icons.analytics, 'Reports', 3, false),
+                _buildNavItem(
+                  Icons.dashboard,
+                  'Home',
+                  0,
+                  _selectedNavIndex == 0,
+                ),
+                _buildNavItem(
+                  Icons.notifications,
+                  'Alerts',
+                  1,
+                  _selectedNavIndex == 1,
+                  hasNotification: true,
+                ),
+                _buildNavItem(
+                  Icons.inventory,
+                  'Catalog',
+                  2,
+                  _selectedNavIndex == 2,
+                ),
+                _buildNavItem(
+                  Icons.analytics,
+                  'Reports',
+                  3,
+                  _selectedNavIndex == 3,
+                ),
               ],
             ),
           ),
@@ -220,7 +266,7 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
           border: Border.all(color: gray200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 4,
             ),
           ],
@@ -233,7 +279,10 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor,
                     borderRadius: BorderRadius.circular(4),
@@ -306,7 +355,9 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
                           children: actions.map((action) {
                             return Expanded(
                               child: Padding(
-                                padding: EdgeInsets.only(right: action != actions.last ? 8 : 0),
+                                padding: EdgeInsets.only(
+                                  right: action != actions.last ? 8 : 0,
+                                ),
                                 child: SizedBox(
                                   height: 40,
                                   child: ElevatedButton(
@@ -366,7 +417,13 @@ class _AlertsHubScreenState extends State<AlertsHubScreen> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index, bool isSelected, {bool hasNotification = false}) {
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    int index,
+    bool isSelected, {
+    bool hasNotification = false,
+  }) {
     return GestureDetector(
       onTap: () => setState(() => _selectedNavIndex = index),
       child: Opacity(
