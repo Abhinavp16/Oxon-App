@@ -40,7 +40,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   border: Border(bottom: BorderSide(color: gray100)),
                 ),
@@ -49,7 +52,11 @@ class ProductDetailVideoScreen extends StatelessWidget {
                     Container(
                       width: 40,
                       height: 40,
-                      child: Icon(Icons.arrow_back_ios_new, color: slate700, size: 20),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        color: slate700,
+                        size: 20,
+                      ),
                     ),
                     Expanded(
                       child: Text(
@@ -72,7 +79,11 @@ class ProductDetailVideoScreen extends StatelessWidget {
                         Container(
                           width: 40,
                           height: 40,
-                          child: Icon(Icons.favorite_border, color: slate700, size: 20),
+                          child: Icon(
+                            Icons.favorite_border,
+                            color: slate700,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
@@ -95,10 +106,13 @@ class ProductDetailVideoScreen extends StatelessWidget {
                       AspectRatio(
                         aspectRatio: 1,
                         child: CachedNetworkImage(
-                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
+                          imageUrl:
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: slate200),
-                          errorWidget: (context, url, error) => Container(color: slate200),
+                          placeholder: (context, url) =>
+                              Container(color: slate200),
+                          errorWidget: (context, url, error) =>
+                              Container(color: slate200),
                         ),
                       ),
                       Positioned(
@@ -109,7 +123,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(999),
@@ -119,10 +136,14 @@ class ProductDetailVideoScreen extends StatelessWidget {
                                   return Container(
                                     width: 6,
                                     height: 6,
-                                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: index == 0 ? Colors.white : Colors.white.withOpacity(0.5),
+                                      color: index == 0
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.5),
                                     ),
                                   );
                                 }),
@@ -145,7 +166,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: blue100,
                                 borderRadius: BorderRadius.circular(4),
@@ -162,7 +186,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: orange100,
                                 borderRadius: BorderRadius.circular(4),
@@ -225,6 +252,38 @@ class ProductDetailVideoScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        // Delivery info and icons
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.person_outline,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.storefront_outlined,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.local_shipping_outlined,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Delivery within 5 days of Purchase',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: slate500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -240,7 +299,7 @@ class ProductDetailVideoScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'KEY SPECIFICATIONS',
+                          'Specifications',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -249,13 +308,19 @@ class ProductDetailVideoScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
+                        Column(
                           children: [
-                            _buildSpecCard(Icons.settings_suggest, '7HP Engine'),
-                            const SizedBox(width: 12),
-                            _buildSpecCard(Icons.local_gas_station, 'Petrol Fuel'),
-                            const SizedBox(width: 12),
-                            _buildSpecCard(Icons.verified, '1Y Warranty'),
+                            _buildSpecItem(
+                              Icons.settings_suggest,
+                              '7HP Engine',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildSpecItem(
+                              Icons.local_gas_station,
+                              'Petrol Fuel',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildSpecItem(Icons.verified, '1Y Warranty'),
                           ],
                         ),
                       ],
@@ -290,7 +355,8 @@ class ProductDetailVideoScreen extends StatelessWidget {
                               child: AspectRatio(
                                 aspectRatio: 16 / 9,
                                 child: CachedNetworkImage(
-                                  imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
+                                  imageUrl:
+                                      'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
                                   fit: BoxFit.cover,
                                   color: Colors.black.withOpacity(0.1),
                                   colorBlendMode: BlendMode.darken,
@@ -313,7 +379,9 @@ class ProductDetailVideoScreen extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.2),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                    ),
                                   ),
                                   child: Center(
                                     child: Container(
@@ -324,12 +392,18 @@ class ProductDetailVideoScreen extends StatelessWidget {
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.2),
+                                            color: Colors.black.withOpacity(
+                                              0.2,
+                                            ),
                                             blurRadius: 8,
                                           ),
                                         ],
                                       ),
-                                      child: Icon(Icons.play_arrow, color: primary, size: 28),
+                                      child: Icon(
+                                        Icons.play_arrow,
+                                        color: primary,
+                                        size: 28,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -339,7 +413,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
                               bottom: 12,
                               right: 12,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.6),
                                   borderRadius: BorderRadius.circular(4),
@@ -402,7 +479,11 @@ class ProductDetailVideoScreen extends StatelessWidget {
                             bottom: -16,
                             child: Opacity(
                               opacity: 0.1,
-                              child: Icon(Icons.handshake, size: 100, color: Colors.white),
+                              child: Icon(
+                                Icons.handshake,
+                                size: 100,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           Column(
@@ -410,7 +491,11 @@ class ProductDetailVideoScreen extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.groups, size: 14, color: Colors.white),
+                                  Icon(
+                                    Icons.groups,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'WHOLESALE PROGRAM',
@@ -457,7 +542,9 @@ class ProductDetailVideoScreen extends StatelessWidget {
                                   ),
                                   child: Text(
                                     'Negotiate Bulk Price',
-                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -471,7 +558,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
                   // Product Description
                   Container(
                     color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     child: Column(
                       children: [
                         _buildExpandableSection(
@@ -490,15 +580,24 @@ class ProductDetailVideoScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              _buildFeatureItem('Adjustable tilling width for various crop spacing.'),
+                              _buildFeatureItem(
+                                'Adjustable tilling width for various crop spacing.',
+                              ),
                               const SizedBox(height: 8),
-                              _buildFeatureItem('Low fuel consumption with high torque output.'),
+                              _buildFeatureItem(
+                                'Low fuel consumption with high torque output.',
+                              ),
                               const SizedBox(height: 8),
-                              _buildFeatureItem('Ergonomic handles with vibration dampening technology.'),
+                              _buildFeatureItem(
+                                'Ergonomic handles with vibration dampening technology.',
+                              ),
                             ],
                           ),
                         ),
-                        _buildExpandableSection('Shipping & Returns', Icons.expand_more),
+                        _buildExpandableSection(
+                          'Shipping & Returns',
+                          Icons.expand_more,
+                        ),
                         _buildExpandableSection(
                           'Customer Reviews (128)',
                           Icons.expand_more,
@@ -605,29 +704,29 @@ class ProductDetailVideoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSpecCard(IconData icon, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: slate50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: slate100),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: primary),
-            const SizedBox(height: 4),
-            Text(
+  Widget _buildSpecItem(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: slate50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: slate100),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.arrow_forward_ios_rounded, color: primary, size: 14),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
               label,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: slate900,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -660,7 +759,10 @@ class ProductDetailVideoScreen extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    if (trailing != null) ...[trailing, const SizedBox(width: 8)],
+                    if (trailing != null) ...[
+                      trailing,
+                      const SizedBox(width: 8),
+                    ],
                     Icon(icon, color: slate400),
                   ],
                 ),
@@ -668,10 +770,7 @@ class ProductDetailVideoScreen extends StatelessWidget {
             ),
           ),
           if (content != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: content,
-            ),
+            Padding(padding: const EdgeInsets.only(bottom: 16), child: content),
         ],
       ),
     );
@@ -686,10 +785,7 @@ class ProductDetailVideoScreen extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: slate600,
-            ),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: slate600),
           ),
         ),
       ],

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:agri_mart/core/config/api_config.dart';
+import 'package:veepee_impex/core/config/api_config.dart';
 import 'storage_service.dart';
 
 class ApiClient {
@@ -30,7 +30,14 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          final path = error.requestOptions.path;
+          final isAuthPath =
+              path.contains('/auth/login') ||
+              path.contains('/auth/register') ||
+              path.contains('/auth/send-otp') ||
+              path.contains('/auth/refresh-token');
+
+          if (error.response?.statusCode == 401 && !isAuthPath) {
             // Try to refresh token
             final refreshed = await _refreshToken();
             if (refreshed) {

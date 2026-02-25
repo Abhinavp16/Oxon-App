@@ -39,15 +39,15 @@ import '../../screens/admin/analytics_dashboard_screen.dart';
 import '../../screens/admin/payment_verification_screen.dart';
 import '../../screens/dev/developer_menu_screen.dart';
 import '../../screens/wishlist/wishlist_screen.dart';
+import '../../screens/profile/account_conversion_screen.dart';
+import '../../screens/profile/edit_profile_screen.dart';
+import '../../screens/referral/referral_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
   debugLogDiagnostics: true,
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
       path: '/login',
       pageBuilder: (context, state) => CustomTransitionPage(
@@ -55,7 +55,10 @@ final appRouter = GoRouter(
         child: const AuthScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
             child: child,
           );
         },
@@ -68,10 +71,16 @@ final appRouter = GoRouter(
         child: const AppleSignupScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1.0, 0.0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
             child: child,
           );
         },
@@ -99,15 +108,11 @@ final appRouter = GoRouter(
         );
       },
     ),
-    GoRoute(
-      path: '/cart',
-      builder: (context, state) => const CartScreen(),
-    ),
+    GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
     GoRoute(
       path: '/payment/:orderId',
-      builder: (context, state) => PaymentScreen(
-        orderId: state.pathParameters['orderId'] ?? '',
-      ),
+      builder: (context, state) =>
+          PaymentScreen(orderId: state.pathParameters['orderId'] ?? ''),
     ),
     GoRoute(
       path: '/negotiations',
@@ -125,9 +130,8 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/order-success/:orderId',
-      builder: (context, state) => OrderSuccessScreen(
-        orderId: state.pathParameters['orderId'] ?? '',
-      ),
+      builder: (context, state) =>
+          OrderSuccessScreen(orderId: state.pathParameters['orderId'] ?? ''),
     ),
     GoRoute(
       path: '/tracking/:orderId',
@@ -159,7 +163,7 @@ final appRouter = GoRouter(
       path: '/wholesaler-registration',
       builder: (context, state) => const WholesalerRegistrationScreen(),
     ),
-        GoRoute(
+    GoRoute(
       path: '/product-negotiation',
       builder: (context, state) => const ProductNegotiationScreen(),
     ),
@@ -235,10 +239,19 @@ final appRouter = GoRouter(
       path: '/wishlist',
       builder: (context, state) => const WishlistScreen(),
     ),
-  ],
-  errorBuilder: (context, state) => Scaffold(
-    body: Center(
-      child: Text('Page not found: ${state.error}'),
+    GoRoute(
+      path: '/convert-to-wholesaler',
+      builder: (context, state) => const AccountConversionScreen(),
     ),
-  ),
+    GoRoute(
+      path: '/edit-profile',
+      builder: (context, state) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: '/referral',
+      builder: (context, state) => const ReferralScreen(),
+    ),
+  ],
+  errorBuilder: (context, state) =>
+      Scaffold(body: Center(child: Text('Page not found: ${state.error}'))),
 );

@@ -215,7 +215,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           Switch(
                             value: _isActive,
                             onChanged: (value) => setState(() => _isActive = value),
-                            activeColor: primary,
+                            activeThumbColor: primary,
                             activeTrackColor: primary,
                             inactiveThumbColor: Colors.white,
                             inactiveTrackColor: gray200,

@@ -39,7 +39,10 @@ class PowerTillerDetailScreen extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   border: Border(bottom: BorderSide(color: gray100)),
                 ),
@@ -48,10 +51,12 @@ class PowerTillerDetailScreen extends StatelessWidget {
                     Container(
                       width: 40,
                       height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                      decoration: BoxDecoration(shape: BoxShape.circle),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        color: slate700,
+                        size: 20,
                       ),
-                      child: Icon(Icons.arrow_back_ios_new, color: slate700, size: 20),
                     ),
                     Expanded(
                       child: Text(
@@ -74,7 +79,11 @@ class PowerTillerDetailScreen extends StatelessWidget {
                         Container(
                           width: 40,
                           height: 40,
-                          child: Icon(Icons.favorite_border, color: slate700, size: 20),
+                          child: Icon(
+                            Icons.favorite_border,
+                            color: slate700,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
@@ -97,10 +106,13 @@ class PowerTillerDetailScreen extends StatelessWidget {
                       AspectRatio(
                         aspectRatio: 1,
                         child: CachedNetworkImage(
-                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
+                          imageUrl:
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: slate200),
-                          errorWidget: (context, url, error) => Container(color: slate200),
+                          placeholder: (context, url) =>
+                              Container(color: slate200),
+                          errorWidget: (context, url, error) =>
+                              Container(color: slate200),
                         ),
                       ),
                       Positioned(
@@ -111,7 +123,10 @@ class PowerTillerDetailScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(999),
@@ -121,10 +136,14 @@ class PowerTillerDetailScreen extends StatelessWidget {
                                   return Container(
                                     width: 6,
                                     height: 6,
-                                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: index == 0 ? Colors.white : Colors.white.withOpacity(0.5),
+                                      color: index == 0
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.5),
                                     ),
                                   );
                                 }),
@@ -147,7 +166,10 @@ class PowerTillerDetailScreen extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: blue100,
                                 borderRadius: BorderRadius.circular(4),
@@ -164,7 +186,10 @@ class PowerTillerDetailScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: orange100,
                                 borderRadius: BorderRadius.circular(4),
@@ -227,6 +252,38 @@ class PowerTillerDetailScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        // Delivery info and icons
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.person_outline,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.storefront_outlined,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.local_shipping_outlined,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Delivery within 5 days of Purchase',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: slate500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -238,23 +295,51 @@ class PowerTillerDetailScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'KEY SPECIFICATIONS',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: slate500,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
                         Row(
                           children: [
-                            _buildSpecCard(Icons.settings_suggest, '7HP Engine'),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.settings_suggest_rounded,
+                                color: primary,
+                                size: 20,
+                              ),
+                            ),
                             const SizedBox(width: 12),
-                            _buildSpecCard(Icons.local_gas_station, 'Petrol Fuel'),
-                            const SizedBox(width: 12),
-                            _buildSpecCard(Icons.verified, '1Y Warranty'),
+                            Text(
+                              'Specifications',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: slate500,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Column(
+                          children: [
+                            _buildSpecItem(
+                              Icons.settings_suggest,
+                              'Engine',
+                              '7HP Heavy Duty',
+                            ),
+                            _buildSpecItem(
+                              Icons.local_gas_station,
+                              'Fuel Type',
+                              'Petrol/Gasoline',
+                            ),
+                            _buildSpecItem(
+                              Icons.verified,
+                              'Warranty',
+                              '1 Year Limited',
+                            ),
+                            _buildSpecItem(Icons.speed, 'RPM', '3600 RPM Max'),
                           ],
                         ),
                       ],
@@ -288,7 +373,11 @@ class PowerTillerDetailScreen extends StatelessWidget {
                             bottom: -16,
                             child: Opacity(
                               opacity: 0.1,
-                              child: Icon(Icons.handshake, size: 100, color: Colors.white),
+                              child: Icon(
+                                Icons.handshake,
+                                size: 100,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           Column(
@@ -296,7 +385,11 @@ class PowerTillerDetailScreen extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.groups, size: 14, color: Colors.white),
+                                  Icon(
+                                    Icons.groups,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'WHOLESALE PROGRAM',
@@ -343,7 +436,9 @@ class PowerTillerDetailScreen extends StatelessWidget {
                                   ),
                                   child: Text(
                                     'Negotiate Bulk Price',
-                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -357,7 +452,10 @@ class PowerTillerDetailScreen extends StatelessWidget {
                   // Product Description
                   Container(
                     color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     child: Column(
                       children: [
                         _buildExpandableSection(
@@ -376,15 +474,24 @@ class PowerTillerDetailScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              _buildFeatureItem('Adjustable tilling width for various crop spacing.'),
+                              _buildFeatureItem(
+                                'Adjustable tilling width for various crop spacing.',
+                              ),
                               const SizedBox(height: 8),
-                              _buildFeatureItem('Low fuel consumption with high torque output.'),
+                              _buildFeatureItem(
+                                'Low fuel consumption with high torque output.',
+                              ),
                               const SizedBox(height: 8),
-                              _buildFeatureItem('Ergonomic handles with vibration dampening technology.'),
+                              _buildFeatureItem(
+                                'Ergonomic handles with vibration dampening technology.',
+                              ),
                             ],
                           ),
                         ),
-                        _buildExpandableSection('Shipping & Returns', Icons.expand_more),
+                        _buildExpandableSection(
+                          'Shipping & Returns',
+                          Icons.expand_more,
+                        ),
                         _buildExpandableSection(
                           'Customer Reviews (128)',
                           Icons.expand_more,
@@ -491,29 +598,50 @@ class PowerTillerDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSpecCard(IconData icon, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: slate50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: slate100),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: primary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+  Widget _buildSpecItem(IconData icon, String title, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: slate50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: slate100),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.arrow_forward_ios_rounded, color: primary, size: 14),
+          const SizedBox(width: 16),
+          Expanded(
+            child: RichText(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              text: TextSpan(
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: slate900,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$title: ',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w600,
+                      color: slate500,
+                      fontSize: 13,
+                    ),
+                  ),
+                  TextSpan(
+                    text: value,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      color: slate900,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -546,7 +674,10 @@ class PowerTillerDetailScreen extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    if (trailing != null) ...[trailing, const SizedBox(width: 8)],
+                    if (trailing != null) ...[
+                      trailing,
+                      const SizedBox(width: 8),
+                    ],
                     Icon(icon, color: slate400),
                   ],
                 ),
@@ -554,10 +685,7 @@ class PowerTillerDetailScreen extends StatelessWidget {
             ),
           ),
           if (content != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: content,
-            ),
+            Padding(padding: const EdgeInsets.only(bottom: 16), child: content),
         ],
       ),
     );
@@ -572,10 +700,7 @@ class PowerTillerDetailScreen extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: slate600,
-            ),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: slate600),
           ),
         ),
       ],

@@ -5,6 +5,7 @@ class UserModel {
   final String? phone;
   final String role;
   final String? avatar;
+  final String? address;
   final bool phoneVerified;
   final bool isActive;
   final BusinessInfo? businessInfo;
@@ -17,6 +18,7 @@ class UserModel {
     this.phone,
     required this.role,
     this.avatar,
+    this.address,
     this.phoneVerified = false,
     this.isActive = true,
     this.businessInfo,
@@ -31,6 +33,7 @@ class UserModel {
       phone: json['phone'],
       role: json['role'] ?? 'buyer',
       avatar: json['avatar'],
+      address: json['address'],
       phoneVerified: json['phoneVerified'] ?? false,
       isActive: json['isActive'] ?? true,
       businessInfo: json['businessInfo'] != null
@@ -50,6 +53,7 @@ class UserModel {
       'phone': phone,
       'role': role,
       'avatar': avatar,
+      'address': address,
       'phoneVerified': phoneVerified,
       'isActive': isActive,
       'businessInfo': businessInfo?.toJson(),
@@ -67,11 +71,7 @@ class BusinessInfo {
   final String? gstNumber;
   final bool verified;
 
-  BusinessInfo({
-    this.businessName,
-    this.gstNumber,
-    this.verified = false,
-  });
+  BusinessInfo({this.businessName, this.gstNumber, this.verified = false});
 
   factory BusinessInfo.fromJson(Map<String, dynamic> json) {
     return BusinessInfo(

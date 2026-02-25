@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/locale_provider.dart';
 
-class WholesaleDetailScreen extends StatelessWidget {
+class WholesaleDetailScreen extends ConsumerWidget {
   const WholesaleDetailScreen({super.key});
 
   // Colors from design
@@ -24,7 +26,8 @@ class WholesaleDetailScreen extends StatelessWidget {
   static const Color yellow400 = Color(0xFFfacc15);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(localeProvider.notifier).translate;
     return Scaffold(
       backgroundColor: backgroundLight,
       body: Column(
@@ -35,7 +38,10 @@ class WholesaleDetailScreen extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   border: Border(bottom: BorderSide(color: gray100)),
                 ),
@@ -44,11 +50,15 @@ class WholesaleDetailScreen extends StatelessWidget {
                     Container(
                       width: 40,
                       height: 40,
-                      child: Icon(Icons.arrow_back_ios_new, color: slate700, size: 20),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        color: slate700,
+                        size: 20,
+                      ),
                     ),
                     Expanded(
                       child: Text(
-                        'Wholesale Details',
+                        t('Wholesale Details'),
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
@@ -67,7 +77,11 @@ class WholesaleDetailScreen extends StatelessWidget {
                         Container(
                           width: 40,
                           height: 40,
-                          child: Icon(Icons.favorite_border, color: slate700, size: 20),
+                          child: Icon(
+                            Icons.favorite_border,
+                            color: slate700,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
@@ -90,10 +104,13 @@ class WholesaleDetailScreen extends StatelessWidget {
                       AspectRatio(
                         aspectRatio: 1,
                         child: CachedNetworkImage(
-                          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
+                          imageUrl:
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBY-zk5FiEndc_-knQOpJocZAcvworTwYA780fuc7IJUA41Tcv-jBY3JDWZOAHHWSOR22RTLhbR9zQ-kMmlfosyue4-qz6j5fPnqD-pJLIS2uFn6uSJYjj1nxwryCChmZxVR5TK_6ip-uMgHpCZ3lBhpQ6BkTjyT44jR-Cz06YNAfg43J47CenHeLrjBWFghK65SJx_sRhlfOcHFhMK4mjg3LMI5PKtpJ7zMHiDBKa1bUjTMreaFq1aXO48ToJqwRp-2UEolzahNwA_',
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: slate200),
-                          errorWidget: (context, url, error) => Container(color: slate200),
+                          placeholder: (context, url) =>
+                              Container(color: slate200),
+                          errorWidget: (context, url, error) =>
+                              Container(color: slate200),
                         ),
                       ),
                       Positioned(
@@ -104,7 +121,10 @@ class WholesaleDetailScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(999),
@@ -114,10 +134,14 @@ class WholesaleDetailScreen extends StatelessWidget {
                                   return Container(
                                     width: 6,
                                     height: 6,
-                                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: index == 0 ? Colors.white : Colors.white.withOpacity(0.5),
+                                      color: index == 0
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.5),
                                     ),
                                   );
                                 }),
@@ -140,13 +164,16 @@ class WholesaleDetailScreen extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: blue100,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'TOP RATED',
+                                t('TOP RATED'),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -157,13 +184,16 @@ class WholesaleDetailScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: primary,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'WHOLESALE ONLY',
+                                t('WHOLESALE ONLY'),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -189,7 +219,7 @@ class WholesaleDetailScreen extends StatelessWidget {
 
                         // Price
                         Text(
-                          'Wholesale Price: Negotiable',
+                          '${t('Wholesale Price')}: ${t('Negotiable')}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -198,11 +228,43 @@ class WholesaleDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Minimum Order Quantity: 5 Units',
+                          '${t('Minimum Order Quantity')}: 5 ${t('Units')}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: slate500,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Delivery info and icons
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.person_outline,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.storefront_outlined,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.local_shipping_outlined,
+                              size: 14,
+                              color: slate500,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              t('Delivery within 5 days of Purchase'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: slate500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -219,7 +281,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'KEY SPECIFICATIONS',
+                          t('Specifications'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -228,13 +290,19 @@ class WholesaleDetailScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
+                        Column(
                           children: [
-                            _buildSpecCard(Icons.settings_suggest, '7HP Engine'),
-                            const SizedBox(width: 12),
-                            _buildSpecCard(Icons.local_gas_station, 'Petrol Fuel'),
-                            const SizedBox(width: 12),
-                            _buildSpecCard(Icons.verified, '1Y Warranty'),
+                            _buildSpecItem(
+                              Icons.settings_suggest,
+                              '7HP Engine',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildSpecItem(
+                              Icons.local_gas_station,
+                              'Petrol Fuel',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildSpecItem(Icons.verified, '1Y Warranty'),
                           ],
                         ),
                       ],
@@ -244,14 +312,17 @@ class WholesaleDetailScreen extends StatelessWidget {
                   // Product Description
                   Container(
                     color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       border: Border(top: BorderSide(color: gray100)),
                     ),
                     child: Column(
                       children: [
                         _buildExpandableSection(
-                          'Product Description',
+                          t('Product Description'),
                           Icons.expand_less,
                           expanded: true,
                           content: Column(
@@ -266,17 +337,26 @@ class WholesaleDetailScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              _buildFeatureItem('Adjustable tilling width for various crop spacing.'),
+                              _buildFeatureItem(
+                                'Adjustable tilling width for various crop spacing.',
+                              ),
                               const SizedBox(height: 8),
-                              _buildFeatureItem('Low fuel consumption with high torque output.'),
+                              _buildFeatureItem(
+                                'Low fuel consumption with high torque output.',
+                              ),
                               const SizedBox(height: 8),
-                              _buildFeatureItem('Ergonomic handles with vibration dampening technology.'),
+                              _buildFeatureItem(
+                                'Ergonomic handles with vibration dampening technology.',
+                              ),
                             ],
                           ),
                         ),
-                        _buildExpandableSection('Wholesale Logistics', Icons.expand_more),
                         _buildExpandableSection(
-                          'Bulk Order Reviews',
+                          t('Wholesale Logistics'),
+                          Icons.expand_more,
+                        ),
+                        _buildExpandableSection(
+                          t('Bulk Order Reviews'),
                           Icons.expand_more,
                           trailing: Row(
                             children: [
@@ -317,7 +397,7 @@ class WholesaleDetailScreen extends StatelessWidget {
               children: [
                 Icon(Icons.chat, color: primary),
                 Text(
-                  'EXPERT HELP',
+                  t('EXPERT HELP'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
@@ -334,7 +414,7 @@ class WholesaleDetailScreen extends StatelessWidget {
                   onPressed: () {},
                   icon: Icon(Icons.handshake, size: 18),
                   label: Text(
-                    'Initiate Negotiation',
+                    t('Initiate Negotiation'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -358,29 +438,29 @@ class WholesaleDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSpecCard(IconData icon, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: slate50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: slate100),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: primary),
-            const SizedBox(height: 4),
-            Text(
+  Widget _buildSpecItem(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: slate50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: slate100),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.arrow_forward_ios_rounded, color: primary, size: 14),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
               label,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: slate900,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -413,7 +493,10 @@ class WholesaleDetailScreen extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    if (trailing != null) ...[trailing, const SizedBox(width: 8)],
+                    if (trailing != null) ...[
+                      trailing,
+                      const SizedBox(width: 8),
+                    ],
                     Icon(icon, color: slate400),
                   ],
                 ),
@@ -421,10 +504,7 @@ class WholesaleDetailScreen extends StatelessWidget {
             ),
           ),
           if (content != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: content,
-            ),
+            Padding(padding: const EdgeInsets.only(bottom: 16), child: content),
         ],
       ),
     );
@@ -439,10 +519,7 @@ class WholesaleDetailScreen extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: slate600,
-            ),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: slate600),
           ),
         ),
       ],

@@ -44,13 +44,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _checkAuthStatus() async {
     state = state.copyWith(isLoading: true);
-    
+
     try {
       final token = await StorageService.getAccessToken();
       final userData = await StorageService.getUserData();
-      
-      debugPrint('[Auth] Token: ${token != null ? 'exists' : 'null'}, UserData: ${userData != null ? 'exists' : 'null'}');
-      
+
+      debugPrint(
+        '[Auth] Token: ${token != null ? 'exists' : 'null'}, UserData: ${userData != null ? 'exists' : 'null'}',
+      );
+
       if (token != null && userData != null) {
         final user = UserModel.fromJson(userData);
         state = state.copyWith(
@@ -71,10 +73,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _apiClient.post('/auth/login', data: {
-        'email': email,
-        'password': password,
-      });
+      final response = await _apiClient.post(
+        '/auth/login',
+        data: {'email': email, 'password': password},
+      );
 
       if (response.data['success'] == true) {
         final data = response.data['data'];
@@ -100,11 +102,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } on DioException catch (e) {
-      final message = e.response?.data?['message'] ?? 'Network error. Please try again.';
+      final message =
+          e.response?.data?['message'] ?? 'Network error. Please try again.';
       state = state.copyWith(isLoading: false, error: message);
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred',
+      );
       return false;
     }
   }
@@ -117,11 +123,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _apiClient.post('/auth/login-phone', data: {
-        'phone': phone,
-        'password': password,
-        'expectedRole': expectedRole,
-      });
+      final response = await _apiClient.post(
+        '/auth/login-phone',
+        data: {
+          'phone': phone,
+          'password': password,
+          'expectedRole': expectedRole,
+        },
+      );
 
       if (response.data['success'] == true) {
         final data = response.data['data'];
@@ -147,11 +156,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } on DioException catch (e) {
-      final message = e.response?.data?['message'] ?? 'Network error. Please try again.';
+      final message =
+          e.response?.data?['message'] ?? 'Network error. Please try again.';
       state = state.copyWith(isLoading: false, error: message);
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred',
+      );
       return false;
     }
   }
@@ -165,12 +178,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _apiClient.post('/auth/register', data: {
-        'name': name,
-        'email': email,
-        'password': password,
-        if (phone != null) 'phone': phone,
-      });
+      final response = await _apiClient.post(
+        '/auth/register',
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'phone': phone,
+        },
+      );
 
       if (response.data['success'] == true) {
         final data = response.data['data'];
@@ -196,11 +212,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } on DioException catch (e) {
-      final message = e.response?.data?['message'] ?? 'Network error. Please try again.';
+      final message =
+          e.response?.data?['message'] ?? 'Network error. Please try again.';
       state = state.copyWith(isLoading: false, error: message);
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred',
+      );
       return false;
     }
   }
@@ -215,13 +235,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final endpoint = isWholesaler ? '/auth/register-phone/wholesaler' : '/auth/register-phone';
-      final response = await _apiClient.post(endpoint, data: {
-        'name': name,
-        'phone': phone,
-        'password': password,
-        if (isWholesaler && businessName != null) 'businessName': businessName,
-      });
+      final endpoint = isWholesaler
+          ? '/auth/register-phone/wholesaler'
+          : '/auth/register-phone';
+      final response = await _apiClient.post(
+        endpoint,
+        data: {
+          'name': name,
+          'phone': phone,
+          'password': password,
+          if (isWholesaler && businessName != null)
+            'businessName': businessName,
+        },
+      );
 
       if (response.data['success'] == true) {
         final data = response.data['data'];
@@ -247,11 +273,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } on DioException catch (e) {
-      final message = e.response?.data?['message'] ?? 'Network error. Please try again.';
+      final message =
+          e.response?.data?['message'] ?? 'Network error. Please try again.';
       state = state.copyWith(isLoading: false, error: message);
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    String? name,
+    String? avatar,
+    String? phone,
+    String? address,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _apiClient.put(
+        '/auth/profile',
+        data: {
+          if (name != null) 'name': name,
+          if (avatar != null) 'avatar': avatar,
+          if (phone != null) 'phone': phone,
+          if (address != null) 'address': address,
+        },
+      );
+
+      if (response.data['success'] == true) {
+        final user = UserModel.fromJson(response.data['data']);
+        state = state.copyWith(user: user, isLoading: false);
+        await StorageService.saveUserData(response.data['data']);
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: response.data['message'] ?? 'Update failed',
+        );
+        return false;
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data?['message'] ?? 'Network error';
+      state = state.copyWith(isLoading: false, error: message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred',
+      );
       return false;
     }
   }
@@ -260,12 +334,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final refreshToken = await StorageService.getRefreshToken();
       if (refreshToken != null) {
-        await _apiClient.post('/auth/logout', data: {'refreshToken': refreshToken});
+        await _apiClient.post(
+          '/auth/logout',
+          data: {'refreshToken': refreshToken},
+        );
       }
     } catch (_) {}
-    
+
     await StorageService.clearAll();
     state = AuthState();
+  }
+
+  void updateUser(UserModel user) {
+    state = state.copyWith(user: user);
+    StorageService.saveUserData(user.toJson());
   }
 
   void clearError() {

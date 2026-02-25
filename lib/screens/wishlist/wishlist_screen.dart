@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers/wishlist_provider.dart';
+import '../../core/providers/locale_provider.dart';
 
 class WishlistScreen extends ConsumerWidget {
   const WishlistScreen({super.key});
@@ -31,7 +32,9 @@ class WishlistScreen extends ConsumerWidget {
     final wishlist = ref.watch(wishlistProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         backgroundColor: backgroundWhite,
         body: SafeArea(
@@ -44,22 +47,40 @@ class WishlistScreen extends ConsumerWidget {
                   children: [
                     IconButton(
                       onPressed: () => context.pop(),
-                      icon: const Icon(Icons.arrow_back_ios_rounded, size: 20, color: textPrimary),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_rounded,
+                        size: 20,
+                        color: textPrimary,
+                      ),
                     ),
                     Expanded(
-                      child: Text('My Wishlist', textAlign: TextAlign.center,
-                        style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -0.3)),
+                      child: Text(
+                        'My Wishlist',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
                     ),
                     if (wishlist.items.isNotEmpty)
                       GestureDetector(
                         onTap: () => _showClearDialog(context, ref),
                         child: Container(
-                          width: 36, height: 36,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
-                            color: surfaceWhite, shape: BoxShape.circle,
+                            color: surfaceWhite,
+                            shape: BoxShape.circle,
                             border: Border.all(color: borderLight),
                           ),
-                          child: const Icon(Icons.delete_outline_rounded, size: 18, color: textMuted),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 18,
+                            color: textMuted,
+                          ),
                         ),
                       )
                     else
@@ -73,10 +94,22 @@ class WishlistScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: primaryBlue.withOpacity(0.08), borderRadius: BorderRadius.circular(100)),
-                        child: Text('${wishlist.items.length} ${wishlist.items.length == 1 ? 'item' : 'items'}',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          '${wishlist.items.length} ${wishlist.items.length == 1 ? 'item' : 'items'}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: primaryBlue,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -86,10 +119,19 @@ class WishlistScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                   child: Row(
                     children: [
-                      Icon(Icons.swipe_left_rounded, size: 14, color: textMuted.withOpacity(0.6)),
+                      Icon(
+                        Icons.swipe_left_rounded,
+                        size: 14,
+                        color: textMuted.withOpacity(0.6),
+                      ),
                       const SizedBox(width: 6),
-                      Text('Swipe left on an item to remove it',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textMuted)),
+                      Text(
+                        'Swipe left on an item to remove it',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -102,7 +144,11 @@ class WishlistScreen extends ConsumerWidget {
                         physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                         itemCount: wishlist.items.length,
-                        itemBuilder: (context, index) => _buildWishlistCard(context, ref, wishlist.items[index]),
+                        itemBuilder: (context, index) => _buildWishlistCard(
+                          context,
+                          ref,
+                          wishlist.items[index],
+                        ),
                       ),
               ),
             ],
@@ -118,37 +164,62 @@ class WishlistScreen extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 80, height: 80,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: redAccent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(Icons.favorite_outline_rounded, size: 36, color: redAccent.withOpacity(0.5)),
+            child: Icon(
+              Icons.favorite_outline_rounded,
+              size: 36,
+              color: redAccent.withOpacity(0.5),
+            ),
           ),
           const SizedBox(height: 20),
-          Text('Your wishlist is empty', style: GoogleFonts.plusJakartaSans(
-            fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary)),
+          Text(
+            'Your wishlist is empty',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('Save items you love by tapping the\nheart icon on product pages',
+          Text(
+            'Save items you love by tapping the\nheart icon on product pages',
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textMuted, height: 1.5)),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              color: textMuted,
+              height: 1.5,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildWishlistCard(BuildContext context, WidgetRef ref, WishlistItem item) {
+  Widget _buildWishlistCard(
+    BuildContext context,
+    WidgetRef ref,
+    WishlistItem item,
+  ) {
     final hasMrp = item.mrp != null && item.mrp! > 0 && item.mrp != item.price;
-    final discount = hasMrp ? (((item.mrp! - item.price) / item.mrp!) * 100).round() : 0;
+    final discount = hasMrp
+        ? (((item.mrp! - item.price) / item.mrp!) * 100).round()
+        : 0;
 
     return Dismissible(
       key: Key(item.productId),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => ref.read(wishlistProvider.notifier).remove(item.productId),
+      onDismissed: (_) =>
+          ref.read(wishlistProvider.notifier).remove(item.productId),
       background: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: redAccent, borderRadius: BorderRadius.circular(16),
+          color: redAccent,
+          borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
@@ -163,29 +234,45 @@ class WishlistScreen extends ConsumerWidget {
             color: surfaceWhite,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: borderLight.withOpacity(0.7)),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
               // Image
               Container(
-                width: 90, height: 90,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: item.image != null && item.image!.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: item.image!,
-                          width: 90, height: 90, fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(color: const Color(0xFFF1F5F9)),
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Container(color: const Color(0xFFF1F5F9)),
                           errorWidget: (_, __, ___) => Container(
                             color: const Color(0xFFF1F5F9),
-                            child: const Center(child: Icon(Icons.image, color: textMuted)),
+                            child: const Center(
+                              child: Icon(Icons.image, color: textMuted),
+                            ),
                           ),
                         )
                       : Container(
                           color: const Color(0xFFF1F5F9),
-                          child: const Center(child: Icon(Icons.image, color: textMuted)),
+                          child: const Center(
+                            child: Icon(Icons.image, color: textMuted),
+                          ),
                         ),
                 ),
               ),
@@ -195,27 +282,70 @@ class WishlistScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary, height: 1.3)),
+                    Text(
+                      (ref.watch(localeProvider) == 'Hindi' &&
+                              item.nameHindi != null &&
+                              item.nameHindi!.isNotEmpty)
+                          ? item.nameHindi!
+                          : item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                        height: 1.3,
+                      ),
+                    ),
                     if (item.category != null && item.category!.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(item.category!, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textMuted)),
+                      Text(
+                        item.category!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: textMuted,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Text('₹${_formatPrice(item.price)}', style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary)),
+                        Text(
+                          '₹${_formatPrice(item.price)}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: textPrimary,
+                          ),
+                        ),
                         if (hasMrp) ...[
                           const SizedBox(width: 6),
-                          Text('₹${_formatPrice(item.mrp)}', style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12, color: textMuted, decoration: TextDecoration.lineThrough)),
+                          Text(
+                            '₹${_formatPrice(item.mrp)}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: textMuted,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(4)),
-                            child: Text('$discount% off', style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF16A34A))),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '$discount% off',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF16A34A),
+                              ),
+                            ),
                           ),
                         ],
                       ],
@@ -225,14 +355,20 @@ class WishlistScreen extends ConsumerWidget {
               ),
               // Remove button
               GestureDetector(
-                onTap: () => ref.read(wishlistProvider.notifier).remove(item.productId),
+                onTap: () =>
+                    ref.read(wishlistProvider.notifier).remove(item.productId),
                 child: Container(
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: redAccent.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.favorite_rounded, size: 18, color: redAccent),
+                  child: Icon(
+                    Icons.favorite_rounded,
+                    size: 18,
+                    color: redAccent,
+                  ),
                 ),
               ),
             ],
@@ -247,13 +383,28 @@ class WishlistScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Clear Wishlist?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
-        content: Text('Remove all items from your wishlist?', style: GoogleFonts.plusJakartaSans()),
+        title: Text(
+          'Clear Wishlist?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Remove all items from your wishlist?',
+          style: GoogleFonts.plusJakartaSans(),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
-            onPressed: () { ref.read(wishlistProvider.notifier).clear(); Navigator.pop(ctx); },
-            child: Text('Clear All', style: GoogleFonts.plusJakartaSans(color: redAccent)),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(wishlistProvider.notifier).clear();
+              Navigator.pop(ctx);
+            },
+            child: Text(
+              'Clear All',
+              style: GoogleFonts.plusJakartaSans(color: redAccent),
+            ),
           ),
         ],
       ),

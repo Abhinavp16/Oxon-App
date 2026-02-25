@@ -9,6 +9,7 @@ class WishlistItem {
   final double price;
   final double? mrp;
   final String? category;
+  final String? nameHindi;
 
   WishlistItem({
     required this.productId,
@@ -17,6 +18,7 @@ class WishlistItem {
     required this.price,
     this.mrp,
     this.category,
+    this.nameHindi,
   });
 
   Map<String, dynamic> toJson() => {
@@ -26,6 +28,7 @@ class WishlistItem {
     'price': price,
     'mrp': mrp,
     'category': category,
+    'nameHindi': nameHindi,
   };
 
   factory WishlistItem.fromJson(Map<String, dynamic> json) => WishlistItem(
@@ -35,6 +38,7 @@ class WishlistItem {
     price: (json['price'] ?? 0).toDouble(),
     mrp: json['mrp'] != null ? (json['mrp']).toDouble() : null,
     category: json['category'],
+    nameHindi: json['nameHindi'],
   );
 }
 

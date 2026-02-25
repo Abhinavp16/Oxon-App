@@ -5,12 +5,12 @@ class AnalyticsDashboardScreen extends StatefulWidget {
   const AnalyticsDashboardScreen({super.key});
 
   @override
-  State<AnalyticsDashboardScreen> createState() => _AnalyticsDashboardScreenState();
+  State<AnalyticsDashboardScreen> createState() =>
+      _AnalyticsDashboardScreenState();
 }
 
 class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   int _selectedNavIndex = 0;
-
   // Colors from design
   static const Color primary = Color(0xFF135bec);
   static const Color backgroundLight = Color(0xFFf6f6f8);
@@ -76,14 +76,14 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       ),
                     ),
                     const Spacer(),
-                    Container(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: Icon(Icons.search, color: textDark),
                     ),
                     Stack(
                       children: [
-                        Container(
+                        SizedBox(
                           width: 40,
                           height: 40,
                           child: Icon(Icons.notifications, color: textDark),
@@ -166,7 +166,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
                   // Chart Card
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -210,7 +213,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                                 ],
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(4),
@@ -284,7 +290,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
                   // Alert Cards
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Column(
                       children: [
                         _buildAlertCard(
@@ -369,7 +378,14 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, String change, Color changeColor, bool isUp) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    String change,
+    Color changeColor,
+    bool isUp,
+  ) {
     return Container(
       width: (MediaQuery.of(context).size.width - 48) / 2,
       constraints: const BoxConstraints(minWidth: 158),
@@ -379,10 +395,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: gray200),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4),
         ],
       ),
       child: Column(
@@ -455,10 +468,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: primary.withOpacity(0.2),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                      border: Border(
-                        top: BorderSide(color: primary, width: 2),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(4),
                       ),
+                      border: Border(top: BorderSide(color: primary, width: 2)),
                     ),
                   ),
                 ),
@@ -570,7 +583,12 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index, bool isSelected) {
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    int index,
+    bool isSelected,
+  ) {
     return GestureDetector(
       onTap: () => setState(() => _selectedNavIndex = index),
       child: Column(

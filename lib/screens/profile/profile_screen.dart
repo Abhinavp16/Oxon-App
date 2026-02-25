@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/locale_provider.dart';
 
 import '../../core/theme/app_theme.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(localeProvider.notifier).translate;
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
@@ -17,10 +20,14 @@ class ProfileScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: AppColors.textPrimary, size: 24),
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedArrowLeft01,
+            color: AppColors.textPrimary,
+            size: 24,
+          ),
         ),
         title: Text(
-          'My Account',
+          t('My Account'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -31,7 +38,11 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedSettings01, color: AppColors.textPrimary, size: 24),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedSettings01,
+              color: AppColors.textPrimary,
+              size: 24,
+            ),
           ),
         ],
       ),
@@ -53,7 +64,10 @@ class ProfileScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.primary.withOpacity(0.1),
-                          border: Border.all(color: AppColors.primary, width: 3),
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 3,
+                          ),
                         ),
                         child: Center(
                           child: Text(
@@ -99,13 +113,16 @@ class ProfileScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'VERIFIED WHOLESALER',
+                          t('VERIFIED WHOLESALER'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -121,11 +138,11 @@ class ProfileScreen extends StatelessWidget {
                   // Stats Row
                   Row(
                     children: [
-                      _buildStatCard('12', 'Negotiations'),
+                      _buildStatCard('12', t('Negotiations'), t),
                       const SizedBox(width: 12),
-                      _buildStatCard('8', 'Active Deals'),
+                      _buildStatCard('8', t('Active Deals'), t),
                       const SizedBox(width: 12),
-                      _buildStatCard('2.5K', 'Points'),
+                      _buildStatCard('2.5K', t('Points'), t),
                     ],
                   ),
                 ],
@@ -142,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
-                      'BUSINESS MANAGEMENT',
+                      t('BUSINESS MANAGEMENT'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -153,26 +170,26 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedPackage,
-                    title: 'My Products',
-                    subtitle: '24 items listed',
+                    title: t('My Products'),
+                    subtitle: t('24 items listed'),
                     onTap: () => context.push('/add-product'),
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedShoppingBag01,
-                    title: 'Previous Orders',
-                    subtitle: 'View all your orders',
+                    title: t('Previous Orders'),
+                    subtitle: t('View all your orders'),
                     onTap: () => context.push('/previous-orders'),
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedHandGrip,
-                    title: 'Negotiations',
-                    subtitle: '5 active requests',
+                    title: t('Negotiations'),
+                    subtitle: t('5 active requests'),
                     onTap: () => context.push('/negotiations'),
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedAnalytics01,
-                    title: 'Analytics',
-                    subtitle: 'View performance',
+                    title: t('Analytics'),
+                    subtitle: t('View performance'),
                     onTap: () {},
                   ),
                 ],
@@ -189,7 +206,7 @@ class ProfileScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
-                      'SUPPORT',
+                      t('SUPPORT'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -200,14 +217,20 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     icon: HugeIcons.strokeRoundedHelpCircle,
-                    title: 'Help & Support',
-                    subtitle: 'FAQs, contact us',
+                    title: t('Help & Support'),
+                    subtitle: t('FAQs, contact us'),
                     onTap: () => context.push('/help'),
                   ),
                   _buildMenuItem(
+                    icon: HugeIcons.strokeRoundedUserGroup,
+                    title: t('Referral Program'),
+                    subtitle: t('Invite friends & earn rewards'),
+                    onTap: () => context.push('/referral'),
+                  ),
+                  _buildMenuItem(
                     icon: HugeIcons.strokeRoundedFile01,
-                    title: 'Terms & Policies',
-                    subtitle: 'Privacy, terms of use',
+                    title: t('Terms & Policies'),
+                    subtitle: t('Privacy, terms of use'),
                     onTap: () {},
                   ),
                 ],
@@ -220,8 +243,8 @@ class ProfileScreen extends StatelessWidget {
               color: Colors.white,
               child: _buildMenuItem(
                 icon: HugeIcons.strokeRoundedLogout01,
-                title: 'Sign Out',
-                subtitle: 'Log out of your account',
+                title: t('Sign Out'),
+                subtitle: t('Log out of your account'),
                 iconColor: AppColors.error,
                 titleColor: AppColors.error,
                 onTap: () => context.go('/login'),
@@ -234,7 +257,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String value, String label) {
+  Widget _buildStatCard(String value, String label, String Function(String) t) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),

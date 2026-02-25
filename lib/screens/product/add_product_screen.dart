@@ -242,7 +242,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   Switch(
                     value: true,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (value) {},
                   ),
                 ],

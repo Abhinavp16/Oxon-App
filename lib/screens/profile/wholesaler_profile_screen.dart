@@ -61,7 +61,7 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                         ),
                       ),
                     ),
-                    Container(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: Icon(Icons.settings, color: slate900),

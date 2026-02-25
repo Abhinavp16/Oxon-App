@@ -7,6 +7,7 @@ class CartItem {
   final String productId;
   final String name;
   final String? image;
+  final String? nameHindi;
   final double price;
   final double? mrp;
   final int quantity;
@@ -17,6 +18,7 @@ class CartItem {
     required this.productId,
     required this.name,
     this.image,
+    this.nameHindi,
     required this.price,
     this.mrp,
     required this.quantity,
@@ -24,11 +26,17 @@ class CartItem {
     this.stockIssue,
   });
 
-  CartItem copyWith({int? quantity, int? stock, String? stockIssue, bool clearIssue = false}) {
+  CartItem copyWith({
+    int? quantity,
+    int? stock,
+    String? stockIssue,
+    bool clearIssue = false,
+  }) {
     return CartItem(
       productId: productId,
       name: name,
       image: image,
+      nameHindi: nameHindi,
       price: price,
       mrp: mrp,
       quantity: quantity ?? this.quantity,
@@ -47,9 +55,19 @@ class CartState {
   final String? error;
   final List<Map<String, dynamic>> stockIssues;
 
-  CartState({this.items = const [], this.isLoading = false, this.error, this.stockIssues = const []});
+  CartState({
+    this.items = const [],
+    this.isLoading = false,
+    this.error,
+    this.stockIssues = const [],
+  });
 
-  CartState copyWith({List<CartItem>? items, bool? isLoading, String? error, List<Map<String, dynamic>>? stockIssues}) {
+  CartState copyWith({
+    List<CartItem>? items,
+    bool? isLoading,
+    String? error,
+    List<Map<String, dynamic>>? stockIssues,
+  }) {
     return CartState(
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
@@ -69,12 +87,14 @@ class CartNotifier extends StateNotifier<CartState> {
   final Dio _dio;
 
   CartNotifier()
-      : _dio = Dio(BaseOptions(
+    : _dio = Dio(
+        BaseOptions(
           baseUrl: ApiConfig.baseUrl,
           connectTimeout: ApiConfig.connectTimeout,
           receiveTimeout: ApiConfig.receiveTimeout,
-        )),
-        super(CartState());
+        ),
+      ),
+      super(CartState());
 
   Future<Dio> get _authedDio async {
     final token = await StorageService.getAccessToken();
@@ -107,6 +127,7 @@ class CartNotifier extends StateNotifier<CartState> {
       return CartItem(
         productId: item['productId']?.toString() ?? '',
         name: product['name']?.toString() ?? '',
+        nameHindi: product['nameHindi']?.toString(),
         image: product['image']?.toString(),
         price: (item['currentPrice'] ?? product['price'] ?? 0).toDouble(),
         quantity: item['quantity'] ?? 1,
@@ -118,6 +139,7 @@ class CartNotifier extends StateNotifier<CartState> {
   Future<bool> addItem({
     required String productId,
     required String name,
+    String? nameHindi,
     String? image,
     required double price,
     double? mrp,
@@ -125,32 +147,39 @@ class CartNotifier extends StateNotifier<CartState> {
     int stock = 99,
   }) async {
     // Optimistic local update for instant UI feedback
-    final existingIndex = state.items.indexWhere((i) => i.productId == productId);
+    final existingIndex = state.items.indexWhere(
+      (i) => i.productId == productId,
+    );
     final updatedItems = List<CartItem>.from(state.items);
 
     if (existingIndex >= 0) {
       final existing = updatedItems[existingIndex];
-      updatedItems[existingIndex] = existing.copyWith(quantity: existing.quantity + quantity);
+      updatedItems[existingIndex] = existing.copyWith(
+        quantity: existing.quantity + quantity,
+      );
     } else {
-      updatedItems.add(CartItem(
-        productId: productId,
-        name: name,
-        image: image,
-        price: price,
-        mrp: mrp,
-        quantity: quantity,
-        stock: stock,
-      ));
+      updatedItems.add(
+        CartItem(
+          productId: productId,
+          name: name,
+          nameHindi: nameHindi,
+          image: image,
+          price: price,
+          mrp: mrp,
+          quantity: quantity,
+          stock: stock,
+        ),
+      );
     }
     state = state.copyWith(items: updatedItems);
 
     // Sync with backend — use server response as source of truth
     try {
       final dio = await _authedDio;
-      final response = await dio.post('/cart/items', data: {
-        'productId': productId,
-        'quantity': quantity,
-      });
+      final response = await dio.post(
+        '/cart/items',
+        data: {'productId': productId, 'quantity': quantity},
+      );
       if (response.data?['data'] != null) {
         final serverItems = _parseServerCart(response.data['data']);
         state = state.copyWith(items: serverItems);
@@ -168,14 +197,18 @@ class CartNotifier extends StateNotifier<CartState> {
     }
 
     // Check local stock limit first
-    final item = state.items.firstWhere((i) => i.productId == productId, orElse: () => state.items.first);
+    final item = state.items.firstWhere(
+      (i) => i.productId == productId,
+      orElse: () => state.items.first,
+    );
     if (item.stock > 0 && quantity > item.stock) {
       return 'Only ${item.stock} available';
     }
 
     // Optimistic local update
     final updatedItems = state.items.map((i) {
-      if (i.productId == productId) return i.copyWith(quantity: quantity, clearIssue: true);
+      if (i.productId == productId)
+        return i.copyWith(quantity: quantity, clearIssue: true);
       return i;
     }).toList();
     state = state.copyWith(items: updatedItems);
@@ -183,7 +216,10 @@ class CartNotifier extends StateNotifier<CartState> {
     // Sync with backend — use server response as source of truth
     try {
       final dio = await _authedDio;
-      final response = await dio.put('/cart/items/$productId', data: {'quantity': quantity});
+      final response = await dio.put(
+        '/cart/items/$productId',
+        data: {'quantity': quantity},
+      );
       if (response.data?['data'] != null) {
         final serverItems = _parseServerCart(response.data['data']);
         state = state.copyWith(items: serverItems);
@@ -193,7 +229,11 @@ class CartNotifier extends StateNotifier<CartState> {
       if (msg != null && msg.contains('Insufficient stock')) {
         // Revert to previous quantity
         final reverted = state.items.map((i) {
-          if (i.productId == productId) return i.copyWith(quantity: item.quantity, stockIssue: 'Only ${item.stock} available');
+          if (i.productId == productId)
+            return i.copyWith(
+              quantity: item.quantity,
+              stockIssue: 'Only ${item.stock} available',
+            );
           return i;
         }).toList();
         state = state.copyWith(items: reverted);
@@ -211,7 +251,9 @@ class CartNotifier extends StateNotifier<CartState> {
         final data = response.data['data'];
         final bool valid = data['valid'] ?? true;
         final List<dynamic> rawIssues = data['issues'] ?? [];
-        final issues = rawIssues.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
+        final issues = rawIssues
+            .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+            .toList();
 
         if (!valid) {
           // Update cart items with stock issues
@@ -233,7 +275,9 @@ class CartNotifier extends StateNotifier<CartState> {
           state = state.copyWith(items: updatedItems, stockIssues: issues);
         } else {
           // Clear all stock issues
-          final clearedItems = state.items.map((item) => item.copyWith(clearIssue: true)).toList();
+          final clearedItems = state.items
+              .map((item) => item.copyWith(clearIssue: true))
+              .toList();
           state = state.copyWith(items: clearedItems, stockIssues: []);
         }
 
@@ -246,7 +290,9 @@ class CartNotifier extends StateNotifier<CartState> {
   }
 
   Future<void> removeItem(String productId) async {
-    final updatedItems = state.items.where((i) => i.productId != productId).toList();
+    final updatedItems = state.items
+        .where((i) => i.productId != productId)
+        .toList();
     state = state.copyWith(items: updatedItems);
 
     // Sync with backend — use server response as source of truth

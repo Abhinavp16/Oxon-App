@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -9,18 +11,24 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/providers/locale_provider.dart';
 import '../../core/config/api_config.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/transliteration_service.dart';
 import '../categories/categories_screen.dart';
+import '../../widgets/product_image_placeholder.dart';
+import '../../core/providers/wishlist_provider.dart';
+import '../../core/providers/order_count_provider.dart';
 
 class MarketplaceHomeScreen extends ConsumerStatefulWidget {
   final int? initialTab;
   const MarketplaceHomeScreen({super.key, this.initialTab});
 
   @override
-  ConsumerState<MarketplaceHomeScreen> createState() => _MarketplaceHomeScreenState();
+  ConsumerState<MarketplaceHomeScreen> createState() =>
+      _MarketplaceHomeScreenState();
 }
 
 class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
@@ -30,11 +38,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   final PageController _carouselController = PageController();
   final TextEditingController _searchController = TextEditingController();
   // Use ApiConfig.baseUrl - update the IP in lib/core/config/api_config.dart
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: ApiConfig.baseUrl,
-    connectTimeout: ApiConfig.connectTimeout,
-    receiveTimeout: ApiConfig.receiveTimeout,
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: ApiConfig.baseUrl,
+      connectTimeout: ApiConfig.connectTimeout,
+      receiveTimeout: ApiConfig.receiveTimeout,
+    ),
+  );
 
   // Blue Theme Colors - Apple-like design
   static const Color primaryBlue = Color(0xFF2563EB);
@@ -80,6 +90,14 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   bool _isLoadingNotifications = false;
   StateSetter? _dialogSetter;
 
+  // Offers state
+  List<Map<String, dynamic>> _offers = [];
+  bool _isLoadingOffers = true;
+
+  // Reviews state
+  List<Map<String, dynamic>> _dynamicReviews = [];
+  bool _isLoadingReviews = true;
+
   @override
   void initState() {
     super.initState();
@@ -88,11 +106,43 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _fetchProducts();
     _fetchCategories();
     _fetchPromoBanners();
+    _fetchOffers();
+    _fetchReviews();
     _initNotifications();
     _fetchNotificationCount();
+
+    // Default Banners to ensure visual excellence immediately
+    _heroBanners = [
+      {
+        'title': 'Next-Gen\nTractors',
+        'subtitle': 'Revolutionizing agriculture with AI power',
+        'tag': 'NEW ARRIVAL',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=1000&q=80',
+        'linkUrl': '/market',
+      },
+      {
+        'title': 'Bulk Fertilizer Deals',
+        'subtitle': 'Highest quality boosters for your crops',
+        'tag': 'WHOLESALE',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1000&q=80',
+        'linkUrl': '/market',
+      },
+      {
+        'title': 'Premium Seeds',
+        'subtitle': 'High-yield varieties for every season',
+        'tag': 'FEATURED',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1000&q=80',
+        'linkUrl': '/market',
+      },
+    ];
+
     // Fetch cart from server so it persists across app restarts
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(cartProvider.notifier).fetchCart();
+      _startAutoRotate();
     });
   }
 
@@ -101,6 +151,82 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       await ref.read(notificationServiceProvider).initialize();
     } catch (e) {
       debugPrint('Notification init error: $e');
+    }
+  }
+
+  // Dummy brands shown when API has no data
+  static final List<Map<String, dynamic>> _dummyBrands = [
+    {
+      'id': 'b1',
+      'name': 'Mahindra',
+      'tag': 'Tractors & Machinery',
+      'logo':
+          'https://logodownload.org/wp-content/uploads/2021/05/mahindra-logo-1.png',
+      'accent': 0xFF1E3A8A,
+      'slug': 'mahindra',
+    },
+    {
+      'id': 'b2',
+      'name': 'John Deere',
+      'tag': 'Farm Equipment',
+      'logo':
+          'https://logohistory.net/wp-content/uploads/2023/01/John-Deere-Logo.png',
+      'accent': 0xFF166534,
+      'slug': 'john-deere',
+    },
+    {
+      'id': 'b3',
+      'name': 'IFFCO',
+      'tag': 'Fertilizers & Agri',
+      'logo': 'https://upload.wikimedia.org/wikipedia/en/5/5f/IFFCO_logo.png',
+      'accent': 0xFF065F46,
+      'slug': 'iffco',
+    },
+    {
+      'id': 'b4',
+      'name': 'Syngenta',
+      'tag': 'Seeds & Crop Protection',
+      'logo':
+          'https://1000logos.net/wp-content/uploads/2020/09/Syngenta-Logo.png',
+      'accent': 0xFF92400E,
+      'slug': 'syngenta',
+    },
+    {
+      'id': 'b5',
+      'name': 'Bayer Crop',
+      'tag': 'Pesticides & Seeds',
+      'logo':
+          'https://logos-world.net/wp-content/uploads/2020/09/Bayer-Logo.png',
+      'accent': 0xFF7C3AED,
+      'slug': 'bayer',
+    },
+    {
+      'id': 'b6',
+      'name': 'Godrej Agrovet',
+      'tag': 'Animal Feed & Agri',
+      'logo': '',
+      'accent': 0xFF9F1239,
+      'slug': 'godrej-agrovet',
+    },
+  ];
+
+  Future<void> _fetchReviews() async {
+    try {
+      final response = await _dio.get('/reviews');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        setState(() {
+          _dynamicReviews = data
+              .map((item) => item as Map<String, dynamic>)
+              .toList();
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching reviews: $e');
+      setState(() {
+        _isLoadingReviews = false;
+      });
     }
   }
 
@@ -114,19 +240,236 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         final List<dynamic> items = data['data'] ?? data ?? [];
         debugPrint('Found ${items.length} brands');
         setState(() {
-          _brands = items.map<Map<String, dynamic>>((item) => <String, dynamic>{
-            'id': item['_id']?.toString() ?? item['id']?.toString() ?? '',
-            'name': item['name']?.toString() ?? '',
-            'logo': item['logo'] is Map ? item['logo']['url']?.toString() ?? '' : item['logo']?.toString() ?? '',
-            'slug': item['slug']?.toString() ?? '',
-          }).toList();
+          final fetched = items
+              .map<Map<String, dynamic>>(
+                (item) => <String, dynamic>{
+                  'id': item['_id']?.toString() ?? item['id']?.toString() ?? '',
+                  'name': item['name']?.toString() ?? '',
+                  'logo': item['logo'] is Map
+                      ? item['logo']['url']?.toString() ?? ''
+                      : item['logo']?.toString() ?? '',
+                  'slug': item['slug']?.toString() ?? '',
+                },
+              )
+              .toList();
+          // Use dummy data if API returns nothing
+          _brands = fetched.isEmpty
+              ? List<Map<String, dynamic>>.from(_dummyBrands)
+              : fetched;
           _isLoadingBrands = false;
         });
       }
     } catch (e) {
       debugPrint('Error fetching brands: $e');
-      setState(() => _isLoadingBrands = false);
+      setState(() {
+        _brands = List<Map<String, dynamic>>.from(_dummyBrands);
+        _isLoadingBrands = false;
+      });
     }
+  }
+
+  // Dummy products shown when API has no data
+  // image is intentionally empty — ProductImagePlaceholder renders a
+  // beautiful illustrated fallback based on category/name keywords.
+  static final List<Map<String, dynamic>> _dummyProducts = [
+    {
+      'id': 'p1',
+      'name': 'Drip Irrigation Kit',
+      'category': 'Irrigation',
+      'price': 2499,
+      'originalPrice': 3200,
+      'image': '',
+      'isHot': false,
+      'isNew': false,
+      'inStock': true,
+      'discount': 22,
+      'rating': 4.6,
+      'reviewCount': 128,
+      'purchaseCountMin': 30,
+      'purchaseCountMax': 80,
+    },
+    {
+      'id': 'p2',
+      'name': 'Hybrid Tomato Seeds 50g',
+      'category': 'Seeds',
+      'price': 349,
+      'originalPrice': 499,
+      'image': '',
+      'isHot': true,
+      'isNew': false,
+      'inStock': true,
+      'discount': 30,
+      'rating': 4.8,
+      'reviewCount': 245,
+      'purchaseCountMin': 120,
+      'purchaseCountMax': 250,
+    },
+    {
+      'id': 'p3',
+      'name': 'NPK Fertilizer 50kg',
+      'category': 'Fertilizers',
+      'price': 1899,
+      'originalPrice': 2200,
+      'image': '',
+      'isHot': false,
+      'isNew': false,
+      'inStock': true,
+      'discount': 14,
+      'rating': 4.5,
+      'reviewCount': 89,
+      'purchaseCountMin': 40,
+      'purchaseCountMax': 90,
+    },
+    {
+      'id': 'p4',
+      'name': 'Power Sprayer 16L',
+      'category': 'Tools',
+      'price': 3799,
+      'originalPrice': 4500,
+      'image': '',
+      'isHot': true,
+      'isNew': false,
+      'inStock': true,
+      'discount': 16,
+      'rating': 4.7,
+      'reviewCount': 312,
+      'purchaseCountMin': 85,
+      'purchaseCountMax': 180,
+    },
+    {
+      'id': 'p5',
+      'name': 'Paddy Seed Drum Seeder',
+      'category': 'Machinery',
+      'price': 7999,
+      'originalPrice': 9500,
+      'image': '',
+      'isHot': false,
+      'isNew': true,
+      'inStock': true,
+      'discount': 16,
+      'rating': 4.4,
+      'reviewCount': 67,
+      'purchaseCountMin': 15,
+      'purchaseCountMax': 45,
+    },
+    {
+      'id': 'p6',
+      'name': 'Organic Compost 25kg',
+      'category': 'Fertilizers',
+      'price': 799,
+      'originalPrice': 1000,
+      'image': '',
+      'isHot': true,
+      'isNew': false,
+      'inStock': true,
+      'discount': 20,
+      'rating': 4.9,
+      'reviewCount': 534,
+      'purchaseCountMin': 200,
+      'purchaseCountMax': 400,
+    },
+    {
+      'id': 'p7',
+      'name': 'Agriculture Drone Pro',
+      'category': 'Drones',
+      'price': 89999,
+      'originalPrice': 110000,
+      'image': '',
+      'isHot': true,
+      'isNew': true,
+      'inStock': true,
+      'discount': 18,
+      'rating': 4.8,
+      'reviewCount': 43,
+      'purchaseCountMin': 5,
+      'purchaseCountMax': 20,
+    },
+    {
+      'id': 'p8',
+      'name': 'Mini Tractor 20HP',
+      'category': 'Tractors',
+      'price': 245000,
+      'originalPrice': 285000,
+      'image': '',
+      'isHot': false,
+      'isNew': true,
+      'inStock': true,
+      'discount': 14,
+      'rating': 4.7,
+      'reviewCount': 28,
+      'purchaseCountMin': 3,
+      'purchaseCountMax': 12,
+    },
+    {
+      'id': 'p9',
+      'name': 'Soil Testing Kit',
+      'category': 'Tools',
+      'price': 1299,
+      'originalPrice': 1800,
+      'image': '',
+      'isHot': true,
+      'isNew': false,
+      'inStock': true,
+      'discount': 28,
+      'rating': 4.5,
+      'reviewCount': 176,
+      'purchaseCountMin': 60,
+      'purchaseCountMax': 130,
+    },
+    {
+      'id': 'p10',
+      'name': 'Wheat Harvester Blade',
+      'category': 'Harvesters',
+      'price': 5499,
+      'originalPrice': 6500,
+      'image': '',
+      'isHot': true,
+      'isNew': false,
+      'inStock': true,
+      'discount': 15,
+      'rating': 4.6,
+      'reviewCount': 91,
+      'purchaseCountMin': 25,
+      'purchaseCountMax': 70,
+    },
+    {
+      'id': 'p11',
+      'name': 'Rain Gun Sprinkler',
+      'category': 'Irrigation',
+      'price': 3200,
+      'originalPrice': 4000,
+      'image': '',
+      'isHot': false,
+      'isNew': true,
+      'inStock': true,
+      'discount': 20,
+      'rating': 4.3,
+      'reviewCount': 58,
+      'purchaseCountMin': 18,
+      'purchaseCountMax': 55,
+    },
+    {
+      'id': 'p12',
+      'name': 'Bio Pesticide 1L',
+      'category': 'Pesticides',
+      'price': 599,
+      'originalPrice': 750,
+      'image': '',
+      'isHot': false,
+      'isNew': false,
+      'inStock': true,
+      'discount': 20,
+      'rating': 4.2,
+      'reviewCount': 203,
+      'purchaseCountMin': 50,
+      'purchaseCountMax': 110,
+    },
+  ];
+
+  /// Returns empty string when no valid URL found — the [ProductImagePlaceholder]
+  /// widget will render a beautiful category-specific illustration instead.
+  static String _fallbackImageFor(String name, String category) {
+    return ''; // ProductImagePlaceholder handles the display
   }
 
   Future<void> _fetchProducts() async {
@@ -139,23 +482,63 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         final List<dynamic> items = data['data'] ?? data ?? [];
         debugPrint('Found ${items.length} products');
         setState(() {
-          _products = items.map<Map<String, dynamic>>((item) => <String, dynamic>{
-            'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
-            'name': item['name']?.toString() ?? '',
-            'brand': item['category']?.toString() ?? '',
-            'price': item['price'] ?? item['retailPrice'] ?? 0,
-            'originalPrice': item['mrp'] ?? 0,
-            'image': item['primaryImage']?.toString() ?? '',
-            'isHot': item['isFeatured'] == true,
-            'discount': 0,
-            'rating': 4.5,
+          final fetched = items.map<Map<String, dynamic>>((item) {
+            final name = item['name']?.toString() ?? '';
+            final cat = (item['category'] ?? item['categoryName'] ?? '')
+                .toString();
+            // Try every possible image field the backend might use
+            String apiImage =
+                (item['primaryImage'] ??
+                        item['image'] ??
+                        item['imageUrl'] ??
+                        item['photo'] ??
+                        item['thumbnail'] ??
+                        item['img'] ??
+                        '')
+                    .toString()
+                    .trim();
+            // If the URL is relative (starts with /), prepend the server base
+            if (apiImage.isNotEmpty && apiImage.startsWith('/')) {
+              final serverBase = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
+              apiImage = '$serverBase$apiImage';
+            }
+            final isValidUrl =
+                apiImage.startsWith('http://') ||
+                apiImage.startsWith('https://');
+            final image = isValidUrl ? apiImage : _fallbackImageFor(name, cat);
+            debugPrint('Product: $name | apiImage: $apiImage | final: $image');
+            return <String, dynamic>{
+              'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
+              'name': name,
+              'nameHindi': item['nameHindi']?.toString() ?? '',
+              'category': cat,
+              'brand': cat,
+              'price': item['price'] ?? item['retailPrice'] ?? 0,
+              'originalPrice': item['mrp'] ?? item['originalPrice'] ?? 0,
+              'image': image,
+              'isHot': item['isFeatured'] == true || item['isHot'] == true,
+              'isNew': item['isNew'] == true,
+              'inStock': item['inStock'] != false,
+              'discount': 0,
+              'rating': item['rating'] ?? 4.5,
+              'reviewCount': item['reviewCount'] ?? item['reviews'] ?? '',
+              'purchaseCountMin': item['purchaseCountMin'] ?? 0,
+              'purchaseCountMax': item['purchaseCountMax'] ?? 0,
+            };
           }).toList();
+          // Use dummy data if API returns nothing
+          _products = fetched.isEmpty
+              ? List<Map<String, dynamic>>.from(_dummyProducts)
+              : fetched;
           _isLoadingProducts = false;
         });
       }
     } catch (e) {
       debugPrint('Error fetching products: $e');
-      setState(() => _isLoadingProducts = false);
+      setState(() {
+        _products = List<Map<String, dynamic>>.from(_dummyProducts);
+        _isLoadingProducts = false;
+      });
     }
   }
 
@@ -165,7 +548,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
         setState(() {
-          _categories = items.map<String>((item) => item['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
+          _categories = items
+              .map<String>((item) => item['name']?.toString() ?? '')
+              .where((n) => n.isNotEmpty)
+              .toList();
         });
       }
     } catch (e) {
@@ -180,26 +566,72 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         final data = response.data['data'] ?? {};
         final List<dynamic> heroItems = data['heroBanners'] ?? [];
         final List<dynamic> promoItems = data['promoBanners'] ?? [];
+
         setState(() {
-          _heroBanners = heroItems.map<Map<String, dynamic>>((item) => <String, dynamic>{
-            'title': item['title']?.toString() ?? '',
-            'subtitle': item['subtitle']?.toString() ?? '',
-            'tag': item['tag']?.toString() ?? '',
-            'imageUrl': item['imageUrl']?.toString() ?? '',
-            'linkUrl': item['linkUrl']?.toString() ?? '',
-          }).toList();
-          _promoBanners = promoItems.map<Map<String, dynamic>>((item) => <String, dynamic>{
-            'title': item['title']?.toString() ?? '',
-            'subtitle': item['subtitle']?.toString() ?? '',
-            'tag': item['tag']?.toString() ?? '',
-            'imageUrl': item['imageUrl']?.toString() ?? '',
-            'linkUrl': item['linkUrl']?.toString() ?? '',
-          }).toList();
+          if (heroItems.isNotEmpty) {
+            _heroBanners = heroItems
+                .map<Map<String, dynamic>>(
+                  (item) => <String, dynamic>{
+                    'title': item['title']?.toString() ?? '',
+                    'subtitle': item['subtitle']?.toString() ?? '',
+                    'tag': item['tag']?.toString() ?? '',
+                    'imageUrl': item['imageUrl']?.toString() ?? '',
+                    'linkUrl': item['linkUrl']?.toString() ?? '',
+                  },
+                )
+                .toList();
+          }
+          if (promoItems.isNotEmpty) {
+            _promoBanners = promoItems
+                .map<Map<String, dynamic>>(
+                  (item) => <String, dynamic>{
+                    'title': item['title']?.toString() ?? '',
+                    'subtitle': item['subtitle']?.toString() ?? '',
+                    'tag': item['tag']?.toString() ?? '',
+                    'imageUrl': item['imageUrl']?.toString() ?? '',
+                    'linkUrl': item['linkUrl']?.toString() ?? '',
+                  },
+                )
+                .toList();
+          }
         });
         _startAutoRotate();
       }
     } catch (e) {
       debugPrint('Error fetching banners: $e');
+    }
+  }
+
+  Future<void> _fetchOffers() async {
+    try {
+      final user = ref.read(authProvider).user;
+      final role = user?.role ?? 'buyer';
+
+      final response = await _dio.get(
+        '/offers',
+        queryParameters: {'targetGroup': role},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> items = response.data['data'] ?? [];
+        setState(() {
+          _offers = items.map<Map<String, dynamic>>((item) {
+            return {
+              'title': item['title'] ?? '',
+              'discount': item['discountType'] == 'percentage'
+                  ? '${item['discountValue']}%'
+                  : '₹${item['discountValue']}',
+              'type': item['discountType'],
+              'value': item['discountValue'],
+              'code': item['code'],
+            };
+          }).toList();
+          _isLoadingOffers = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching offers: $e');
+      setState(() => _isLoadingOffers = false);
     }
   }
 
@@ -210,8 +642,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       _heroAutoRotateTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (_carouselController.hasClients) {
           final next = (_currentCarouselIndex + 1) % _heroBanners.length;
-          _carouselController.animateToPage(next,
-              duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+          _carouselController.animateToPage(
+            next,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
         }
       });
     }
@@ -219,16 +654,38 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       _promoAutoRotateTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (_promoBannerController.hasClients) {
           final next = (_currentPromoBannerIndex + 1) % _promoBanners.length;
-          _promoBannerController.animateToPage(next,
-              duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+          _promoBannerController.animateToPage(
+            next,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
         }
       });
     }
   }
 
+  Future<void> _handleRefresh() async {
+    debugPrint('Pull to refresh triggered...');
+    await Future.wait([
+      _fetchBrands(),
+      _fetchProducts(),
+      _fetchCategories(),
+      _fetchPromoBanners(),
+      _fetchOffers(),
+      _fetchNotificationCount(),
+      _fetchNegotiations(),
+    ]);
+  }
+
   Future<void> _searchProducts(String query) async {
-    if (query.trim().isEmpty && _selectedFilterCategory == null && _selectedFilterBrand == null) {
-      setState(() { _searchResults = []; _isSearching = false; _searchQuery = ''; });
+    if (query.trim().isEmpty &&
+        _selectedFilterCategory == null &&
+        _selectedFilterBrand == null) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+        _searchQuery = '';
+      });
       return;
     }
     setState(() => _isSearching = true);
@@ -236,24 +693,33 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     try {
       final params = <String, dynamic>{};
       if (query.trim().isNotEmpty) params['q'] = query;
-      if (_selectedFilterCategory != null) params['category'] = _selectedFilterCategory;
+      if (_selectedFilterCategory != null)
+        params['category'] = _selectedFilterCategory;
       if (_selectedFilterBrand != null) params['brand'] = _selectedFilterBrand;
 
-      final endpoint = query.trim().isNotEmpty ? '/products/search' : '/products';
+      final endpoint = query.trim().isNotEmpty
+          ? '/products/search'
+          : '/products';
       final response = await _dio.get(endpoint, queryParameters: params);
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
         setState(() {
-          _searchResults = items.map<Map<String, dynamic>>((item) => <String, dynamic>{
-            'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
-            'name': item['name']?.toString() ?? '',
-            'brand': item['category']?.toString() ?? '',
-            'price': item['price'] ?? item['retailPrice'] ?? 0,
-            'originalPrice': item['mrp'] ?? 0,
-            'image': item['primaryImage']?.toString() ?? '',
-            'inStock': item['inStock'] == true,
-            'shortDescription': item['shortDescription']?.toString() ?? '',
-          }).toList();
+          _searchResults = items
+              .map<Map<String, dynamic>>(
+                (item) => <String, dynamic>{
+                  'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
+                  'name': item['name']?.toString() ?? '',
+                  'nameHindi': item['nameHindi']?.toString() ?? '',
+                  'brand': item['category']?.toString() ?? '',
+                  'price': item['price'] ?? item['retailPrice'] ?? 0,
+                  'originalPrice': item['mrp'] ?? 0,
+                  'image': item['primaryImage']?.toString() ?? '',
+                  'inStock': item['inStock'] == true,
+                  'shortDescription':
+                      item['shortDescription']?.toString() ?? '',
+                },
+              )
+              .toList();
           _isSearching = false;
         });
       }
@@ -266,6 +732,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   void _showFilterSheet() {
     String? tempCategory = _selectedFilterCategory;
     String? tempBrand = _selectedFilterBrand;
+    final t = ref.read(localeProvider.notifier).translate;
 
     showModalBottomSheet(
       context: context,
@@ -274,7 +741,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           return Container(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.65),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
+            ),
             decoration: const BoxDecoration(
               color: surfaceWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -285,8 +754,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 // Handle bar
                 Container(
                   margin: const EdgeInsets.only(top: 12),
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: borderLight, borderRadius: BorderRadius.circular(2)),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
                 // Header
                 Padding(
@@ -294,14 +767,29 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Filters', style: GoogleFonts.plusJakartaSans(
-                        fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary)),
+                      Text(
+                        t('Filters'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: textPrimary,
+                        ),
+                      ),
                       GestureDetector(
                         onTap: () {
-                          setSheetState(() { tempCategory = null; tempBrand = null; });
+                          setSheetState(() {
+                            tempCategory = null;
+                            tempBrand = null;
+                          });
                         },
-                        child: Text('Reset', style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14, fontWeight: FontWeight.w600, color: primaryBlue)),
+                        child: Text(
+                          t('Reset'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: primaryBlue,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -314,55 +802,113 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Category', style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary)),
+                        Text(
+                          t('Category'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         Wrap(
-                          spacing: 8, runSpacing: 8,
+                          spacing: 8,
+                          runSpacing: 8,
                           children: _categories.map((cat) {
                             final selected = tempCategory == cat;
                             return GestureDetector(
-                              onTap: () => setSheetState(() => tempCategory = selected ? null : cat),
+                              onTap: () => setSheetState(
+                                () => tempCategory = selected ? null : cat,
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: selected ? primaryBlue : surfaceWhite,
                                   borderRadius: BorderRadius.circular(100),
-                                  border: Border.all(color: selected ? primaryBlue : borderLight),
-                                  boxShadow: selected ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
+                                  border: Border.all(
+                                    color: selected ? primaryBlue : borderLight,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: primaryBlue.withOpacity(0.2),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
                                 ),
-                                child: Text(cat, style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13, fontWeight: FontWeight.w600,
-                                  color: selected ? Colors.white : textSecondary)),
+                                child: Text(
+                                  cat,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected
+                                        ? Colors.white
+                                        : textSecondary,
+                                  ),
+                                ),
                               ),
                             );
                           }).toList(),
                         ),
                         const SizedBox(height: 24),
                         // Brand section
-                        Text('Brand', style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary)),
+                        Text(
+                          t('Brand'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         Wrap(
-                          spacing: 8, runSpacing: 8,
+                          spacing: 8,
+                          runSpacing: 8,
                           children: _brands.map((brand) {
                             final name = brand['name'] as String;
                             final selected = tempBrand == name;
                             return GestureDetector(
-                              onTap: () => setSheetState(() => tempBrand = selected ? null : name),
+                              onTap: () => setSheetState(
+                                () => tempBrand = selected ? null : name,
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: selected ? primaryBlue : surfaceWhite,
                                   borderRadius: BorderRadius.circular(100),
-                                  border: Border.all(color: selected ? primaryBlue : borderLight),
-                                  boxShadow: selected ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
+                                  border: Border.all(
+                                    color: selected ? primaryBlue : borderLight,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: primaryBlue.withOpacity(0.2),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
                                 ),
-                                child: Text(name, style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13, fontWeight: FontWeight.w600,
-                                  color: selected ? Colors.white : textSecondary)),
+                                child: Text(
+                                  name,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected
+                                        ? Colors.white
+                                        : textSecondary,
+                                  ),
+                                ),
                               ),
                             );
                           }).toList(),
@@ -376,7 +922,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                   child: SizedBox(
-                    width: double.infinity, height: 52,
+                    width: double.infinity,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: () {
                         setState(() {
@@ -389,11 +936,18 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryBlue,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
-                      child: Text('Apply Filters', style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        t('Apply Filters'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -408,7 +962,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Future<void> _fetchNotificationCount() async {
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.get('/notifications/my', queryParameters: {'limit': 1});
+      final response = await api.get(
+        '/notifications/my',
+        queryParameters: {'limit': 1},
+      );
       if (response.statusCode == 200) {
         setState(() {
           _unreadCount = response.data['unreadCount'] ?? 0;
@@ -419,23 +976,32 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     }
   }
 
-  Future<void> _fetchNotifications([void Function(void Function())? dialogSetter]) async {
+  Future<void> _fetchNotifications([
+    void Function(void Function())? dialogSetter,
+  ]) async {
     final update = dialogSetter ?? setState;
     update(() => _isLoadingNotifications = true);
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.get('/notifications/my', queryParameters: {'limit': 10});
+      final response = await api.get(
+        '/notifications/my',
+        queryParameters: {'limit': 10},
+      );
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
-        final mapped = items.map<Map<String, dynamic>>((item) => <String, dynamic>{
-          'id': item['_id']?.toString() ?? '',
-          'title': item['title']?.toString() ?? '',
-          'body': item['body']?.toString() ?? '',
-          'type': item['type']?.toString() ?? 'general',
-          'isRead': item['isRead'] == true,
-          'createdAt': item['createdAt']?.toString() ?? '',
-          'data': item['data'] ?? {},
-        }).toList();
+        final mapped = items
+            .map<Map<String, dynamic>>(
+              (item) => <String, dynamic>{
+                'id': item['_id']?.toString() ?? '',
+                'title': item['title']?.toString() ?? '',
+                'body': item['body']?.toString() ?? '',
+                'type': item['type']?.toString() ?? 'general',
+                'isRead': item['isRead'] == true,
+                'createdAt': item['createdAt']?.toString() ?? '',
+                'data': item['data'] ?? {},
+              },
+            )
+            .toList();
         _notifications = mapped;
         _unreadCount = response.data['unreadCount'] ?? 0;
         _isLoadingNotifications = false;
@@ -453,12 +1019,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     }
   }
 
-  Future<void> _markNotificationsRead([void Function(void Function())? dialogSetter]) async {
+  Future<void> _markNotificationsRead([
+    void Function(void Function())? dialogSetter,
+  ]) async {
     try {
       final api = ref.read(apiClientProvider);
       await api.post('/notifications/mark-read', data: {});
       _unreadCount = 0;
-      for (var n in _notifications) { n['isRead'] = true; }
+      for (var n in _notifications) {
+        n['isRead'] = true;
+      }
       if (dialogSetter != null) dialogSetter(() {});
       if (mounted) setState(() {});
     } catch (e) {
@@ -469,6 +1039,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   void _showNotificationPopup() {
     _isLoadingNotifications = true;
     _dialogSetter = null;
+    final t = ref.read(localeProvider.notifier).translate;
     showDialog(
       context: context,
       barrierColor: Colors.black26,
@@ -498,8 +1069,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           color: surfaceWhite,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 24, offset: const Offset(0, 8)),
-                            BoxShadow(color: primaryBlue.withOpacity(0.06), blurRadius: 40, offset: const Offset(0, 4)),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.12),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: primaryBlue.withOpacity(0.06),
+                              blurRadius: 40,
+                              offset: const Offset(0, 4),
+                            ),
                           ],
                         ),
                         child: Column(
@@ -509,76 +1088,151 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(children: [
-                                    Text('Notifications', style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 17, fontWeight: FontWeight.w800, color: textPrimary)),
-                                    if (_unreadCount > 0) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(color: primaryBlue, borderRadius: BorderRadius.circular(100)),
-                                        child: Text('$_unreadCount', style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
-                                      ),
-                                    ],
-                                  ]),
-                                  Row(children: [
-                                    if (_unreadCount > 0)
-                                      GestureDetector(
-                                        onTap: () => _markNotificationsRead(setDialogState),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8),
-                                          child: Text('Mark all read', style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12, fontWeight: FontWeight.w600, color: primaryBlue)),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        t('Notifications'),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800,
+                                          color: textPrimary,
                                         ),
                                       ),
-                                    IconButton(
-                                      onPressed: () => Navigator.pop(ctx),
-                                      icon: const Icon(Icons.close_rounded, size: 20, color: textMuted),
-                                    ),
-                                  ]),
+                                      if (_unreadCount > 0) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: primaryBlue,
+                                            borderRadius: BorderRadius.circular(
+                                              100,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$_unreadCount',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      if (_unreadCount > 0)
+                                        GestureDetector(
+                                          onTap: () => _markNotificationsRead(
+                                            setDialogState,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8),
+                                            child: Text(
+                                              t('Mark all read'),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: primaryBlue,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                      IconButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        icon: const Icon(
+                                          Icons.close_rounded,
+                                          size: 20,
+                                          color: textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
                             const Divider(height: 1, color: borderLight),
                             // Content
                             _isLoadingNotifications
-                              ? const Padding(
-                                  padding: EdgeInsets.all(40),
-                                  child: Center(child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 2)),
-                                )
-                              : _notifications.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.all(40),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: primaryBlue,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  )
+                                : _notifications.isEmpty
                                 ? Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 40),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 40,
+                                    ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Container(
-                                          width: 56, height: 56,
+                                          width: 56,
+                                          height: 56,
                                           decoration: BoxDecoration(
-                                            color: primaryBlue.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(16),
+                                            color: primaryBlue.withOpacity(
+                                              0.08,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                           ),
-                                          child: Icon(Icons.notifications_none_rounded, size: 28, color: primaryBlue.withOpacity(0.5)),
+                                          child: Icon(
+                                            Icons.notifications_none_rounded,
+                                            size: 28,
+                                            color: primaryBlue.withOpacity(0.5),
+                                          ),
                                         ),
                                         const SizedBox(height: 12),
-                                        Text('No notifications yet', style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary)),
+                                        Text(
+                                          t('No notifications yet'),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary,
+                                          ),
+                                        ),
                                         const SizedBox(height: 4),
-                                        Text("You're all caught up!", style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 13, color: textMuted)),
+                                        Text(
+                                          t("You're all caught up!"),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            color: textMuted,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   )
                                 : Flexible(
                                     child: ListView.separated(
                                       shrinkWrap: true,
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                      ),
                                       itemCount: _notifications.length,
-                                      separatorBuilder: (_, __) => const Divider(height: 1, color: borderLight, indent: 60),
-                                      itemBuilder: (_, i) => _buildNotificationItem(_notifications[i]),
+                                      separatorBuilder: (_, __) =>
+                                          const Divider(
+                                            height: 1,
+                                            color: borderLight,
+                                            indent: 60,
+                                          ),
+                                      itemBuilder: (_, i) =>
+                                          _buildNotificationItem(
+                                            _notifications[i],
+                                          ),
                                     ),
                                   ),
                             // Footer
@@ -590,9 +1244,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                   context.push('/notifications');
                                 },
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  child: Text('View All Notifications', style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14, fontWeight: FontWeight.w700, color: primaryBlue)),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  child: Text(
+                                    t('View All Notifications'),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: primaryBlue,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -670,8 +1332,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, size: 20, color: iconColor),
           ),
           const SizedBox(width: 12),
@@ -682,23 +1348,51 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(notification['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        notification['title'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14, fontWeight: isRead ? FontWeight.w600 : FontWeight.w700, color: textPrimary)),
+                          fontSize: 14,
+                          fontWeight: isRead
+                              ? FontWeight.w600
+                              : FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
                     ),
                     if (!isRead)
                       Container(
-                        width: 8, height: 8, margin: const EdgeInsets.only(left: 6),
-                        decoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsets.only(left: 6),
+                        decoration: const BoxDecoration(
+                          color: primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(notification['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSecondary, height: 1.4)),
+                Text(
+                  notification['body'] ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: textSecondary,
+                    height: 1.4,
+                  ),
+                ),
                 if (timeAgo.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(timeAgo, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textMuted)),
+                  Text(
+                    timeAgo,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      color: textMuted,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -728,6 +1422,40 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   bool get _isWholesaler {
     final auth = ref.read(authProvider);
     return auth.user?.isWholesaler == true;
+  }
+
+  String _getDisplayName(Map<String, dynamic> product) {
+    final currentLang = ref.watch(localeProvider);
+    final nameHindi = product['nameHindi']?.toString() ?? '';
+    final nameEnglish = product['name']?.toString() ?? '';
+
+    if (currentLang == 'Hindi') {
+      if (nameHindi.isNotEmpty) return nameHindi;
+
+      // Background sync if Hindi name is missing
+      if (nameEnglish.isNotEmpty) {
+        _triggerBackgroundTransliteration(
+          product['id']?.toString() ?? '',
+          nameEnglish,
+        );
+      }
+      return nameEnglish;
+    }
+    return nameEnglish;
+  }
+
+  void _triggerBackgroundTransliteration(
+    String productId,
+    String nameEnglish,
+  ) async {
+    if (productId.isEmpty || nameEnglish.isEmpty) return;
+
+    final transliterated = await TransliterationService.transliterateToHindi(
+      nameEnglish,
+    );
+    if (transliterated != nameEnglish) {
+      await TransliterationService.syncHindiName(productId, transliterated);
+    }
   }
 
   List<Widget> get _bodyPages {
@@ -765,10 +1493,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       child: Scaffold(
         backgroundColor: backgroundWhite,
         body: SafeArea(
-          child: IndexedStack(
-            index: _selectedNavIndex,
-            children: pages,
-          ),
+          child: IndexedStack(index: _selectedNavIndex, children: pages),
         ),
         bottomNavigationBar: _buildBottomNav(),
       ),
@@ -780,27 +1505,580 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       children: [
         _buildAppBar(),
         Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                _buildCarousel(),
-                const SizedBox(height: 16),
-                _buildBrandsSection(),
-                const SizedBox(height: 24),
-                _buildProductsSection('Popular Products', true),
-                const SizedBox(height: 24),
-                if (_promoBanners.isNotEmpty) ...[
-                  _buildPromoBannerCarousel(),
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: primaryBlue,
+            backgroundColor: Colors.white,
+            edgeOffset: 20,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHomeSearchBar(),
+                  const SizedBox(height: 8),
+                  _buildCarousel(),
                   const SizedBox(height: 24),
+                  _buildOfferSection(),
+                  const SizedBox(height: 24),
+                  _buildCategorySection(),
+                  const SizedBox(height: 24),
+                  _buildBrandsSection(),
+                  const SizedBox(height: 24),
+                  _buildProductsSection(
+                    ref
+                        .read(localeProvider.notifier)
+                        .translate('Popular Products'),
+                    true,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildProductsSection(
+                    ref.read(localeProvider.notifier).translate('Hot Deals'),
+                    false,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildTrustStrip(),
+                  const SizedBox(height: 32),
+                  if (_promoBanners.isNotEmpty) ...[
+                    _buildPromoBannerCarousel(),
+                    const SizedBox(height: 32),
+                  ],
+                  _buildReferralBanner(),
+                  const SizedBox(height: 32),
+                  _buildWhyBuySection(),
+                  const SizedBox(height: 32),
+                  _buildReviewSection(),
+                  const SizedBox(height: 100),
                 ],
-                _buildProductsSection('Hot Deals', false),
-                const SizedBox(height: 32),
-                _buildWhyBuySection(),
-                const SizedBox(height: 100),
-              ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrustStrip() {
+    final t = ref.read(localeProvider.notifier).translate;
+    return _TrustBadgeMarquee(
+      items: [
+        {'icon': Icons.local_shipping_rounded, 'text': t('Pan-India Delivery')},
+        {'icon': Icons.verified_user_rounded, 'text': t('Certified Products')},
+        {'icon': Icons.support_agent_rounded, 'text': t('24/7 Expert Support')},
+        {'icon': Icons.local_offer_rounded, 'text': t('Bulk Sale Active')},
+      ],
+    );
+  }
+
+  Widget _buildHomeSearchBar() {
+    final t = ref.read(localeProvider.notifier).translate;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedNavIndex = 1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderLight),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, color: textMuted, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t('Search products, brands...'),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: textMuted,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const Icon(
+                HugeIcons.strokeRoundedMic01,
+                color: textMuted,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOfferSection() {
+    final t = ref.read(localeProvider.notifier).translate;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                t('Exclusive Offers'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textPrimary,
+                ),
+              ),
+              Text(
+                t('View Deals'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: primaryBlue,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(left: 20, bottom: 8),
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: _offers.isEmpty && !_isLoadingOffers
+                ? [
+                    _buildModernOfferCard(
+                      t('Irrigation Kits'),
+                      '20%',
+                      const Color(0xFF3B82F6),
+                      Icons.water_drop_rounded,
+                    ),
+                    _buildModernOfferCard(
+                      t('Premium Seeds'),
+                      '15%',
+                      const Color(0xFF10B981),
+                      Icons.grass_rounded,
+                    ),
+                    _buildModernOfferCard(
+                      t('Tractor Parts'),
+                      '10%',
+                      const Color(0xFF8B5CF6),
+                      Icons.settings_rounded,
+                    ),
+                  ]
+                : _offers.map((offer) {
+                    final index = _offers.indexOf(offer);
+                    final colors = [
+                      const Color(0xFF3B82F6),
+                      const Color(0xFF10B981),
+                      const Color(0xFF8B5CF6),
+                      const Color(0xFFF59E0B),
+                    ];
+                    final icons = [
+                      Icons.water_drop_rounded,
+                      Icons.grass_rounded,
+                      Icons.settings_rounded,
+                      Icons.tag_rounded,
+                    ];
+
+                    return _buildModernOfferCard(
+                      offer['title'] ?? '',
+                      offer['discount'] ?? '',
+                      colors[index % colors.length],
+                      icons[index % icons.length],
+                    );
+                  }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernOfferCard(
+    String title,
+    String discount,
+    Color color,
+    IconData icon,
+  ) {
+    final t = ref.read(localeProvider.notifier).translate;
+    const double cardW = 145;
+    const double cardH = 205;
+    const double dashedH = 10;
+    const double topH = cardH * 0.65 - dashedH / 2;
+    const double botH = cardH * 0.35 - dashedH / 2;
+
+    // Derive a slightly lighter shade for gradient
+    final Color colorLight = Color.lerp(Colors.white, color, 0.6) ?? color;
+
+    return Container(
+      width: cardW,
+      height: cardH,
+      margin: const EdgeInsets.only(right: 16),
+      child: Stack(
+        children: [
+          // Drop shadow
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.45),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Clipped ticket shape
+          ClipPath(
+            clipper: const _TicketClipper(),
+            child: SizedBox(
+              width: cardW,
+              height: cardH,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // TOP: gradient + starburst
+                  SizedBox(
+                    width: cardW,
+                    height: topH,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [colorLight, color],
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          // Starburst rays
+                          Positioned.fill(
+                            child: CustomPaint(painter: _StarburstPainter()),
+                          ),
+                          // Faint background icon
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Opacity(
+                              opacity: 0.18,
+                              child: Icon(icon, size: 60, color: Colors.white),
+                            ),
+                          ),
+                          // Title + big discount
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  title.toUpperCase(),
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.white.withOpacity(0.92),
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (discount.contains('₹'))
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 5,
+                                              right: 2,
+                                            ),
+                                            child: Text(
+                                              '₹',
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    color: Colors.white,
+                                                    fontSize: 22,
+                                                    fontWeight: FontWeight.w900,
+                                                    height: 1.0,
+                                                  ),
+                                            ),
+                                          ),
+                                        Text(
+                                          discount
+                                              .replaceAll('%', '')
+                                              .replaceAll('₹', ''),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: Colors.white,
+                                            fontSize: 54,
+                                            fontWeight: FontWeight.w900,
+                                            height: 0.88,
+                                            letterSpacing: -2,
+                                          ),
+                                        ),
+                                        if (discount.contains('%'))
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 5,
+                                            ),
+                                            child: Text(
+                                              '%',
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    color: Colors.white,
+                                                    fontSize: 22,
+                                                    fontWeight: FontWeight.w900,
+                                                    height: 1.0,
+                                                  ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  t('OFF'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // DASHED SEPARATOR
+                  SizedBox(
+                    width: cardW,
+                    height: dashedH,
+                    child: const ColoredBox(
+                      color: Colors.white,
+                      child: CustomPaint(painter: _DashedLinePainter()),
+                    ),
+                  ),
+                  // BOTTOM: white + redeem button
+                  SizedBox(
+                    width: cardW,
+                    height: botH,
+                    child: ColoredBox(
+                      color: Colors.white,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 36,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.06),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  t('REDEEM'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: color,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 2.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySection() {
+    final t = ref.read(localeProvider.notifier).translate;
+    final categories = [
+      {
+        'name': t('Power Tools'),
+        'image':
+            'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Processing'),
+        'image':
+            'https://images.unsplash.com/photo-1581093458791-9f3c3250a8b0?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Tractors'),
+        'image':
+            'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Seeds'),
+        'image':
+            'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Irrigation'),
+        'image':
+            'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Drones'),
+        'image':
+            'https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Fertilizers'),
+        'image':
+            'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Harvesters'),
+        'image':
+            'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=80',
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                t('Categories'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textPrimary,
+                ),
+              ),
+              Text(
+                t('See All'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: primaryBlue,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 130,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: 16, right: 8, bottom: 4),
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: categories.map((cat) {
+                return Container(
+                  width: 90,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.07),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(20),
+                            bottom: Radius.circular(20),
+                          ),
+                          child: CachedNetworkImage(
+                            imageUrl: cat['image']!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: primaryBlue,
+                                ),
+                              ),
+                            ),
+                            errorWidget: (_, __, ___) => Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 4,
+                        ),
+                        child: Text(
+                          cat['name']!,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ),
@@ -809,7 +2087,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildSearchContent() {
-    final popularCategories = ['🔥 Trending', 'Tractors', 'Harvesters', 'Irrigation', 'Seeds', 'Fertilizers'];
+    final t = ref.read(localeProvider.notifier).translate;
+    final popularCategories = [
+      t('🔥 Trending'),
+      t('Tractors'),
+      t('Harvesters'),
+      t('Irrigation'),
+      t('Seeds'),
+      t('Fertilizers'),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -821,7 +2107,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Explore',
+                t('Explore'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -851,7 +2137,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             child: Row(
               children: [
                 const SizedBox(width: 20),
-                HugeIcon(icon: HugeIcons.strokeRoundedSearch02, color: primaryBlue, size: 24),
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedSearch02,
+                  color: primaryBlue,
+                  size: 24,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
@@ -859,18 +2149,33 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     onChanged: (value) {
                       _searchDebounce?.cancel();
                       if (value.trim().isEmpty) {
-                        setState(() { _searchResults = []; _isSearching = false; _searchQuery = ''; });
+                        setState(() {
+                          _searchResults = [];
+                          _isSearching = false;
+                          _searchQuery = '';
+                        });
                         return;
                       }
                       setState(() => _searchQuery = value);
-                      _searchDebounce = Timer(const Duration(milliseconds: 400), () {
-                        _searchProducts(value);
-                      });
+                      _searchDebounce = Timer(
+                        const Duration(milliseconds: 400),
+                        () {
+                          _searchProducts(value);
+                        },
+                      );
                     },
-                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w400, color: textPrimary),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: textPrimary,
+                    ),
                     decoration: InputDecoration(
-                      hintText: 'Products, brands, equipment...',
-                      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: textMuted),
+                      hintText: t('Products, brands, equipment...'),
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: textMuted,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -880,14 +2185,25 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   GestureDetector(
                     onTap: () {
                       _searchController.clear();
-                      setState(() { _searchResults = []; _isSearching = false; _searchQuery = ''; });
+                      setState(() {
+                        _searchResults = [];
+                        _isSearching = false;
+                        _searchQuery = '';
+                      });
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: borderLight, shape: BoxShape.circle),
-                        child: const Icon(Icons.close, size: 14, color: textSecondary),
+                        decoration: BoxDecoration(
+                          color: borderLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: textSecondary,
+                        ),
                       ),
                     ),
                   )
@@ -899,14 +2215,27 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal,
-                            color: (_selectedFilterCategory != null || _selectedFilterBrand != null) ? primaryBlue : textMuted, size: 22),
-                          if (_selectedFilterCategory != null || _selectedFilterBrand != null)
+                          HugeIcon(
+                            icon: HugeIcons.strokeRoundedFilterHorizontal,
+                            color:
+                                (_selectedFilterCategory != null ||
+                                    _selectedFilterBrand != null)
+                                ? primaryBlue
+                                : textMuted,
+                            size: 22,
+                          ),
+                          if (_selectedFilterCategory != null ||
+                              _selectedFilterBrand != null)
                             Positioned(
-                              top: -2, right: -4,
+                              top: -2,
+                              right: -4,
                               child: Container(
-                                width: 8, height: 8,
-                                decoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: primaryBlue,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                             ),
                         ],
@@ -920,169 +2249,301 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         // Content
         Expanded(
           child: _isSearching
-              ? const Center(child: CircularProgressIndicator(color: primaryBlue))
+              ? const Center(
+                  child: CircularProgressIndicator(color: primaryBlue),
+                )
               : _searchQuery.isNotEmpty
-                  ? _searchResults.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.search_off_rounded, size: 48, color: textMuted),
-                              const SizedBox(height: 16),
-                              Text('No results found', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary)),
-                              const SizedBox(height: 8),
-                              Text('Try a different search term', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: textMuted)),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) => _buildSuggestionCard(_searchResults[index]),
-                        )
-                  : SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Recent Searches
-                          if (_recentSearches.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('Recent Searches', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary)),
-                                      GestureDetector(
-                                        onTap: () => setState(() => _recentSearches.clear()),
-                                        child: Text('CLEAR ALL', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: primaryBlue, letterSpacing: 0.5)),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ...List.generate(_recentSearches.length, (i) => Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 6),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 40, height: 40,
-                                          decoration: BoxDecoration(
-                                            color: surfaceWhite,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
-                                          ),
-                                          child: Icon(Icons.history_rounded, color: textMuted, size: 20),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              _searchController.text = _recentSearches[i];
-                                              setState(() => _searchQuery = _recentSearches[i]);
-                                              _searchProducts(_recentSearches[i]);
-                                            },
-                                            child: Text(_recentSearches[i], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w400, color: textPrimary)),
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () => setState(() => _recentSearches.removeAt(i)),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8),
-                                            child: Icon(Icons.close_rounded, color: textMuted, size: 20),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )),
-                                ],
+              ? _searchResults.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_off_rounded,
+                              size: 48,
+                              color: textMuted,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              t('No results found'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary,
                               ),
                             ),
-                          // Popular Searches
-                          Padding(
-                            padding: const EdgeInsets.only(top: 24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text('Popular Searches', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary)),
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(
-                                  height: 44,
-                                  child: ListView.separated(
-                                    scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    itemCount: popularCategories.length,
-                                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                                    itemBuilder: (context, index) {
-                                      final isFirst = index == 0;
-                                      return GestureDetector(
-                                        onTap: () {
-                                          final term = popularCategories[index].replaceAll('🔥 ', '');
-                                          _searchController.text = term;
-                                          setState(() => _searchQuery = term);
-                                          _searchProducts(term);
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                                          decoration: BoxDecoration(
-                                            color: isFirst ? primaryBlue : surfaceWhite,
-                                            borderRadius: BorderRadius.circular(100),
-                                            border: Border.all(color: isFirst ? primaryBlue : borderLight),
-                                            boxShadow: isFirst
-                                                ? [BoxShadow(color: primaryBlue.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
-                                                : null,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              popularCategories[index],
-                                              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: isFirst ? Colors.white : textPrimary),
+                            const SizedBox(height: 8),
+                            Text(
+                              t('Try a different search term'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                        itemCount: _searchResults.length,
+                        itemBuilder: (context, index) =>
+                            _buildSuggestionCard(_searchResults[index]),
+                      )
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Recent Searches
+                      if (_recentSearches.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    t('Recent Searches'),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _recentSearches.clear()),
+                                    child: Text(
+                                      t('CLEAR ALL'),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: primaryBlue,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ...List.generate(
+                                _recentSearches.length,
+                                (i) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: surfaceWhite,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.03,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Icon(
+                                          Icons.history_rounded,
+                                          color: textMuted,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _searchController.text =
+                                                _recentSearches[i];
+                                            setState(
+                                              () => _searchQuery =
+                                                  _recentSearches[i],
+                                            );
+                                            _searchProducts(_recentSearches[i]);
+                                          },
+                                          child: Text(
+                                            _recentSearches[i],
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w400,
+                                              color: textPrimary,
                                             ),
                                           ),
                                         ),
-                                      );
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => setState(
+                                          () => _recentSearches.removeAt(i),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            color: textMuted,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      // Popular Searches
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                t('Popular Searches'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 44,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemCount: popularCategories.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 10),
+                                itemBuilder: (context, index) {
+                                  final isFirst = index == 0;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      final term = popularCategories[index]
+                                          .replaceAll('🔥 ', '');
+                                      _searchController.text = term;
+                                      setState(() => _searchQuery = term);
+                                      _searchProducts(term);
                                     },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isFirst
+                                            ? primaryBlue
+                                            : surfaceWhite,
+                                        borderRadius: BorderRadius.circular(
+                                          100,
+                                        ),
+                                        border: Border.all(
+                                          color: isFirst
+                                              ? primaryBlue
+                                              : borderLight,
+                                        ),
+                                        boxShadow: isFirst
+                                            ? [
+                                                BoxShadow(
+                                                  color: primaryBlue
+                                                      .withOpacity(0.3),
+                                                  blurRadius: 12,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          popularCategories[index],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: isFirst
+                                                ? Colors.white
+                                                : textPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Top Suggestions
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 32, 16, 100),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  t('Top Suggestions'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  t('Based on your interest'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    color: textMuted,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          // Top Suggestions
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 32, 16, 100),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Top Suggestions', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary)),
-                                    Text('Based on your interest', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted)),
-                                  ],
+                            const SizedBox(height: 16),
+                            ..._products
+                                .take(5)
+                                .map(
+                                  (product) => _buildSuggestionCard(product),
                                 ),
-                                const SizedBox(height: 16),
-                                ..._products.take(5).map((product) => _buildSuggestionCard(product)),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
   }
 
   Widget _buildSuggestionCard(Map<String, dynamic> product) {
+    final t = ref.read(localeProvider.notifier).translate;
     final heroTag = 'search-product-${product['id']}';
-    final hasOriginalPrice = product['originalPrice'] != null &&
-        product['originalPrice'] != product['price'] && product['originalPrice'] > 0;
+    final hasOriginalPrice =
+        product['originalPrice'] != null &&
+        product['originalPrice'] != product['price'] &&
+        product['originalPrice'] > 0;
 
     return GestureDetector(
-      onTap: () => context.push('/product/${product['id']}', extra: {'heroTag': heroTag}),
+      onTap: () => context.push(
+        '/product/${product['id']}',
+        extra: {'heroTag': heroTag},
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
@@ -1090,30 +2551,48 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           color: surfaceWhite,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: borderLight.withOpacity(0.7)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Hero(
               tag: heroTag,
               child: Container(
-                width: 100, height: 100,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: product['image'] != null && product['image'].toString().isNotEmpty
+                  child:
+                      product['image'] != null &&
+                          product['image'].toString().isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: product['image'],
-                          width: 100, height: 100, fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(color: const Color(0xFFF8F9FA)),
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Container(color: const Color(0xFFF8F9FA)),
                           errorWidget: (_, __, ___) => Container(
                             color: const Color(0xFFF8F9FA),
-                            child: Center(child: Icon(Icons.image, color: textMuted)),
+                            child: Center(
+                              child: Icon(Icons.image, color: textMuted),
+                            ),
                           ),
                         )
                       : Container(
                           color: const Color(0xFFF8F9FA),
-                          child: Center(child: Icon(Icons.image, color: textMuted)),
+                          child: Center(
+                            child: Icon(Icons.image, color: textMuted),
+                          ),
                         ),
                 ),
               ),
@@ -1128,46 +2607,152 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          product['name'] ?? '',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          _getDisplayName(product),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (product['rating'] != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(6)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star_rounded, size: 12, color: Color(0xFF15803D)),
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 12,
+                                color: Color(0xFF15803D),
+                              ),
                               const SizedBox(width: 2),
-                              Text('${product['rating']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF15803D))),
+                              Text(
+                                '${product['rating']}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF15803D),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 4),
+                  // Live Purchase Counter (list view)
+                  Builder(
+                    builder: (context) {
+                      final pMin =
+                          (product['purchaseCountMin'] as num?)?.toInt() ?? 0;
+                      final pMax =
+                          (product['purchaseCountMax'] as num?)?.toInt() ?? 0;
+                      if (pMin <= 0 && pMax <= 0)
+                        return const SizedBox.shrink();
+                      final effectiveMax = pMax > pMin ? pMax : pMin;
+                      final dayOfYear = DateTime.now()
+                          .difference(DateTime(DateTime.now().year))
+                          .inDays;
+                      final productIdHash = product['id']
+                          .toString()
+                          .hashCode
+                          .abs();
+                      final seed = productIdHash + dayOfYear;
+                      final range = effectiveMax - pMin;
+                      final count = range > 0
+                          ? pMin + (seed % (range + 1))
+                          : pMin;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 2),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 11,
+                              color: Color(0xFFEF4444),
+                            ),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                '$count sold in 24hrs',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFFEF4444),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                   if ((product['brand'] ?? '').toString().isNotEmpty)
-                    Text(product['brand'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted)),
+                    Text(
+                      product['brand'],
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: textMuted,
+                      ),
+                    ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          Text('₹${_formatPrice(product['price'] ?? 0)}', style: GoogleFonts.raleway(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary)),
+                          Text(
+                            '₹${_formatPrice(product['price'] ?? 0)}',
+                            style: GoogleFonts.raleway(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: textPrimary,
+                            ),
+                          ),
                           if (hasOriginalPrice) ...[
                             const SizedBox(width: 6),
-                            Text('₹${_formatPrice(product['originalPrice'])}', style: GoogleFonts.raleway(fontSize: 11, fontWeight: FontWeight.w400, color: textMuted, decoration: TextDecoration.lineThrough)),
+                            Text(
+                              '₹${_formatPrice(product['originalPrice'])}',
+                              style: GoogleFonts.raleway(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                color: textMuted,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
                           ],
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(color: primaryBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Text('View', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          t('View'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: primaryBlue,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1183,6 +2768,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget _buildCartContent() {
     if (_showAddressForm) return _buildAddressForm();
     final cart = ref.watch(cartProvider);
+    final t = ref.read(localeProvider.notifier).translate;
     return Column(
       children: [
         // Header
@@ -1193,7 +2779,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'My Cart',
+                t('My Cart'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -1205,14 +2791,23 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 children: [
                   if (cart.itemCount > 0)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: primaryBlue.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
-                        '${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue),
+                        t(
+                          '${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
+                        ),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: primaryBlue,
+                        ),
                       ),
                     ),
                   if (cart.items.isNotEmpty) ...[
@@ -1227,7 +2822,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(color: borderLight),
                         ),
-                        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: textMuted, size: 18)),
+                        child: Center(
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedDelete02,
+                            color: textMuted,
+                            size: 18,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1249,25 +2850,58 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           color: primaryBlue.withOpacity(0.06),
                           shape: BoxShape.circle,
                         ),
-                        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedShoppingCart01, color: primaryBlue.withOpacity(0.4), size: 48)),
+                        child: Center(
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedShoppingCart01,
+                            color: primaryBlue.withOpacity(0.4),
+                            size: 48,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
-                      Text('Your cart is empty', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
+                      Text(
+                        t('Your cart is empty'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text('Discover products and add them here', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary)),
+                      Text(
+                        t('Discover products and add them here'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: textSecondary,
+                        ),
+                      ),
                       const SizedBox(height: 32),
                       GestureDetector(
                         onTap: () => setState(() => _selectedNavIndex = 0),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
                           decoration: BoxDecoration(
                             color: primaryBlue,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
-                              BoxShadow(color: primaryBlue.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4)),
+                              BoxShadow(
+                                color: primaryBlue.withOpacity(0.25),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
-                          child: Text('Browse Products', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                          child: Text(
+                            t('Browse Products'),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1281,7 +2915,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     return Dismissible(
                       key: Key(item.productId),
                       direction: DismissDirection.endToStart,
-                      onDismissed: (_) => ref.read(cartProvider.notifier).removeItem(item.productId),
+                      onDismissed: (_) => ref
+                          .read(cartProvider.notifier)
+                          .removeItem(item.productId),
                       background: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
@@ -1290,7 +2926,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         ),
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 24),
-                        child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 24),
+                        child: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: Color(0xFFEF4444),
+                          size: 24,
+                        ),
                       ),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -1298,9 +2938,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         decoration: BoxDecoration(
                           color: surfaceWhite,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: borderLight.withOpacity(0.5)),
+                          border: Border.all(
+                            color: borderLight.withOpacity(0.5),
+                          ),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
                           ],
                         ),
                         child: Row(
@@ -1308,19 +2954,43 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             // Product Image
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: item.image != null && item.image!.isNotEmpty
+                              child:
+                                  item.image != null && item.image!.isNotEmpty
                                   ? CachedNetworkImage(
                                       imageUrl: item.image!,
-                                      width: 80, height: 80, fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(width: 80, height: 80, color: const Color(0xFFF1F5F9)),
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Container(
+                                        width: 80,
+                                        height: 80,
+                                        color: const Color(0xFFF1F5F9),
+                                      ),
                                       errorWidget: (_, __, ___) => Container(
-                                        width: 80, height: 80, color: const Color(0xFFF1F5F9),
-                                        child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: textMuted, size: 24)),
+                                        width: 80,
+                                        height: 80,
+                                        color: const Color(0xFFF1F5F9),
+                                        child: Center(
+                                          child: HugeIcon(
+                                            icon:
+                                                HugeIcons.strokeRoundedImage01,
+                                            color: textMuted,
+                                            size: 24,
+                                          ),
+                                        ),
                                       ),
                                     )
                                   : Container(
-                                      width: 80, height: 80, color: const Color(0xFFF1F5F9),
-                                      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: textMuted, size: 24)),
+                                      width: 80,
+                                      height: 80,
+                                      color: const Color(0xFFF1F5F9),
+                                      child: Center(
+                                        child: HugeIcon(
+                                          icon: HugeIcons.strokeRoundedImage01,
+                                          color: textMuted,
+                                          size: 24,
+                                        ),
+                                      ),
                                     ),
                             ),
                             const SizedBox(width: 12),
@@ -1333,20 +3003,35 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                     item.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary, height: 1.2),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: textPrimary,
+                                      height: 1.2,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
                                       Text(
                                         '₹${_formatPrice(item.price)}',
-                                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: primaryBlue),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: primaryBlue,
+                                        ),
                                       ),
-                                      if (item.mrp != null && item.mrp! > item.price) ...[
+                                      if (item.mrp != null &&
+                                          item.mrp! > item.price) ...[
                                         const SizedBox(width: 6),
                                         Text(
                                           '₹${_formatPrice(item.mrp!)}',
-                                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textMuted, decoration: TextDecoration.lineThrough),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            color: textMuted,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -1363,32 +3048,66 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         GestureDetector(
-                                          onTap: () => ref.read(cartProvider.notifier).updateQuantity(item.productId, item.quantity - 1),
+                                          onTap: () => ref
+                                              .read(cartProvider.notifier)
+                                              .updateQuantity(
+                                                item.productId,
+                                                item.quantity - 1,
+                                              ),
                                           child: Container(
-                                            width: 32, height: 32,
+                                            width: 32,
+                                            height: 32,
                                             decoration: BoxDecoration(
                                               color: surfaceWhite,
-                                              borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: borderLight),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: borderLight,
+                                              ),
                                             ),
                                             alignment: Alignment.center,
-                                            child: Icon(Icons.remove, size: 16, color: item.quantity > 1 ? textPrimary : textMuted),
+                                            child: Icon(
+                                              Icons.remove,
+                                              size: 16,
+                                              color: item.quantity > 1
+                                                  ? textPrimary
+                                                  : textMuted,
+                                            ),
                                           ),
                                         ),
                                         Container(
-                                          width: 36, alignment: Alignment.center,
-                                          child: Text('${item.quantity}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary)),
+                                          width: 36,
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            '${item.quantity}',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: textPrimary,
+                                            ),
+                                          ),
                                         ),
                                         GestureDetector(
-                                          onTap: () => ref.read(cartProvider.notifier).updateQuantity(item.productId, item.quantity + 1),
+                                          onTap: () => ref
+                                              .read(cartProvider.notifier)
+                                              .updateQuantity(
+                                                item.productId,
+                                                item.quantity + 1,
+                                              ),
                                           child: Container(
-                                            width: 32, height: 32,
+                                            width: 32,
+                                            height: 32,
                                             decoration: BoxDecoration(
                                               color: primaryBlue,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             alignment: Alignment.center,
-                                            child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                            child: const Icon(
+                                              Icons.add,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1410,8 +3129,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             decoration: BoxDecoration(
               color: surfaceWhite,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, -4))],
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
             child: SafeArea(
               child: Column(
@@ -1428,16 +3155,42 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Subtotal', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary)),
-                            Text('₹${_formatPrice(cart.subtotal)}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                            Text(
+                              t('Subtotal'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                color: textSecondary,
+                              ),
+                            ),
+                            Text(
+                              '₹${_formatPrice(cart.subtotal)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Delivery', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary)),
-                            Text('₹${_formatPrice(cart.deliveryFee)}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                            Text(
+                              t('Delivery'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                color: textSecondary,
+                              ),
+                            ),
+                            Text(
+                              '₹${_formatPrice(cart.deliveryFee)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -1446,8 +3199,22 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Total', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary)),
-                            Text('₹${_formatPrice(cart.grandTotal)}', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w800, color: primaryBlue)),
+                            Text(
+                              t('Total'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '₹${_formatPrice(cart.grandTotal)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: primaryBlue,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -1461,22 +3228,49 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       width: double.infinity,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: _isCheckingOut ? primaryBlue.withOpacity(0.6) : primaryBlue,
+                        color: _isCheckingOut
+                            ? primaryBlue.withOpacity(0.6)
+                            : primaryBlue,
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: [BoxShadow(color: primaryBlue.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryBlue.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (_isCheckingOut) ...[
-                            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
                             const SizedBox(width: 12),
                           ],
-                          Text(_isCheckingOut ? 'Creating Order...' : 'Proceed to Checkout',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                          Text(
+                            _isCheckingOut
+                                ? t('Creating Order...')
+                                : t('Proceed to Checkout'),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
                           if (!_isCheckingOut) ...[
                             const SizedBox(width: 8),
-                            const Icon(Icons.arrow_forward_rounded, size: 20, color: Colors.white),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 20,
+                              color: Colors.white,
+                            ),
                           ],
                         ],
                       ),
@@ -1501,7 +3295,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       final response = await api.get('/negotiations');
       if (response.data['success'] == true) {
         final List items = response.data['data'] ?? [];
-        setState(() { _negotiations = items.cast<Map<String, dynamic>>(); _isNegotiationsLoading = false; });
+        setState(() {
+          _negotiations = items.cast<Map<String, dynamic>>();
+          _isNegotiationsLoading = false;
+        });
       }
     } catch (e) {
       setState(() => _isNegotiationsLoading = false);
@@ -1511,24 +3308,72 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   List<Map<String, dynamic>> get _filteredNegotiations {
     if (_negotiationTab == 0) return _negotiations;
     if (_negotiationTab == 1) {
-      return _negotiations.where((n) => ['pending', 'countered'].contains(n['status'])).toList();
+      return _negotiations
+          .where((n) => ['pending', 'countered'].contains(n['status']))
+          .toList();
     }
-    return _negotiations.where((n) => ['accepted', 'rejected', 'expired', 'converted'].contains(n['status'])).toList();
+    return _negotiations
+        .where(
+          (n) => [
+            'accepted',
+            'rejected',
+            'expired',
+            'converted',
+          ].contains(n['status']),
+        )
+        .toList();
   }
 
   Map<String, dynamic> _getNegStatusDisplay(String status) {
+    final t = ref.read(localeProvider.notifier).translate;
     switch (status) {
-      case 'pending': return {'label': 'PENDING', 'color': const Color(0xFF6B7280), 'bg': const Color(0xFFF3F4F6)};
-      case 'countered': return {'label': 'COUNTER-OFFER', 'color': const Color(0xFFF59E0B), 'bg': const Color(0xFFFEF3C7)};
-      case 'accepted': return {'label': 'ACCEPTED', 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFDCFCE7)};
-      case 'rejected': return {'label': 'REJECTED', 'color': const Color(0xFFDC2626), 'bg': const Color(0xFFFEE2E2)};
-      case 'expired': return {'label': 'EXPIRED', 'color': const Color(0xFF9CA3AF), 'bg': const Color(0xFFF3F4F6)};
-      case 'converted': return {'label': 'CONVERTED', 'color': const Color(0xFF7C3AED), 'bg': const Color(0xFFF3E8FF)};
-      default: return {'label': status.toUpperCase(), 'color': const Color(0xFF6B7280), 'bg': const Color(0xFFF3F4F6)};
+      case 'pending':
+        return {
+          'label': t('PENDING'),
+          'color': const Color(0xFF6B7280),
+          'bg': const Color(0xFFF3F4F6),
+        };
+      case 'countered':
+        return {
+          'label': t('COUNTER-OFFER'),
+          'color': const Color(0xFFF59E0B),
+          'bg': const Color(0xFFFEF3C7),
+        };
+      case 'accepted':
+        return {
+          'label': t('ACCEPTED'),
+          'color': const Color(0xFF16A34A),
+          'bg': const Color(0xFFDCFCE7),
+        };
+      case 'rejected':
+        return {
+          'label': t('REJECTED'),
+          'color': const Color(0xFFDC2626),
+          'bg': const Color(0xFFFEE2E2),
+        };
+      case 'expired':
+        return {
+          'label': t('EXPIRED'),
+          'color': const Color(0xFF9CA3AF),
+          'bg': const Color(0xFFF3F4F6),
+        };
+      case 'converted':
+        return {
+          'label': t('CONVERTED'),
+          'color': const Color(0xFF7C3AED),
+          'bg': const Color(0xFFF3E8FF),
+        };
+      default:
+        return {
+          'label': status.toUpperCase(),
+          'color': const Color(0xFF6B7280),
+          'bg': const Color(0xFFF3F4F6),
+        };
     }
   }
 
   Widget _buildNegotiationsContent() {
+    final t = ref.read(localeProvider.notifier).translate;
     if (_isNegotiationsLoading && _negotiations.isEmpty) {
       _fetchNegotiations();
     }
@@ -1539,20 +3384,27 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           color: backgroundWhite,
           child: Text(
-            'Negotiations',
-            style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary, letterSpacing: -0.5),
+            t('Negotiations'),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: textPrimary,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
         // Tabs
         Container(
           color: backgroundWhite,
           child: Container(
-            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: borderLight, width: 1))),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderLight, width: 1)),
+            ),
             child: Row(
               children: [
-                _buildNegotiationTab('All', 0),
-                _buildNegotiationTab('Active', 1),
-                _buildNegotiationTab('Completed', 2),
+                _buildNegotiationTab(t('All'), 0),
+                _buildNegotiationTab(t('Active'), 1),
+                _buildNegotiationTab(t('Completed'), 2),
               ],
             ),
           ),
@@ -1560,33 +3412,52 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         // Content
         Expanded(
           child: _isNegotiationsLoading
-              ? const Center(child: CircularProgressIndicator(color: primaryBlue))
+              ? const Center(
+                  child: CircularProgressIndicator(color: primaryBlue),
+                )
               : _filteredNegotiations.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.handshake_outlined, size: 48, color: textMuted.withOpacity(0.5)),
-                          const SizedBox(height: 12),
-                          Text(
-                            _negotiationTab == 1 ? 'No active negotiations' :
-                            _negotiationTab == 2 ? 'No completed negotiations' :
-                            'No negotiations yet',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: textMuted),
-                          ),
-                          const SizedBox(height: 4),
-                          Text('Start negotiating on product pages', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF4C669A))),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.handshake_outlined,
+                        size: 48,
+                        color: textMuted.withOpacity(0.5),
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _fetchNegotiations,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                        itemCount: _filteredNegotiations.length,
-                        itemBuilder: (context, index) => _buildNegotiationCard(_filteredNegotiations[index]),
+                      const SizedBox(height: 12),
+                      Text(
+                        _negotiationTab == 1
+                            ? t('No active negotiations')
+                            : _negotiationTab == 2
+                            ? t('No completed negotiations')
+                            : t('No negotiations yet'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: textMuted,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        t('Start negotiating on product pages'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          color: const Color(0xFF4C669A),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchNegotiations,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                    itemCount: _filteredNegotiations.length,
+                    itemBuilder: (context, index) =>
+                        _buildNegotiationCard(_filteredNegotiations[index]),
+                  ),
+                ),
         ),
       ],
     );
@@ -1600,11 +3471,22 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: isSelected ? primaryBlue : Colors.transparent, width: 3)),
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? primaryBlue : Colors.transparent,
+                width: 3,
+              ),
+            ),
           ),
           child: Text(
-            label, textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: isSelected ? primaryBlue : const Color(0xFF4C669A)),
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+              color: isSelected ? primaryBlue : const Color(0xFF4C669A),
+            ),
           ),
         ),
       ),
@@ -1612,10 +3494,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildNegotiationCard(Map<String, dynamic> negotiation) {
+    final t = ref.read(localeProvider.notifier).translate;
     final status = negotiation['status'] as String? ?? 'pending';
     final statusDisplay = _getNegStatusDisplay(status);
     final product = negotiation['product'] as Map<String, dynamic>? ?? {};
-    final productName = product['name'] as String? ?? 'Unknown Product';
+    final productName = product['name'] as String? ?? t('Unknown Product');
     final imageUrl = product['image'] as String? ?? '';
     final quantity = negotiation['requestedQuantity'] ?? 0;
     final requestedPrice = negotiation['requestedPricePerUnit'] ?? 0;
@@ -1623,21 +3506,31 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     final currentTotal = negotiation['currentTotalPrice'] ?? 0;
     final currentOfferBy = negotiation['currentOfferBy'] as String? ?? '';
     final negotiationNumber = negotiation['negotiationNumber'] as String? ?? '';
-    final negotiationId = (negotiation['id'] ?? negotiation['_id'] ?? '').toString();
+    final negotiationId = (negotiation['id'] ?? negotiation['_id'] ?? '')
+        .toString();
     final canPay = negotiation['canPay'] == true;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: GestureDetector(
         onTap: () async {
-          final result = await context.push('/negotiation-detail/$negotiationId');
+          final result = await context.push(
+            '/negotiation-detail/$negotiationId',
+          );
           if (result == true) _fetchNegotiations();
         },
         child: Container(
           decoration: BoxDecoration(
-            color: surfaceWhite, borderRadius: BorderRadius.circular(12),
+            color: surfaceWhite,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderLight),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -1647,11 +3540,19 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 AspectRatio(
                   aspectRatio: 2.4,
                   child: CachedNetworkImage(
-                    imageUrl: imageUrl, fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: const Color(0xFFF1F5F9)),
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) =>
+                        Container(color: const Color(0xFFF1F5F9)),
                     errorWidget: (_, __, ___) => Container(
                       color: const Color(0xFFF1F5F9),
-                      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: textMuted, size: 40)),
+                      child: Center(
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedImage01,
+                          color: textMuted,
+                          size: 40,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1664,37 +3565,92 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          negotiationNumber.isNotEmpty ? negotiationNumber : 'NEGOTIATION',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF4C669A), letterSpacing: 0.5),
+                          negotiationNumber.isNotEmpty
+                              ? negotiationNumber
+                              : t('NEGOTIATION'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF4C669A),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: statusDisplay['bg'] as Color, borderRadius: BorderRadius.circular(100)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusDisplay['bg'] as Color,
+                            borderRadius: BorderRadius.circular(100),
+                          ),
                           child: Text(
                             statusDisplay['label'] as String,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w800, color: statusDisplay['color'] as Color, letterSpacing: 0.3),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: statusDisplay['color'] as Color,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(productName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary, height: 1.2, letterSpacing: -0.3)),
+                    Text(
+                      productName,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                        height: 1.2,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Qty: $quantity units', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF4C669A))),
+                    Text(
+                      t('Qty: ${quantity} units'),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF4C669A),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: backgroundWhite, borderRadius: BorderRadius.circular(8),
-                        border: status == 'accepted' ? const Border(left: BorderSide(color: Color(0xFF16A34A), width: 4)) : null,
+                        color: backgroundWhite,
+                        borderRadius: BorderRadius.circular(8),
+                        border: status == 'accepted'
+                            ? const Border(
+                                left: BorderSide(
+                                  color: Color(0xFF16A34A),
+                                  width: 4,
+                                ),
+                              )
+                            : null,
                       ),
                       child: Column(
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Your Price/unit:', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF4C669A))),
-                              Text('₹$requestedPrice', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary)),
+                              Text(
+                                t('Your Price/unit:'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: const Color(0xFF4C669A),
+                                ),
+                              ),
+                              Text(
+                                '₹$requestedPrice',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: textPrimary,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -1702,10 +3658,25 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                status == 'countered' && currentOfferBy == 'admin' ? 'Admin Counter:' : 'Current Price/unit:',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF4C669A)),
+                                status == 'countered' &&
+                                        currentOfferBy == 'admin'
+                                    ? t('Admin Counter:')
+                                    : t('Current Price/unit:'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: const Color(0xFF4C669A),
+                                ),
                               ),
-                              Text('₹$currentPrice', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: status == 'accepted' ? const Color(0xFF16A34A) : primaryBlue)),
+                              Text(
+                                '₹$currentPrice',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: status == 'accepted'
+                                      ? const Color(0xFF16A34A)
+                                      : primaryBlue,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -1714,15 +3685,36 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Total:', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
-                              Text('₹$currentTotal', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: status == 'accepted' ? const Color(0xFF16A34A) : textPrimary)),
+                              Text(
+                                t('Total:'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              Text(
+                                '₹$currentTotal',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: status == 'accepted'
+                                      ? const Color(0xFF16A34A)
+                                      : textPrimary,
+                                ),
+                              ),
                             ],
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildNegActionButton(status, currentOfferBy, canPay, negotiationId),
+                    _buildNegActionButton(
+                      status,
+                      currentOfferBy,
+                      canPay,
+                      negotiationId,
+                    ),
                   ],
                 ),
               ),
@@ -1733,41 +3725,90 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  Widget _buildNegActionButton(String status, String currentOfferBy, bool canPay, String negotiationId) {
-    String label; String style; IconData? icon; VoidCallback? onTap;
+  Widget _buildNegActionButton(
+    String status,
+    String currentOfferBy,
+    bool canPay,
+    String negotiationId,
+  ) {
+    final t = ref.read(localeProvider.notifier).translate;
+    String label;
+    String style;
+    IconData? icon;
+    VoidCallback? onTap;
     if (status == 'countered' && currentOfferBy == 'admin') {
-      label = 'Respond to Counter'; style = 'primary'; icon = Icons.reply_rounded;
-      onTap = () async { final r = await context.push('/negotiation-detail/$negotiationId'); if (r == true) _fetchNegotiations(); };
+      label = t('Respond to Counter');
+      style = 'primary';
+      icon = Icons.reply_rounded;
+      onTap = () async {
+        final r = await context.push('/negotiation-detail/$negotiationId');
+        if (r == true) _fetchNegotiations();
+      };
     } else if (status == 'accepted' && canPay) {
-      label = 'Proceed to Order'; style = 'primary'; icon = Icons.account_balance_wallet_rounded;
+      label = t('Proceed to Order');
+      style = 'primary';
+      icon = Icons.account_balance_wallet_rounded;
       onTap = () => _proceedToNegotiationOrder(negotiationId);
     } else if (status == 'pending') {
-      label = 'Under Review'; style = 'disabled';
+      label = t('Under Review');
+      style = 'disabled';
     } else if (status == 'rejected') {
-      label = 'Rejected'; style = 'disabled';
+      label = t('Rejected');
+      style = 'disabled';
     } else if (status == 'expired') {
-      label = 'Expired'; style = 'disabled';
+      label = t('Expired');
+      style = 'disabled';
     } else {
-      label = 'View Details'; style = 'outline';
-      onTap = () async { final r = await context.push('/negotiation-detail/$negotiationId'); if (r == true) _fetchNegotiations(); };
+      label = t('View Details');
+      style = 'outline';
+      onTap = () async {
+        final r = await context.push('/negotiation-detail/$negotiationId');
+        if (r == true) _fetchNegotiations();
+      };
     }
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity, height: 44,
+        width: double.infinity,
+        height: 44,
         decoration: BoxDecoration(
-          color: style == 'primary' ? primaryBlue : style == 'disabled' ? borderLight : surfaceWhite,
+          color: style == 'primary'
+              ? primaryBlue
+              : style == 'disabled'
+              ? borderLight
+              : surfaceWhite,
           borderRadius: BorderRadius.circular(10),
           border: style == 'outline' ? Border.all(color: borderLight) : null,
-          boxShadow: style == 'primary' && icon != null ? [BoxShadow(color: primaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))] : null,
+          boxShadow: style == 'primary' && icon != null
+              ? [
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[Icon(icon, size: 16, color: Colors.white), const SizedBox(width: 6)],
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700,
-              color: style == 'primary' ? Colors.white : style == 'disabled' ? const Color(0xFF9CA3AF) : textPrimary)),
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: Colors.white),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: style == 'primary'
+                    ? Colors.white
+                    : style == 'disabled'
+                    ? const Color(0xFF9CA3AF)
+                    : textPrimary,
+              ),
+            ),
           ],
         ),
       ),
@@ -1775,79 +3816,474 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildProfileContent() {
+    final t = ref.read(localeProvider.notifier).translate;
+    final user = ref.watch(authProvider).user;
+
     final settings = [
-      {'icon': HugeIcons.strokeRoundedShoppingBag01, 'color': Colors.teal, 'title': 'My Orders', 'subtitle': null, 'onTap': () => context.push('/previous-orders')},
-      {'icon': HugeIcons.strokeRoundedFavourite, 'color': Colors.red, 'title': 'Wishlist', 'subtitle': null, 'onTap': () => context.push('/wishlist')},
-      {'icon': HugeIcons.strokeRoundedLocation01, 'color': Colors.green, 'title': 'Addresses', 'subtitle': null, 'onTap': () {}},
-      {'icon': HugeIcons.strokeRoundedCreditCard, 'color': Colors.blue, 'title': 'Payment Methods', 'subtitle': null, 'onTap': () {}},
-      {'icon': HugeIcons.strokeRoundedNotification02, 'color': Colors.purple, 'title': 'Notifications', 'subtitle': null, 'onTap': () {}},
-      {'icon': HugeIcons.strokeRoundedHelpCircle, 'color': Colors.orange, 'title': 'Help & Support', 'subtitle': null, 'onTap': () => context.push('/help')},
-      {'icon': HugeIcons.strokeRoundedInformationCircle, 'color': Colors.indigo, 'title': 'About', 'subtitle': null, 'onTap': () {}},
+      {
+        'icon': HugeIcons.strokeRoundedLocation01,
+        'color': const Color(0xFF059669),
+        'title': t('Addresses'),
+        'subtitle': null,
+        'onTap': () {},
+      },
+      {
+        'icon': HugeIcons.strokeRoundedCreditCard,
+        'color': const Color(0xFF2563EB),
+        'title': t('Payment Methods'),
+        'subtitle': null,
+        'onTap': () {},
+      },
+      {
+        'icon': HugeIcons.strokeRoundedNotification02,
+        'color': const Color(0xFF7C3AED),
+        'title': t('Notifications'),
+        'subtitle': null,
+        'onTap': () {},
+      },
+      {
+        'icon': HugeIcons.strokeRoundedHelpCircle,
+        'color': const Color(0xFFD97706),
+        'title': t('Help & Support'),
+        'subtitle': null,
+        'onTap': () => context.push('/help'),
+      },
+      {
+        'icon': HugeIcons.strokeRoundedInformationCircle,
+        'color': const Color(0xFF4338CA),
+        'title': t('About'),
+        'subtitle': null,
+        'onTap': () {},
+      },
+      if (user?.role != 'wholesaler')
+        {
+          'icon': HugeIcons.strokeRoundedStore02,
+          'color': primaryBlue,
+          'title': t('Convert to Wholesaler'),
+          'subtitle': t('Unlock bulk pricing & deals'),
+          'onTap': () => context.push('/convert-to-wholesaler'),
+        },
     ];
 
+    final wishlistCount = ref.watch(wishlistProvider).items.length;
+    final orderCount = ref.watch(orderCountProvider).value ?? 0;
+
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Text(
-              'Account Settings',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: textPrimary,
-                letterSpacing: -0.3,
+          // Premium Profile Header
+          Stack(
+            children: [
+              // Gradient Background with decorative shapes
+              Container(
+                height: 370,
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF8B5CF6), // Vibrant Purple
+                      Color(0xFF6366F1), // Indigo
+                      Color(0xFF4F46E5), // Deeper Indigo
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Decorative Circle 1
+                    Positioned(
+                      top: -50,
+                      right: -50,
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                        ),
+                      ),
+                    ),
+                    // Decorative Circle 2
+                    Positioned(
+                      bottom: 40,
+                      left: -30,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.05),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+              // Header Content
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 40, bottom: 40),
+                child: Column(
+                  children: [
+                    // Back Button & Settings Icon Row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Icon(
+                            HugeIcons.strokeRoundedArrowLeft01,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          Text(
+                            t('Profile'),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const Icon(
+                            HugeIcons.strokeRoundedSettings01,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // Animated Avatar
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.elasticOut,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white24,
+                            ),
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child:
+                                  user?.avatar != null &&
+                                      user!.avatar!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: user.avatar!,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                      errorWidget: (context, url, error) =>
+                                          const Icon(
+                                            HugeIcons.strokeRoundedUser,
+                                            size: 40,
+                                            color: Color(0xFF6366F1),
+                                          ),
+                                    )
+                                  : const Icon(
+                                      HugeIcons.strokeRoundedUser,
+                                      size: 40,
+                                      color: Color(0xFF6366F1),
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // User Name
+                    Text(
+                      user?.name ?? 'Guest User',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // User Email/Phone/Address
+                    Column(
+                      children: [
+                        if (user != null && user.phone != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  HugeIcons.strokeRoundedCall02,
+                                  size: 14,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  user.phone!,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    color: Colors.white.withOpacity(0.95),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (user != null &&
+                            user.address != null &&
+                            user.address!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  HugeIcons.strokeRoundedLocation01,
+                                  size: 14,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    user.address!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (user == null ||
+                            (user.phone == null && user.address == null))
+                          Text(
+                            user?.email ?? 'Sign in to sync data',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          // Settings Card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: surfaceWhite,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: borderLight.withOpacity(0.7)),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2)),
-                ],
-              ),
+
+          // Main Content Card (overlapping the header)
+          Transform.translate(
+            offset: const Offset(0, -40),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 40 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
               child: Column(
-                children: List.generate(settings.length, (index) {
-                  final setting = settings[index];
-                  return _buildSettingItem(
-                    icon: setting['icon'] as IconData,
-                    iconColor: setting['color'] as Color,
-                    title: setting['title'] as String,
-                    subtitle: setting['subtitle'] as String?,
-                    showDivider: index < settings.length - 1,
-                    onTap: setting['onTap'] as VoidCallback,
-                  );
-                }),
-              ),
-            ),
-          ),
-          // Log Out
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
-            child: GestureDetector(
-              onTap: () => context.go('/login'),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedLogout02, color: Colors.red.shade500, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Log Out',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.red.shade500),
+                  // Fast Actions / Stats row
+                  // Fast Actions / Stats row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildQuickStat(
+                          HugeIcons.strokeRoundedPackage,
+                          t('My Orders'),
+                          orderCount.toString(),
+                          color: const Color(0xFF6366F1), // Premium Indigo
+                          onTap: () => context.push('/previous-orders'),
+                        ),
+                        _buildQuickStat(
+                          HugeIcons.strokeRoundedFavourite,
+                          t('Wishlist'),
+                          wishlistCount.toString(),
+                          color: const Color(0xFFF43F5E), // Vibrant Rose
+                          onTap: () => context.push('/wishlist'),
+                        ),
+                        _buildQuickStat(
+                          HugeIcons.strokeRoundedUserEdit01,
+                          t('Edit Profile'),
+                          '0',
+                          color: const Color(0xFFF59E0B), // Amber
+                          onTap: () => context.push('/edit-profile'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Settings List Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: surfaceWhite,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: borderLight.withOpacity(0.7)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: List.generate(settings.length, (index) {
+                          final setting = settings[index];
+                          return _buildSettingItem(
+                            icon: setting['icon'] as IconData,
+                            iconColor: setting['color'] as Color,
+                            title: setting['title'] as String,
+                            subtitle: setting['subtitle'] as String?,
+                            showDivider: index < settings.length - 1,
+                            onTap: setting['onTap'] as VoidCallback,
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+
+                  // Danger Zone / Logout
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 32, 16, 120),
+                    child: TextButton.icon(
+                      onPressed: () => context.go('/login'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        foregroundColor: Colors.red.shade600,
+                        backgroundColor: Colors.red.shade50,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: HugeIcon(
+                        icon: HugeIcons.strokeRoundedLogout02,
+                        color: Colors.red.shade600,
+                        size: 20,
+                      ),
+                      label: Text(
+                        t('Log Out'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStat(
+    IconData icon,
+    String label,
+    String value, {
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                HugeIcon(icon: icon, color: color, size: 24),
+                if (value != '0')
+                  Positioned(
+                    right: -10,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Text(
+                        value,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              label.toUpperCase(),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: textPrimary.withOpacity(0.8),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1867,7 +4303,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           border: showDivider
-              ? Border(bottom: BorderSide(color: borderLight.withOpacity(0.5), width: 1))
+              ? Border(
+                  bottom: BorderSide(
+                    color: borderLight.withOpacity(0.5),
+                    width: 1,
+                  ),
+                )
               : null,
         ),
         child: Row(
@@ -1888,16 +4329,31 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                    ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
-                    Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted)),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: textMuted,
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
-            HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: textMuted, size: 20),
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRight01,
+              color: textMuted,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -1905,6 +4361,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildAppBar() {
+    final t = ref.read(localeProvider.notifier).translate;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       color: backgroundWhite,
@@ -1914,15 +4371,26 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           // Logo
           Row(
             children: [
-              HugeIcon(icon: HugeIcons.strokeRoundedPlant03, color: primaryBlue, size: 28),
-              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.eco_rounded,
+                  color: primaryBlue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 10),
               Text(
-                'AgriMarket',
+                'Veepee',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
                   color: textPrimary,
-                  letterSpacing: -0.5,
+                  letterSpacing: -1,
                 ),
               ),
             ],
@@ -1930,27 +4398,54 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           // Actions
           Row(
             children: [
-              GestureDetector(
-                onTap: () => setState(() => _selectedNavIndex = 1),
+              PopupMenuButton<String>(
+                offset: const Offset(0, 45),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                onSelected: (String value) {
+                  ref.read(localeProvider.notifier).setLanguage(value);
+                },
+                itemBuilder: (context) => [
+                  _buildLanguageItem('English', '🇬🇧', t('English')),
+                  _buildLanguageItem('Hindi', '🇮🇳', t('Hindi')),
+                ],
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: surfaceWhite,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: borderLight),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(100),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: textPrimary, size: 20)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        ref.watch(localeProvider) == 'English'
+                            ? '🇬🇧'
+                            : '🇮🇳',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.arrow_drop_down_rounded,
+                        color: primaryBlue,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               GestureDetector(
                 onTap: _showNotificationPopup,
                 child: Stack(
@@ -1971,17 +4466,37 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           ),
                         ],
                       ),
-                      child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedNotification02, color: textPrimary, size: 20)),
+                      child: Center(
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedNotification02,
+                          color: textPrimary,
+                          size: 20,
+                        ),
+                      ),
                     ),
                     if (_unreadCount > 0)
                       Positioned(
-                        top: -2, right: -2,
+                        top: -2,
+                        right: -2,
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
-                          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                          child: Text('$_unreadCount', textAlign: TextAlign.center,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white)),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Text(
+                            '$_unreadCount',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -1994,14 +4509,45 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
+  PopupMenuItem<String> _buildLanguageItem(
+    String value,
+    String emoji,
+    String label,
+  ) {
+    final currentLang = ref.watch(localeProvider);
+    final isSelected = currentLang == value;
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? primaryBlue : textPrimary,
+            ),
+          ),
+          if (isSelected) ...[
+            const Spacer(),
+            const Icon(Icons.check_rounded, color: primaryBlue, size: 16),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildCarousel() {
     if (_heroBanners.isEmpty) {
       return const SizedBox.shrink();
     }
+    final t = ref.read(localeProvider.notifier).translate;
     return Column(
       children: [
         SizedBox(
-          height: 180,
+          height: 220,
           child: PageView.builder(
             controller: _carouselController,
             itemCount: _heroBanners.length,
@@ -2018,16 +4564,22 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   onTap: () => _handleBannerTap(linkUrl),
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: hasImage ? null : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [primaryBlue, primaryBlueDark],
-                      ),
-                      image: hasImage ? DecorationImage(
-                        image: CachedNetworkImageProvider(item['imageUrl']),
-                        fit: BoxFit.cover,
-                      ) : null,
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: hasImage
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [primaryBlue, primaryBlueDark],
+                            ),
+                      image: hasImage
+                          ? DecorationImage(
+                              image: CachedNetworkImageProvider(
+                                item['imageUrl'],
+                              ),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                       boxShadow: [
                         BoxShadow(
                           color: primaryBlue.withOpacity(0.3),
@@ -2038,66 +4590,88 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     ),
                     child: Stack(
                       children: [
-                        // Gradient overlay for text readability when image
                         if (hasImage)
                           Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(30),
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
-                                colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.6),
+                                ],
                               ),
                             ),
                           ),
-                        // Background Pattern (only when no image)
-                        if (!hasImage)
-                          Positioned(
-                            right: -20, bottom: -20,
-                            child: Opacity(
-                              opacity: 0.1,
-                              child: Icon(Icons.agriculture, size: 150, color: Colors.white),
-                            ),
-                          ),
-                        // Content
                         Padding(
                           padding: const EdgeInsets.all(24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              if ((item['tag'] ?? '').toString().isNotEmpty)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    item['tag'] ?? '',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11, fontWeight: FontWeight.w600,
-                                      color: Colors.white, letterSpacing: 1,
-                                    ),
-                                  ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
-                              if ((item['tag'] ?? '').toString().isNotEmpty) const SizedBox(height: 12),
-                              Text(
-                                item['title'] ?? '',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 26, fontWeight: FontWeight.w700,
-                                  color: Colors.white, letterSpacing: -0.5,
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  item['tag'] ?? t('NEW ARRIVAL'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
                               ),
-                              if ((item['subtitle'] ?? '').toString().isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  item['subtitle'] ?? '',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14, color: Colors.white.withOpacity(0.85),
-                                  ),
+                              const SizedBox(height: 12),
+                              Text(
+                                item['title'] ?? t('Next-Gen\nTractors'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  height: 1.1,
+                                  letterSpacing: -0.5,
                                 ),
-                              ],
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      t('Shop Now'),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: primaryBlue,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      size: 16,
+                                      color: primaryBlue,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2121,8 +4695,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 width: _currentCarouselIndex == index ? 24 : 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: _currentCarouselIndex == index 
-                      ? primaryBlue 
+                  color: _currentCarouselIndex == index
+                      ? primaryBlue
                       : primaryBlue.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -2151,132 +4725,245 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildBrandsSection() {
+    final t = ref.read(localeProvider.notifier).translate;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Top Brands',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: textPrimary,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                t('Top Brands'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textPrimary,
+                ),
+              ),
+              Text(
+                t('View all'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: primaryBlue,
+                ),
+              ),
+            ],
           ),
         ),
-        
-        const SizedBox(height: 16),
-        
+
+        const SizedBox(height: 14),
+
         SizedBox(
-          height: 90,
+          height: 100,
           child: _isLoadingBrands
               ? ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: 5,
                   itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: borderLight,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(width: 40, height: 12, color: borderLight),
-                      ],
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Container(
+                      width: 160,
+                      decoration: BoxDecoration(
+                        color: borderLight,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 )
               : _brands.isEmpty
-                  ? Center(
-                      child: Text('No brands available', style: GoogleFonts.plusJakartaSans(color: textMuted)),
-                    )
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: _brands.length,
-                      itemBuilder: (context, index) {
-                        final brand = _brands[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: surfaceWhite,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: borderLight, width: 1.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
+              ? Center(
+                  child: Text(
+                    t('No brands available'),
+                    style: GoogleFonts.plusJakartaSans(color: textMuted),
+                  ),
+                )
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _brands.length,
+                  itemBuilder: (context, index) {
+                    final brand = _brands[index];
+                    final accentColor = Color(
+                      (brand['accent'] as int?) ?? 0xFF2563EB,
+                    );
+                    final hasLogo =
+                        brand['logo'] != null &&
+                        brand['logo'].toString().isNotEmpty;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Container(
+                        width: 168,
+                        decoration: BoxDecoration(
+                          color: surfaceWhite,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: borderLight, width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            // Logo area
+                            Container(
+                              width: 68,
+                              height: double.infinity,
+                              decoration: BoxDecoration(
+                                color: accentColor.withOpacity(0.07),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(17),
+                                  bottomLeft: Radius.circular(17),
+                                ),
+                              ),
+                              child: hasLogo
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: CachedNetworkImage(
+                                        imageUrl: brand['logo'],
+                                        fit: BoxFit.contain,
+                                        placeholder: (_, __) => Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: accentColor,
+                                            ),
+                                          ),
+                                        ),
+                                        errorWidget: (_, __, ___) =>
+                                            _buildBrandInitial(
+                                              brand['name'] ?? '',
+                                              accentColor,
+                                            ),
+                                      ),
+                                    )
+                                  : _buildBrandInitial(
+                                      brand['name'] ?? '',
+                                      accentColor,
+                                    ),
+                            ),
+                            // Info area
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 10,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      brand['name'] ?? '',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (brand['tag'] != null) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          brand['tag'],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w700,
+                                            color: accentColor,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                    ],
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.verified_rounded,
+                                          size: 10,
+                                          color: accentColor,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          t('Verified'),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w600,
+                                            color: textMuted,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: brand['logo'] != null && brand['logo'].toString().isNotEmpty
-                                      ? CachedNetworkImage(
-                                          imageUrl: brand['logo'],
-                                          fit: BoxFit.cover,
-                                          placeholder: (_, __) => Center(
-                                            child: HugeIcon(
-                                              icon: HugeIcons.strokeRoundedBuilding03,
-                                              color: primaryBlue,
-                                              size: 24,
-                                            ),
-                                          ),
-                                          errorWidget: (_, __, ___) => Center(
-                                            child: HugeIcon(
-                                              icon: HugeIcons.strokeRoundedBuilding03,
-                                              color: primaryBlue,
-                                              size: 24,
-                                            ),
-                                          ),
-                                        )
-                                      : Center(
-                                          child: HugeIcon(
-                                            icon: HugeIcons.strokeRoundedBuilding03,
-                                            color: primaryBlue,
-                                            size: 24,
-                                          ),
-                                        ),
-                                ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                brand['name'] ?? '',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
+  Widget _buildBrandInitial(String name, Color color) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'B';
+    return Center(
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            initial,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProductsSection(String title, bool isFeatured) {
-    final filteredProducts = isFeatured 
-        ? _products 
+    // Popular Products (isFeatured=true) shows all products.
+    // Hot Deals (isFeatured=false) shows only products where isHot==true.
+    final filteredProducts = isFeatured
+        ? _products
         : _products.where((p) => p['isHot'] == true).toList();
-    
+    final t = ref.read(localeProvider.notifier).translate;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2296,7 +4983,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               GestureDetector(
                 onTap: () {},
                 child: Text(
-                  'View all',
+                  t('View all'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -2307,9 +4994,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Products Grid - 2 columns
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2321,7 +5008,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.72,
+                    childAspectRatio: 0.65,
                   ),
                   itemCount: 4,
                   itemBuilder: (context, index) => Container(
@@ -2332,199 +5019,420 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   ),
                 )
               : filteredProducts.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text('No products available', style: GoogleFonts.plusJakartaSans(color: textMuted)),
-                      ),
-                    )
-                  : GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.72,
-                      ),
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
-                        return _buildProductCard(product);
-                      },
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      t('No products available'),
+                      style: GoogleFonts.plusJakartaSans(color: textMuted),
                     ),
+                  ),
+                )
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.65,
+                  ),
+                  itemCount: filteredProducts.length > 6
+                      ? 6
+                      : filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = filteredProducts[index];
+                    // Only show HOT badge in Hot Deals section, not in Popular Products
+                    return _buildProductCard(
+                      product,
+                      showHotBadge: !isFeatured,
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product) {
+  Widget _buildProductCard(
+    Map<String, dynamic> product, {
+    bool showHotBadge = true,
+  }) {
+    final t = ref.read(localeProvider.notifier).translate;
     final heroTag = 'product-image-${product['id']}';
-    final hasOriginalPrice = product['originalPrice'] != null &&
+    final hasOriginalPrice =
+        product['originalPrice'] != null &&
         product['originalPrice'] != product['price'] &&
         (product['originalPrice'] as num?) != null &&
         (product['originalPrice'] as num) > 0;
     final discount = hasOriginalPrice
-        ? (((product['originalPrice'] as num) - (product['price'] as num)) / (product['originalPrice'] as num) * 100).round()
+        ? (((product['originalPrice'] as num) - (product['price'] as num)) /
+                  (product['originalPrice'] as num) *
+                  100)
+              .round()
         : 0;
+
+    // Pick badge: HOT (only when showHotBadge=true) > SALE (discount) > NEW
+    String? badgeLabel;
+    Color? badgeColor;
+    if (showHotBadge && product['isHot'] == true) {
+      badgeLabel = t('HOT');
+      badgeColor = const Color(0xFFEF4444);
+    } else if (discount > 0) {
+      badgeLabel = t('SALE');
+      badgeColor = const Color(0xFF16A34A);
+    } else if (product['isNew'] == true) {
+      badgeLabel = t('NEW');
+      badgeColor = primaryBlue;
+    }
+
+    final category = (product['category'] ?? '').toString().toUpperCase();
+    final rating = product['rating'];
+    final reviewCount = product['reviewCount'] ?? product['reviews'] ?? '';
 
     return GestureDetector(
       onTap: () => context.push(
         '/product/${product['id']}',
         extra: {'heroTag': heroTag},
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image
-          AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: const Color(0xFFF1F5F9),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: surfaceWhite,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 14,
+              spreadRadius: 0,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Image area ──
+            Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    // Background + image
                     Hero(
                       tag: heroTag,
-                      child: product['image'] != null && product['image'].toString().isNotEmpty
+                      child:
+                          product['image'] != null &&
+                              product['image'].toString().isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: product['image'],
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                color: const Color(0xFFF1F5F9),
-                                child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: primaryBlue))),
+                              placeholder: (_, __) => ProductImagePlaceholder(
+                                category: product['category']?.toString() ?? '',
+                                name: product['name']?.toString() ?? '',
                               ),
-                              errorWidget: (_, __, ___) => Container(
-                                color: const Color(0xFFF1F5F9),
-                                child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: textMuted, size: 32)),
-                              ),
+                              errorWidget: (_, __, ___) =>
+                                  ProductImagePlaceholder(
+                                    category:
+                                        product['category']?.toString() ?? '',
+                                    name: product['name']?.toString() ?? '',
+                                  ),
                             )
-                          : Container(
-                              color: const Color(0xFFF1F5F9),
-                              child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedImage01, color: textMuted, size: 32)),
+                          : ProductImagePlaceholder(
+                              category: product['category']?.toString() ?? '',
+                              name: product['name']?.toString() ?? '',
                             ),
                     ),
-                    // Badges (top left)
-                    if (product['isHot'] == true || discount > 0)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Row(children: [
-                          if (product['isHot'] == true)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.9), borderRadius: BorderRadius.circular(6)),
-                              child: Text('HOT', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
-                            ),
-                          if (product['isHot'] == true && discount > 0) const SizedBox(width: 4),
-                          if (discount > 0)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: const Color(0xFF16A34A).withOpacity(0.9), borderRadius: BorderRadius.circular(6)),
-                              child: Text('$discount% OFF', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3)),
-                            ),
-                        ]),
-                      ),
                     // Out of stock overlay
                     if (product['inStock'] == false)
-                      Positioned.fill(
+                      Container(
+                        color: Colors.white.withOpacity(0.65),
+                        alignment: Alignment.center,
                         child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.7),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
                           ),
-                          alignment: Alignment.center,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(6)),
-                            child: Text('Out of Stock', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            t('Out of Stock'),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
+                    // Badge (top-left)
+                    if (badgeLabel != null)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            badgeLabel,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Heart icon (top-right)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.85),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.favorite_border_rounded,
+                          size: 16,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          // Product Info
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name + Rating
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        product['name'] ?? '',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary, height: 1.2),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (product['rating'] != null) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF16A34A),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('${product['rating']}', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                            const SizedBox(width: 2),
-                            const Icon(Icons.star_rounded, size: 10, color: Colors.white),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                // Brand
-                Text(
-                  (product['brand'] ?? '').toString().isNotEmpty ? product['brand'] : (product['category'] ?? ''),
-                  style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                // Price
-                Row(
-                  children: [
+
+            // ── Info area ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Category label
+                  if (category.isNotEmpty)
                     Text(
-                      '₹${_formatPrice(product['price'] ?? 0)}',
-                      style: GoogleFonts.raleway(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
+                      category,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: textMuted,
+                        letterSpacing: 0.8,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (hasOriginalPrice) ...[
-                      const SizedBox(width: 5),
-                      Text(
-                        '₹${_formatPrice(product['originalPrice'])}',
-                        style: GoogleFonts.raleway(fontSize: 11, fontWeight: FontWeight.w400, color: textMuted, decoration: TextDecoration.lineThrough),
+                  const SizedBox(height: 2),
+                  // Product Name
+                  Text(
+                    _getDisplayName(product),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Star rating row
+                  if (rating != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 13,
+                          color: Color(0xFFFBBF24),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '$rating',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                        ),
+                        if (reviewCount != null &&
+                            reviewCount.toString().isNotEmpty) ...[
+                          const SizedBox(width: 3),
+                          Text(
+                            '($reviewCount)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              color: textMuted,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  // Live Purchase Counter
+                  Builder(
+                    builder: (context) {
+                      final min =
+                          (product['purchaseCountMin'] as num?)?.toInt() ?? 0;
+                      final max =
+                          (product['purchaseCountMax'] as num?)?.toInt() ?? 0;
+                      if (min <= 0 && max <= 0) return const SizedBox.shrink();
+                      final effectiveMax = max > min ? max : min;
+                      final dayOfYear = DateTime.now()
+                          .difference(DateTime(DateTime.now().year))
+                          .inDays;
+                      final productIdHash = product['id']
+                          .toString()
+                          .hashCode
+                          .abs();
+                      final seed = productIdHash + dayOfYear;
+                      final range = effectiveMax - min;
+                      final count = range > 0
+                          ? min + (seed % (range + 1))
+                          : min;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(
+                              color: const Color(0xFFEF4444).withOpacity(0.25),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department_rounded,
+                                size: 11,
+                                color: Color(0xFFEF4444),
+                              ),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  '🔥 $count sold in 24hrs',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFEF4444),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  // Price + Cart button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '₹${_formatPrice(product['price'] ?? 0)}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: textPrimary,
+                            ),
+                          ),
+                          if (hasOriginalPrice)
+                            Text(
+                              '₹${_formatPrice(product['originalPrice'])}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                color: textMuted,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          ref
+                              .read(cartProvider.notifier)
+                              .addItem(
+                                productId: product['id'].toString(),
+                                name: product['name'] ?? '',
+                                nameHindi: product['nameHindi']?.toString(),
+                                price: (product['price'] as num).toDouble(),
+                                mrp: hasOriginalPrice
+                                    ? (product['originalPrice'] as num)
+                                          .toDouble()
+                                    : null,
+                                image: product['image']?.toString(),
+                                quantity: 1,
+                              );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                t('Added to cart'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: primaryBlue,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              margin: const EdgeInsets.all(16),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: primaryBlue,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryBlue.withOpacity(0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.shopping_cart_rounded,
+                            color: Colors.white,
+                            size: 17,
+                          ),
+                        ),
                       ),
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2570,7 +5478,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
     final bool valid = result['valid'] ?? true;
     if (!valid) {
-      final issues = ((result['issues'] as List<dynamic>?) ?? []).cast<Map<String, dynamic>>();
+      final issues = ((result['issues'] as List<dynamic>?) ?? [])
+          .cast<Map<String, dynamic>>();
       _showStockIssueSnackbar(issues);
       return;
     }
@@ -2582,29 +5491,47 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   void _showStockIssueSnackbar(List<Map<String, dynamic>> issues) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Cannot proceed — stock issues:', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13)),
-          const SizedBox(height: 4),
-          ...issues.map((i) => Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text('• ${i['message'] ?? 'Stock issue'}',
-              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500)),
-          )),
-        ],
+    final t = ref.read(localeProvider.notifier).translate;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('Cannot proceed — stock issues:'),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...issues.map(
+              (i) => Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  '• ${i['message'] ?? t('Stock issue')}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ),
-      backgroundColor: const Color(0xFFDC2626),
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16)));
+    );
   }
 
   Future<void> _confirmAndPay() async {
     if (!_addrFormKey.currentState!.validate()) return;
+    final t = ref.read(localeProvider.notifier).translate;
 
     final address = {
       'fullName': _nameCtrl.text.trim(),
@@ -2615,12 +5542,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       'pincode': _pinCtrl.text.trim(),
     };
 
-    setState(() { _showAddressForm = false; _isCheckingOut = true; });
+    setState(() {
+      _showAddressForm = false;
+      _isCheckingOut = true;
+    });
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.post('/orders', data: {
-        'shippingAddress': address,
-      });
+      final response = await api.post(
+        '/orders',
+        data: {'shippingAddress': address},
+      );
 
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
@@ -2634,19 +5565,28 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
-      final msg = e.response?.data?['message']?.toString() ?? 'Checkout failed';
+      final msg =
+          e.response?.data?['message']?.toString() ?? t('Checkout failed');
       // If it's a stock issue from the server, refresh cart to show updated stock
       final code = e.response?.data?['code']?.toString();
       if (code == 'INSUFFICIENT_STOCK') {
         ref.read(cartProvider.notifier).fetchCart();
         ref.read(cartProvider.notifier).validateStock();
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            msg,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
@@ -2654,47 +5594,80 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildAddressForm() {
+    final t = ref.read(localeProvider.notifier).translate;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: Form(key: _addrFormKey, child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          GestureDetector(
-            onTap: () => setState(() => _showAddressForm = false),
-            child: Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back_ios_new, size: 18),
+      child: Form(
+        key: _addrFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _showAddressForm = false),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_new, size: 18),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  t('Shipping Address'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: textPrimary,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Text('Shipping Address', style: GoogleFonts.plusJakartaSans(
-            fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
-        ]),
-        const SizedBox(height: 24),
-        _addrField('Full Name', _nameCtrl),
-        const SizedBox(height: 14),
-        _addrField('Phone', _phoneCtrl, keyboard: TextInputType.phone),
-        const SizedBox(height: 14),
-        _addrField('Address Line 1', _addr1Ctrl),
-        const SizedBox(height: 14),
-        Row(children: [
-          Expanded(child: _addrField('City', _cityCtrl)),
-          const SizedBox(width: 12),
-          Expanded(child: _addrField('State', _stateCtrl)),
-        ]),
-        const SizedBox(height: 14),
-        _addrField('Pincode', _pinCtrl, keyboard: TextInputType.number),
-        const SizedBox(height: 28),
-        SizedBox(width: double.infinity, height: 52,
-          child: ElevatedButton(
-            onPressed: _confirmAndPay,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryBlue, foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-            child: Text('Confirm & Pay', style: GoogleFonts.plusJakartaSans(
-              fontSize: 16, fontWeight: FontWeight.w700)))),
-      ])),
+            const SizedBox(height: 24),
+            _addrField(t('Full Name'), _nameCtrl),
+            const SizedBox(height: 14),
+            _addrField(t('Phone'), _phoneCtrl, keyboard: TextInputType.phone),
+            const SizedBox(height: 14),
+            _addrField(t('Address Line 1'), _addr1Ctrl),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: _addrField(t('City'), _cityCtrl)),
+                const SizedBox(width: 12),
+                Expanded(child: _addrField(t('State'), _stateCtrl)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _addrField(t('Pincode'), _pinCtrl, keyboard: TextInputType.number),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _confirmAndPay,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  t('Confirm & Pay'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2707,6 +5680,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     final stateC = TextEditingController();
     final pinC = TextEditingController();
     final fk = GlobalKey<FormState>();
+    final t = ref.read(localeProvider.notifier).translate;
 
     final address = await showModalBottomSheet<Map<String, String>>(
       context: context,
@@ -2714,65 +5688,119 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         margin: EdgeInsets.only(top: MediaQuery.of(ctx).padding.top + 40),
-        decoration: const BoxDecoration(color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Form(key: fk, child: SingleChildScrollView(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 40, height: 5,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(color: borderLight, borderRadius: BorderRadius.circular(100)))),
-            Text('Shipping Address', style: GoogleFonts.plusJakartaSans(
-              fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
-            const SizedBox(height: 20),
-            _addrField('Full Name', nameC),
-            const SizedBox(height: 12),
-            _addrField('Phone', phoneC, keyboard: TextInputType.phone),
-            const SizedBox(height: 12),
-            _addrField('Address Line 1', addr1C),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: _addrField('City', cityC)),
-              const SizedBox(width: 12),
-              Expanded(child: _addrField('State', stateC)),
-            ]),
-            const SizedBox(height: 12),
-            _addrField('Pincode', pinC, keyboard: TextInputType.number),
-            const SizedBox(height: 20),
-            SizedBox(width: double.infinity, height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (fk.currentState!.validate()) {
-                    Navigator.of(ctx).pop({
-                      'fullName': nameC.text.trim(),
-                      'phone': phoneC.text.trim(),
-                      'addressLine1': addr1C.text.trim(),
-                      'city': cityC.text.trim(),
-                      'state': stateC.text.trim(),
-                      'pincode': pinC.text.trim(),
-                    });
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: Text('Confirm & Proceed', style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16, fontWeight: FontWeight.w700)))),
-          ]))))),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Form(
+            key: fk,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: borderLight,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    t('Shipping Address'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _addrField(t('Full Name'), nameC),
+                  const SizedBox(height: 12),
+                  _addrField(t('Phone'), phoneC, keyboard: TextInputType.phone),
+                  const SizedBox(height: 12),
+                  _addrField(t('Address Line 1'), addr1C),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _addrField(t('City'), cityC)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _addrField(t('State'), stateC)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _addrField(
+                    t('Pincode'),
+                    pinC,
+                    keyboard: TextInputType.number,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (fk.currentState!.validate()) {
+                          Navigator.of(ctx).pop({
+                            'fullName': nameC.text.trim(),
+                            'phone': phoneC.text.trim(),
+                            'addressLine1': addr1C.text.trim(),
+                            'city': cityC.text.trim(),
+                            'state': stateC.text.trim(),
+                            'pincode': pinC.text.trim(),
+                          });
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF16A34A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        t('Confirm & Proceed'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
 
-    nameC.dispose(); phoneC.dispose(); addr1C.dispose();
-    cityC.dispose(); stateC.dispose(); pinC.dispose();
+    nameC.dispose();
+    phoneC.dispose();
+    addr1C.dispose();
+    cityC.dispose();
+    stateC.dispose();
+    pinC.dispose();
 
     if (address == null || !mounted) return;
 
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.post('/orders/from-negotiation', data: {
-        'negotiationId': negotiationId,
-        'shippingAddress': address,
-      });
+      final response = await api.post(
+        '/orders/from-negotiation',
+        data: {'negotiationId': negotiationId, 'shippingAddress': address},
+      );
 
       if (!mounted) return;
       if (response.data['success'] == true) {
@@ -2781,25 +5809,47 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       }
     } on DioException catch (e) {
       if (!mounted) return;
-      final msg = e.response?.data?['message']?.toString() ?? 'Failed to create order';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16)));
+      final msg =
+          e.response?.data?['message']?.toString() ??
+          t('Failed to create order');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            msg,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: $e', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error: $e',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
     }
   }
 
-  Widget _addrField(String label, TextEditingController ctrl, {TextInputType? keyboard}) {
+  Widget _addrField(
+    String label,
+    TextEditingController ctrl, {
+    TextInputType? keyboard,
+  }) {
     return TextFormField(
       controller: ctrl,
       keyboardType: keyboard,
@@ -2807,135 +5857,180 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       style: GoogleFonts.plusJakartaSans(fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSecondary),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 14,
+          color: textSecondary,
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
       ),
     );
   }
 
   Widget _buildPromoBannerCarousel() {
-    return SizedBox(
-      height: 160,
-      child: PageView.builder(
-        controller: _promoBannerController,
-        itemCount: _promoBanners.length,
-        onPageChanged: (i) => setState(() => _currentPromoBannerIndex = i),
-        itemBuilder: (context, index) {
-          final banner = _promoBanners[index];
-          final hasImage = (banner['imageUrl'] ?? '').toString().isNotEmpty;
-          final linkUrl = banner['linkUrl']?.toString() ?? '';
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GestureDetector(
-              onTap: () => _handleBannerTap(linkUrl),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: hasImage ? null : LinearGradient(
-                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                    colors: [primaryBlue, primaryBlueDark],
-                  ),
-                  image: hasImage ? DecorationImage(
-                    image: CachedNetworkImageProvider(banner['imageUrl']),
-                    fit: BoxFit.cover,
-                  ) : null,
-                  boxShadow: [BoxShadow(
-                    color: primaryBlue.withOpacity(0.2),
-                    blurRadius: 20, offset: const Offset(0, 10),
-                  )],
-                ),
-                child: Stack(children: [
-                  if (hasImage) Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+    if (_promoBanners.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: [
+        SizedBox(
+          height: 160,
+          child: PageView.builder(
+            controller: _promoBannerController,
+            itemCount: _promoBanners.length,
+            onPageChanged: (i) => setState(() => _currentPromoBannerIndex = i),
+            itemBuilder: (context, index) {
+              final banner = _promoBanners[index];
+              final linkUrl = banner['linkUrl'] ?? '';
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: () => _handleBannerTap(linkUrl),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: CachedNetworkImage(
+                        imageUrl: banner['imageUrl'] ?? '',
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(
+                          color: primaryBlue.withOpacity(0.05),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                primaryBlue.withOpacity(0.1),
+                                primaryBlue.withOpacity(0.2),
+                              ],
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              color: textMuted,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if ((banner['tag'] ?? '').toString().isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(banner['tag'], style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10, fontWeight: FontWeight.w600,
-                              color: Colors.white, letterSpacing: 1)),
-                          ),
-                        if ((banner['tag'] ?? '').toString().isNotEmpty) const SizedBox(height: 8),
-                        Text(banner['title'] ?? '', style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22, fontWeight: FontWeight.w700,
-                          color: Colors.white, letterSpacing: -0.3)),
-                        if ((banner['subtitle'] ?? '').toString().isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(banner['subtitle'], style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13, color: Colors.white.withOpacity(0.85))),
-                        ],
-                      ],
-                    ),
-                  ),
-                ]),
+                ),
+              );
+            },
+          ),
+        ),
+        if (_promoBanners.length > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _promoBanners.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentPromoBannerIndex == index ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _currentPromoBannerIndex == index
+                      ? primaryBlue
+                      : primaryBlue.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        ],
+      ],
     );
   }
 
   Widget _buildWhyBuySection() {
+    final t = ref.read(localeProvider.notifier).translate;
     final items = [
-      {'icon': Icons.verified_rounded, 'color': const Color(0xFF2563EB), 'bg': const Color(0xFFEFF6FF), 'title': 'Premium Quality', 'subtitle': 'Certified products'},
-      {'icon': Icons.local_offer_rounded, 'color': const Color(0xFF7C3AED), 'bg': const Color(0xFFF5F3FF), 'title': 'Bulk Pricing', 'subtitle': 'Best wholesale rates'},
-      {'icon': Icons.local_shipping_rounded, 'color': const Color(0xFF0891B2), 'bg': const Color(0xFFECFEFF), 'title': 'Fast Delivery', 'subtitle': 'Pan-India shipping'},
-      {'icon': Icons.support_agent_rounded, 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFF0FDF4), 'title': '24/7 Support', 'subtitle': 'Always here to help'},
+      {
+        'icon': Icons.verified_rounded,
+        'color': const Color(0xFF2563EB),
+        'bg': const Color(0xFFEFF6FF),
+        'title': t('Premium Quality'),
+        'subtitle': t('Certified products'),
+      },
+      {
+        'icon': Icons.local_offer_rounded,
+        'color': const Color(0xFF7C3AED),
+        'bg': const Color(0xFFF5F3FF),
+        'title': t('Bulk Pricing'),
+        'subtitle': t('Best wholesale rates'),
+      },
+      {
+        'icon': Icons.local_shipping_rounded,
+        'color': const Color(0xFF0891B2),
+        'bg': const Color(0xFFECFEFF),
+        'title': t('Fast Delivery'),
+        'subtitle': t('Pan-India shipping'),
+      },
+      {
+        'icon': Icons.support_agent_rounded,
+        'color': const Color(0xFF16A34A),
+        'bg': const Color(0xFFF0FDF4),
+        'title': t('24/7 Support'),
+        'subtitle': t('Always here to help'),
+      },
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [const Color(0xFFF8FAFC), const Color(0xFFEFF6FF)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.7)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: borderLight),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Text('Why Buy From Us?', style: GoogleFonts.plusJakartaSans(
-              fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary, letterSpacing: -0.3)),
-            const SizedBox(height: 6),
-            Text('Trusted by 500+ businesses across India', style: GoogleFonts.plusJakartaSans(
-              fontSize: 13, fontWeight: FontWeight.w500, color: textSecondary)),
+            Text(
+              t('Why Buy From Us?'),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: textPrimary,
+              ),
+            ),
             const SizedBox(height: 24),
             Row(
               children: [
-                for (int i = 0; i < items.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 12),
-                  Expanded(child: _buildWhyBuyItem(
-                    items[i]['icon'] as IconData,
-                    items[i]['color'] as Color,
-                    items[i]['bg'] as Color,
-                    items[i]['title'] as String,
-                    items[i]['subtitle'] as String,
-                  )),
-                ],
+                Expanded(child: _buildWhyBuyItem(items[0])),
+                const SizedBox(width: 16),
+                Expanded(child: _buildWhyBuyItem(items[1])),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildWhyBuyItem(items[2])),
+                const SizedBox(width: 16),
+                Expanded(child: _buildWhyBuyItem(items[3])),
               ],
             ),
           ],
@@ -2944,29 +6039,356 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  Widget _buildWhyBuyItem(IconData icon, Color color, Color bg, String title, String subtitle) {
-    return Column(
-      children: [
-        Container(
-          width: 56, height: 56,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
+  Widget _buildWhyBuyItem(Map<String, dynamic> item) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: (item['bg'] as Color).withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            item['icon'] as IconData,
+            color: item['color'] as Color,
+            size: 28,
           ),
-          child: Icon(icon, color: color, size: 26),
+          const SizedBox(height: 12),
+          Text(
+            item['title'] as String,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item['subtitle'] as String,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReferralBanner() {
+    final t = ref.watch(localeProvider.notifier).translate;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: () => context.push('/referral'),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Image.asset(
+            'assets/images/referral_banner.png',
+            width: double.infinity,
+            height: 160,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 160,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF008E46), Color(0xFF00C853)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Center(
+                  child: Text(
+                    t('REFERRAL PROGRAM'),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-        const SizedBox(height: 10),
-        Text(title, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(
-          fontSize: 11, fontWeight: FontWeight.w700, color: textPrimary, height: 1.2)),
-        const SizedBox(height: 2),
-        Text(subtitle, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(
-          fontSize: 9, fontWeight: FontWeight.w500, color: textMuted)),
+      ),
+    );
+  }
+
+  Widget _buildReviewSection() {
+    final t = ref.watch(localeProvider.notifier).translate;
+
+    if (_isLoadingReviews && _dynamicReviews.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final reviews = _dynamicReviews.isNotEmpty
+        ? _dynamicReviews
+        : [
+            {
+              'name': 'Rajesh Kumar',
+              'role': 'Progressive Farmer, Punjab',
+              'review':
+                  'Veepee has completely changed how I source my tools. The bulk pricing and quality are unbeatable for my 50-acre farm.',
+              'rating': 5.0,
+            },
+            {
+              'name': 'Priya Sharma',
+              'role': 'Agri-Retailer, Delhi',
+              'review':
+                  "As a retailer, I need reliable delivery and authentic brands. Veepee's pan-India service is a lifesaver for my business.",
+              'rating': 5.0,
+            },
+            {
+              'name': 'Amit Patel',
+              'role': 'Wholesale Distributor, Gujarat',
+              'review':
+                  "I've been using Veepee for a year now. It has greatly simplified how I manage large orders and track inventory.",
+              'rating': 4.5,
+            },
+            {
+              'name': 'Anjali Singh',
+              'role': 'Organic Farm Owner, UP',
+              'review':
+                  "The variety of premium seeds and modern irrigation tools on Veepee is impressive. Truly a one-stop shop for modern farming.",
+              'rating': 5.0,
+            },
+          ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Voices of Trust'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: primaryBlue,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t('What Our Customers Say'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: textPrimary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: primaryBlue.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.format_quote_rounded,
+                  color: primaryBlue,
+                  size: 24,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(left: 24, right: 8, bottom: 20),
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: reviews
+                .map(
+                  (review) => _buildReviewCard(
+                    Map<String, String>.from({
+                      'name': t(review['name'].toString()),
+                      'role': t(review['role'].toString()),
+                      'review': t(review['review'].toString()),
+                      'rating': review['rating'].toString(),
+                    }),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
       ],
     );
   }
 
+  Widget _buildReviewCard(Map<String, String> review) {
+    return Container(
+      width: 310,
+      margin: const EdgeInsets.only(right: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Icon(
+                Icons.format_quote_rounded,
+                size: 100,
+                color: Colors.black.withOpacity(0.03),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [primaryBlue, primaryBlue.withOpacity(0.7)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryBlue.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            review['name']!.substring(0, 1).toUpperCase(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    review['name']!,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.verified_rounded,
+                                  color: Color(0xFF10B981),
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              review['role']!,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      ...List.generate(5, (index) {
+                        double rating = double.parse(review['rating']!);
+                        if (index < rating.floor()) {
+                          return const Icon(
+                            Icons.star_rounded,
+                            color: Color(0xFFF59E0B),
+                            size: 18,
+                          );
+                        } else if (index < rating) {
+                          return const Icon(
+                            Icons.star_half_rounded,
+                            color: Color(0xFFF59E0B),
+                            size: 18,
+                          );
+                        } else {
+                          return const Icon(
+                            Icons.star_outline_rounded,
+                            color: Color(0xFFE2E8F0),
+                            size: 18,
+                          );
+                        }
+                      }),
+                      const SizedBox(width: 8),
+                      Text(
+                        review['rating']!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    review['review']!,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      color: textSecondary.withOpacity(0.9),
+                      height: 1.6,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomNav() {
+    final t = ref.read(localeProvider.notifier).translate;
     return Container(
       decoration: BoxDecoration(
         color: surfaceWhite,
@@ -2983,20 +6405,36 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             children: _isWholesaler
-              ? [
-                  _buildNavItem(HugeIcons.strokeRoundedHome01, 'Home', 0),
-                  _buildNavItem(HugeIcons.strokeRoundedSearch01, 'Search', 1),
-                  _buildCartNavItem(2),
-                  _buildNavItem(HugeIcons.strokeRoundedHandGrip, 'Negotiate', 3),
-                  _buildNavItem(HugeIcons.strokeRoundedUser, 'Profile', 4),
-                ]
-              : [
-                  _buildNavItem(HugeIcons.strokeRoundedHome01, 'Home', 0),
-                  _buildNavItem(HugeIcons.strokeRoundedSearch01, 'Search', 1),
-                  _buildNavItem(HugeIcons.strokeRoundedDashboardSquare01, 'Categories', 2),
-                  _buildCartNavItem(3),
-                  _buildNavItem(HugeIcons.strokeRoundedUser, 'Profile', 4),
-                ],
+                ? [
+                    _buildNavItem(HugeIcons.strokeRoundedHome01, t('Home'), 0),
+                    _buildNavItem(
+                      HugeIcons.strokeRoundedSearch01,
+                      t('Search'),
+                      1,
+                    ),
+                    _buildCartNavItem(2),
+                    _buildNavItem(
+                      HugeIcons.strokeRoundedHandGrip,
+                      t('Negotiate'),
+                      3,
+                    ),
+                    _buildNavItem(HugeIcons.strokeRoundedUser, t('Profile'), 4),
+                  ]
+                : [
+                    _buildNavItem(HugeIcons.strokeRoundedHome01, t('Home'), 0),
+                    _buildNavItem(
+                      HugeIcons.strokeRoundedSearch01,
+                      t('Search'),
+                      1,
+                    ),
+                    _buildNavItem(
+                      HugeIcons.strokeRoundedDashboardSquare01,
+                      t('Categories'),
+                      2,
+                    ),
+                    _buildCartNavItem(3),
+                    _buildNavItem(HugeIcons.strokeRoundedUser, t('Profile'), 4),
+                  ],
           ),
         ),
       ),
@@ -3044,10 +6482,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           color: Color(0xFFEF4444),
                           shape: BoxShape.circle,
                         ),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
                         child: Text(
                           '${cart.itemCount}',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -3073,7 +6518,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedNavIndex == index;
-    
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedNavIndex = index),
@@ -3166,6 +6611,7 @@ class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee>
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 48,
       color: _blue.withOpacity(0.04),
       child: ListView.builder(
         controller: _scrollController,
@@ -3181,9 +6627,14 @@ class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee>
               children: [
                 Icon(item['icon'] as IconData, size: 16, color: _blue),
                 const SizedBox(width: 6),
-                Text(item['text'] as String,
+                Text(
+                  item['text'] as String,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12, fontWeight: FontWeight.w600, color: _txtSec)),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _txtSec,
+                  ),
+                ),
               ],
             ),
           );
@@ -3191,4 +6642,124 @@ class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee>
       ),
     );
   }
+}
+
+// ── Helpers for ticket-style offer cards ──────────────────────────────────────
+
+class _TicketClipper extends CustomClipper<Path> {
+  const _TicketClipper();
+
+  @override
+  Path getClip(Size size) {
+    const double r = 20.0; // corner radius
+    const double cr = 13.0; // cutout radius
+    final double cy = size.height * 0.65; // cutout Y position
+
+    final path = Path()
+      ..moveTo(r, 0)
+      ..lineTo(size.width - r, 0)
+      ..quadraticBezierTo(size.width, 0, size.width, r)
+      ..lineTo(size.width, cy - cr)
+      ..arcToPoint(
+        Offset(size.width, cy + cr),
+        radius: const Radius.circular(cr),
+        clockwise: false,
+      )
+      ..lineTo(size.width, size.height - r)
+      ..quadraticBezierTo(size.width, size.height, size.width - r, size.height)
+      ..lineTo(r, size.height)
+      ..quadraticBezierTo(0, size.height, 0, size.height - r)
+      ..lineTo(0, cy + cr)
+      ..arcToPoint(
+        Offset(0, cy - cr),
+        radius: const Radius.circular(cr),
+        clockwise: false,
+      )
+      ..lineTo(0, r)
+      ..quadraticBezierTo(0, 0, r, 0)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_TicketClipper oldClipper) => false;
+}
+
+class _DashedLinePainter extends CustomPainter {
+  const _DashedLinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF94A3B8)
+      ..style = PaintingStyle.fill;
+
+    const double dw = 9.0;
+    const double ds = 5.0;
+    const double dh = 2.5;
+    double x = 18.0;
+    final double cy = size.height / 2;
+
+    while (x < size.width - 18) {
+      canvas.drawRRect(
+        RRect.fromLTRBR(
+          x,
+          cy - dh / 2,
+          x + dw,
+          cy + dh / 2,
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+      x += dw + ds;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter oldDelegate) => false;
+}
+
+class _StarburstPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.12)
+      ..style = PaintingStyle.fill;
+
+    final Offset src = Offset(size.width / 2, size.height * -0.1);
+    const int rayCount = 16;
+    const double spread = 3.14159 * 1.1;
+
+    for (int i = 0; i < rayCount; i++) {
+      final double angle = -spread / 2 + (spread / (rayCount - 1)) * i;
+      const double len = 380.0;
+      const double halfW = 22.0;
+
+      final double ex = src.dx + len * math.sin(angle);
+      final double ey = src.dy + len * math.cos(angle);
+
+      final double lx = src.dx + halfW * math.cos(angle);
+      final double ly = src.dy - halfW * math.sin(angle);
+      final double rx = src.dx - halfW * math.cos(angle);
+      final double ry = src.dy + halfW * math.sin(angle);
+
+      final path = Path()
+        ..moveTo(lx, ly)
+        ..lineTo(
+          ex + halfW * math.cos(angle) * 0.3,
+          ey - halfW * math.sin(angle) * 0.3,
+        )
+        ..lineTo(
+          ex - halfW * math.cos(angle) * 0.3,
+          ey + halfW * math.sin(angle) * 0.3,
+        )
+        ..lineTo(rx, ry)
+        ..close();
+
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StarburstPainter oldDelegate) => false;
 }
