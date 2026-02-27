@@ -8,7 +8,7 @@ class ApiConfig {
   // For Physical Device: use your computer's local IP (e.g., 192.168.1.100)
   // Run 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux) to find your IP
   // CURRENT IP (Check 'ipconfig' in Windows)
-  static const String localIp = '192.168.1.4';
+  static const String localIp = '192.168.1.10';
 
   // Base URL - Change this based on where you are running the app
   static const String baseUrl = 'http://$localIp:5000/api/v1';

@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/locale_provider.dart';
-import '../../core/services/transliteration_service.dart';
 
 import '../../core/config/api_config.dart';
 
@@ -161,31 +160,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     if (currentLang == 'Hindi') {
       if (nameHindi.isNotEmpty) return nameHindi;
-
-      // Background sync if Hindi name is missing
-      if (nameEnglish.isNotEmpty) {
-        _triggerBackgroundTransliteration(
-          product['id']?.toString() ?? '',
-          nameEnglish,
-        );
-      }
       return nameEnglish;
     }
     return nameEnglish;
-  }
-
-  void _triggerBackgroundTransliteration(
-    String productId,
-    String nameEnglish,
-  ) async {
-    if (productId.isEmpty || nameEnglish.isEmpty) return;
-
-    final transliterated = await TransliterationService.transliterateToHindi(
-      nameEnglish,
-    );
-    if (transliterated != nameEnglish) {
-      await TransliterationService.syncHindiName(productId, transliterated);
-    }
   }
 
   @override

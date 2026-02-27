@@ -17,7 +17,6 @@ import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/wishlist_provider.dart';
 import '../../core/providers/locale_provider.dart';
-import '../../core/services/transliteration_service.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -139,7 +138,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           _isLoading = false;
         });
         _trackView();
-        _checkAndTransliterate();
       }
     } catch (e) {
       debugPrint('Error fetching product: $e');
@@ -174,30 +172,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
             : null,
       );
     } catch (_) {}
-  }
-
-  void _checkAndTransliterate() async {
-    if (_product == null) return;
-    final currentLang = ref.read(localeProvider);
-    if (currentLang == 'Hindi') {
-      final nameHindi = _product!['nameHindi']?.toString() ?? '';
-      final nameEnglish = _product!['name']?.toString() ?? '';
-      if (nameHindi.isEmpty && nameEnglish.isNotEmpty) {
-        final transliterated =
-            await TransliterationService.transliterateToHindi(nameEnglish);
-        if (transliterated != nameEnglish) {
-          if (mounted) {
-            setState(() {
-              _product!['nameHindi'] = transliterated;
-            });
-          }
-          await TransliterationService.syncHindiName(
-            widget.productId,
-            transliterated,
-          );
-        }
-      }
-    }
   }
 
   List<String> get _images {
@@ -351,11 +325,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     }
 
     final currentLang = ref.watch(localeProvider);
-    if (currentLang == 'Hindi') {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _checkAndTransliterate(),
-      );
-    }
     final name =
         (currentLang == 'Hindi' &&
             _product!['nameHindi'] != null &&

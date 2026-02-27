@@ -16,6 +16,7 @@ import '../../core/config/api_config.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/shipping_address_service.dart';
 import '../../core/services/transliteration_service.dart';
 import '../categories/categories_screen.dart';
 import '../../widgets/product_image_placeholder.dart';
@@ -83,12 +84,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   int _currentPromoBannerIndex = 0;
   final PageController _promoBannerController = PageController();
   Timer? _promoAutoRotateTimer;
+  final Set<String> _pendingHindiSync = <String>{};
+  final Set<String> _completedHindiSync = <String>{};
+  static final RegExp _mongoObjectIdPattern = RegExp(r'^[a-fA-F0-9]{24}$');
 
   // Notification state
   List<Map<String, dynamic>> _notifications = [];
   int _unreadCount = 0;
   bool _isLoadingNotifications = false;
   StateSetter? _dialogSetter;
+  DateTime? _lastNotificationPopupFetchAt;
 
   // Offers state
   List<Map<String, dynamic>> _offers = [];
@@ -108,6 +113,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _fetchPromoBanners();
     _fetchOffers();
     _fetchReviews();
+    _loadSavedShippingAddresses();
     _initNotifications();
     _fetchNotificationCount();
 
@@ -688,8 +694,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       });
       return;
     }
-    setState(() => _isSearching = true);
-    if (query.isNotEmpty) setState(() => _searchQuery = query);
+    setState(() {
+      _isSearching = true;
+      _searchQuery = query;
+    });
     try {
       final params = <String, dynamic>{};
       if (query.trim().isNotEmpty) params['q'] = query;
@@ -1048,7 +1056,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           // Trigger fetch only once per dialog open, deferred to avoid setState-during-build
           if (_dialogSetter == null) {
             _dialogSetter = setDialogState;
-            Future.microtask(() => _fetchNotifications(setDialogState));
+            final now = DateTime.now();
+            final shouldFetch =
+                _lastNotificationPopupFetchAt == null ||
+                now.difference(_lastNotificationPopupFetchAt!) >
+                    const Duration(seconds: 8);
+            if (shouldFetch) {
+              _lastNotificationPopupFetchAt = now;
+              Future.microtask(() => _fetchNotifications(setDialogState));
+            } else {
+              _isLoadingNotifications = false;
+            }
           }
           return GestureDetector(
             onTap: () => Navigator.pop(ctx),
@@ -1415,6 +1433,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _cityCtrl.dispose();
     _stateCtrl.dispose();
     _pinCtrl.dispose();
+    _couponCtrl.dispose();
     _promoBannerController.dispose();
     super.dispose();
   }
@@ -1424,37 +1443,63 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     return auth.user?.isWholesaler == true;
   }
 
-  String _getDisplayName(Map<String, dynamic> product) {
-    final currentLang = ref.watch(localeProvider);
+  String _getDisplayName(Map<String, dynamic> product, String currentLang) {
     final nameHindi = product['nameHindi']?.toString() ?? '';
     final nameEnglish = product['name']?.toString() ?? '';
+    final productId =
+        product['id']?.toString() ?? product['_id']?.toString() ?? '';
 
     if (currentLang == 'Hindi') {
       if (nameHindi.isNotEmpty) return nameHindi;
 
-      // Background sync if Hindi name is missing
-      if (nameEnglish.isNotEmpty) {
-        _triggerBackgroundTransliteration(
-          product['id']?.toString() ?? '',
-          nameEnglish,
-        );
+      // Queue at most one sync per product/name to avoid request storms during rebuilds.
+      if (nameEnglish.isNotEmpty && productId.isNotEmpty) {
+        final syncKey = '$productId|$nameEnglish';
+        if (!_pendingHindiSync.contains(syncKey) &&
+            !_completedHindiSync.contains(syncKey)) {
+          _pendingHindiSync.add(syncKey);
+          Future.microtask(
+            () => _triggerBackgroundTransliteration(
+              productId,
+              nameEnglish,
+              syncKey,
+            ),
+          );
+        }
       }
       return nameEnglish;
     }
     return nameEnglish;
   }
 
-  void _triggerBackgroundTransliteration(
+  Future<void> _triggerBackgroundTransliteration(
     String productId,
     String nameEnglish,
+    String syncKey,
   ) async {
-    if (productId.isEmpty || nameEnglish.isEmpty) return;
+    if (productId.isEmpty || nameEnglish.isEmpty) {
+      _pendingHindiSync.remove(syncKey);
+      _completedHindiSync.add(syncKey);
+      return;
+    }
 
-    final transliterated = await TransliterationService.transliterateToHindi(
-      nameEnglish,
-    );
-    if (transliterated != nameEnglish) {
-      await TransliterationService.syncHindiName(productId, transliterated);
+    // Avoid backend errors/noise for non-ObjectId placeholder IDs.
+    if (!_mongoObjectIdPattern.hasMatch(productId)) {
+      _pendingHindiSync.remove(syncKey);
+      _completedHindiSync.add(syncKey);
+      return;
+    }
+
+    try {
+      final transliterated = await TransliterationService.transliterateToHindi(
+        nameEnglish,
+      );
+      if (transliterated != nameEnglish) {
+        await TransliterationService.syncHindiName(productId, transliterated);
+      }
+    } finally {
+      _pendingHindiSync.remove(syncKey);
+      _completedHindiSync.add(syncKey);
     }
   }
 
@@ -1563,6 +1608,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget _buildTrustStrip() {
     final t = ref.read(localeProvider.notifier).translate;
     return _TrustBadgeMarquee(
+      isActive: _selectedNavIndex == 0,
       items: [
         {'icon': Icons.local_shipping_rounded, 'text': t('Pan-India Delivery')},
         {'icon': Icons.verified_user_rounded, 'text': t('Certified Products')},
@@ -2156,7 +2202,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         });
                         return;
                       }
-                      setState(() => _searchQuery = value);
                       _searchDebounce = Timer(
                         const Duration(milliseconds: 400),
                         () {
@@ -2533,6 +2578,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
   Widget _buildSuggestionCard(Map<String, dynamic> product) {
     final t = ref.read(localeProvider.notifier).translate;
+    final currentLang = ref.read(localeProvider);
     final heroTag = 'search-product-${product['id']}';
     final hasOriginalPrice =
         product['originalPrice'] != null &&
@@ -2553,9 +2599,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           border: Border.all(color: borderLight.withOpacity(0.7)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.015),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -2607,7 +2653,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          _getDisplayName(product),
+                          _getDisplayName(product, currentLang),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -2766,74 +2812,129 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildCartContent() {
-    if (_showAddressForm) return _buildAddressForm();
     final cart = ref.watch(cartProvider);
     final t = ref.read(localeProvider.notifier).translate;
+    final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
+    final couponDiscount = hasActiveCoupon ? _appliedCouponDiscount : 0.0;
+    final payableTotal = math
+        .max(cart.grandTotal - couponDiscount, 0)
+        .toDouble();
     return Column(
       children: [
         // Header
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           color: backgroundWhite,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
             children: [
-              Text(
-                t('My Cart'),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: textPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (cart.itemCount > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: primaryBlue.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Text(
-                        t(
-                          '${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
-                        ),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: primaryBlue,
-                        ),
-                      ),
+                  Text(
+                    t('My Cart'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: textPrimary,
+                      letterSpacing: -0.5,
                     ),
-                  if (cart.items.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => ref.read(cartProvider.notifier).clearCart(),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: surfaceWhite,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: borderLight),
-                        ),
-                        child: Center(
-                          child: HugeIcon(
-                            icon: HugeIcons.strokeRoundedDelete02,
-                            color: textMuted,
-                            size: 18,
+                  ),
+                  Row(
+                    children: [
+                      if (cart.itemCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            t(
+                              '${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
+                            ),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: primaryBlue,
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                      if (cart.items.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () =>
+                              ref.read(cartProvider.notifier).clearCart(),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: surfaceWhite,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: borderLight),
+                            ),
+                            child: Center(
+                              child: HugeIcon(
+                                icon: HugeIcons.strokeRoundedDelete02,
+                                color: textMuted,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
+              if (cart.items.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () => _openCartAddressBottomSheet(),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: surfaceWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderLight),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _addr1Ctrl.text.trim().isEmpty
+                                ? t('Add Shipping Details')
+                                : '${_nameCtrl.text.trim()}, ${_addr1Ctrl.text.trim()}, ${_cityCtrl.text.trim()}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textPrimary,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _addr1Ctrl.text.trim().isEmpty ? t('Add') : t('Edit'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -2941,13 +3042,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           border: Border.all(
                             color: borderLight.withOpacity(0.5),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: Row(
                           children: [
@@ -3126,7 +3220,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         // Price Summary & Checkout
         if (cart.items.isNotEmpty)
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             decoration: BoxDecoration(
               color: surfaceWhite,
               borderRadius: const BorderRadius.vertical(
@@ -3145,7 +3239,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 children: [
                   // Order Summary
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
@@ -3193,6 +3287,30 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             ),
                           ],
                         ),
+                        if (hasActiveCoupon) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${t('Coupon')} (${_appliedCouponCode ?? ''})',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  color: const Color(0xFF16A34A),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                '-\u20B9${_formatPrice(couponDiscount)}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF16A34A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         Container(height: 1, color: borderLight),
                         const SizedBox(height: 12),
@@ -3200,7 +3318,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              t('Total'),
+                              hasActiveCoupon ? t('Payable Total') : t('Total'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -3208,9 +3326,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               ),
                             ),
                             Text(
-                              '₹${_formatPrice(cart.grandTotal)}',
+                              '₹${_formatPrice(payableTotal)}',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: primaryBlue,
                               ),
@@ -3220,13 +3338,121 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _couponCtrl,
+                          textCapitalization: TextCapitalization.characters,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z0-9_-]'),
+                            ),
+                          ],
+                          onChanged: (_) {
+                            if (_appliedCouponCode != null &&
+                                _normalizedCouponInput != _appliedCouponCode) {
+                              setState(() => _clearAppliedCouponPreview());
+                            }
+                          },
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: t('Coupon Code'),
+                            hintText: t('Enter coupon code'),
+                            labelStyle: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              color: textSecondary,
+                            ),
+                            hintStyle: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              color: textMuted,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: borderLight),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: borderLight),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: primaryBlue,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 44,
+                        child: ElevatedButton(
+                          onPressed: _isApplyingCoupon
+                              ? null
+                              : _applyCouponPreview,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          child: _isApplyingCoupon
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  t('Apply'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_appliedCouponCode != null &&
+                      !hasActiveCoupon &&
+                      _normalizedCouponInput == _appliedCouponCode) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        t('Cart changed, apply coupon again'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
                   // Checkout Button
                   GestureDetector(
                     onTap: _isCheckingOut ? null : _proceedToCheckout,
                     child: Container(
                       width: double.infinity,
-                      height: 52,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: _isCheckingOut
                             ? primaryBlue.withOpacity(0.6)
@@ -3259,7 +3485,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                 ? t('Creating Order...')
                                 : t('Proceed to Checkout'),
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
@@ -4963,6 +5189,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         ? _products
         : _products.where((p) => p['isHot'] == true).toList();
     final t = ref.read(localeProvider.notifier).translate;
+    final currentLang = ref.read(localeProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -5045,6 +5272,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     // Only show HOT badge in Hot Deals section, not in Popular Products
                     return _buildProductCard(
                       product,
+                      currentLang: currentLang,
                       showHotBadge: !isFeatured,
                     );
                   },
@@ -5056,6 +5284,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
   Widget _buildProductCard(
     Map<String, dynamic> product, {
+    required String currentLang,
     bool showHotBadge = true,
   }) {
     final t = ref.read(localeProvider.notifier).translate;
@@ -5101,10 +5330,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 14,
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
               spreadRadius: 0,
-              offset: const Offset(0, 5),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -5239,7 +5468,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   const SizedBox(height: 2),
                   // Product Name
                   Text(
-                    _getDisplayName(product),
+                    _getDisplayName(product, currentLang),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -5459,18 +5688,362 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     return val.toStringAsFixed(val.truncateToDouble() == val ? 0 : 2);
   }
 
-  // ── Checkout state for inline address form ──
-  bool _showAddressForm = false;
-  final _addrFormKey = GlobalKey<FormState>();
+  // Checkout state for cart address + coupon
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addr1Ctrl = TextEditingController();
   final _cityCtrl = TextEditingController();
   final _stateCtrl = TextEditingController();
   final _pinCtrl = TextEditingController();
+  List<ShippingAddress> _savedShippingAddresses = [];
+  String? _selectedShippingAddressId;
+  final _couponCtrl = TextEditingController();
+  bool _isApplyingCoupon = false;
+  String? _appliedCouponCode;
+  double _appliedCouponDiscount = 0;
+  double? _appliedCouponSubtotalSnapshot;
+  int? _appliedCouponItemCountSnapshot;
+
+  String get _normalizedCouponInput => _couponCtrl.text.trim().toUpperCase();
+
+  bool _hasActiveAppliedCoupon(CartState cart) {
+    return _appliedCouponCode != null &&
+        _appliedCouponCode == _normalizedCouponInput &&
+        _appliedCouponSubtotalSnapshot == cart.subtotal &&
+        _appliedCouponItemCountSnapshot == cart.itemCount;
+  }
+
+  void _clearAppliedCouponPreview({bool clearInput = false}) {
+    if (clearInput) _couponCtrl.clear();
+    _appliedCouponCode = null;
+    _appliedCouponDiscount = 0;
+    _appliedCouponSubtotalSnapshot = null;
+    _appliedCouponItemCountSnapshot = null;
+  }
+
+  Future<void> _applyCouponPreview() async {
+    final t = ref.read(localeProvider.notifier).translate;
+    final cart = ref.read(cartProvider);
+    final couponCode = _normalizedCouponInput;
+    if (couponCode.isEmpty || cart.items.isEmpty) return;
+
+    setState(() => _isApplyingCoupon = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.post(
+        '/orders/preview-coupon',
+        data: {'couponCode': couponCode},
+      );
+      final data = Map<String, dynamic>.from(response.data['data'] ?? {});
+      final discount = (data['discount'] as num?)?.toDouble() ?? 0;
+
+      if (!mounted) return;
+      setState(() {
+        _isApplyingCoupon = false;
+        _appliedCouponCode = couponCode;
+        _appliedCouponDiscount = discount;
+        _appliedCouponSubtotalSnapshot = cart.subtotal;
+        _appliedCouponItemCountSnapshot = cart.itemCount;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t('Coupon applied successfully'),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final msg =
+          e.response?.data?['message']?.toString() ?? t('Invalid coupon code');
+      setState(() {
+        _isApplyingCoupon = false;
+        _clearAppliedCouponPreview();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            msg,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isApplyingCoupon = false);
+    }
+  }
+
+  Future<void> _loadSavedShippingAddresses() async {
+    final addresses = await ShippingAddressService.getAddresses();
+    final selectedId = await ShippingAddressService.getSelectedAddressId();
+    if (!mounted) return;
+
+    setState(() {
+      _savedShippingAddresses = addresses;
+      _selectedShippingAddressId =
+          selectedId ?? (addresses.isNotEmpty ? addresses.first.id : null);
+    });
+
+    final selected = _getSelectedShippingAddress();
+    if (selected != null) {
+      _setAddressControllersFromMap(selected.toOrderPayload());
+    }
+  }
+
+  ShippingAddress? _getSelectedShippingAddress() {
+    if (_savedShippingAddresses.isEmpty) return null;
+    return _savedShippingAddresses.firstWhere(
+      (a) => a.id == _selectedShippingAddressId,
+      orElse: () => _savedShippingAddresses.first,
+    );
+  }
+
+  void _setAddressControllersFromMap(Map<String, String> address) {
+    _nameCtrl.text = address['fullName'] ?? '';
+    _phoneCtrl.text = address['phone'] ?? '';
+    _addr1Ctrl.text = address['addressLine1'] ?? '';
+    _cityCtrl.text = address['city'] ?? '';
+    _stateCtrl.text = address['state'] ?? '';
+    _pinCtrl.text = address['pincode'] ?? '';
+  }
+
+  Future<bool> _openCartAddressBottomSheet() async {
+    final auth = ref.read(authProvider);
+    final t = ref.read(localeProvider.notifier).translate;
+    final fk = GlobalKey<FormState>();
+
+    final selected = _getSelectedShippingAddress();
+    final initial =
+        selected?.toOrderPayload() ??
+        {
+          'fullName': _nameCtrl.text.isNotEmpty
+              ? _nameCtrl.text
+              : (auth.user?.name ?? ''),
+          'phone': _phoneCtrl.text.isNotEmpty
+              ? _phoneCtrl.text
+              : (auth.user?.phone ?? ''),
+          'addressLine1': _addr1Ctrl.text,
+          'city': _cityCtrl.text,
+          'state': _stateCtrl.text,
+          'pincode': _pinCtrl.text,
+        };
+
+    final nameC = TextEditingController(text: initial['fullName'] ?? '');
+    final phoneC = TextEditingController(text: initial['phone'] ?? '');
+    final addr1C = TextEditingController(text: initial['addressLine1'] ?? '');
+    final cityC = TextEditingController(text: initial['city'] ?? '');
+    final stateC = TextEditingController(text: initial['state'] ?? '');
+    final pinC = TextEditingController(text: initial['pincode'] ?? '');
+
+    String? selectedId = _selectedShippingAddressId;
+
+    final address = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Container(
+          margin: EdgeInsets.only(top: MediaQuery.of(ctx).padding.top + 40),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: Form(
+              key: fk,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 5,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: borderLight,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      t('Shipping Address'),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                      ),
+                    ),
+                    if (_savedShippingAddresses.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _savedShippingAddresses.map((a) {
+                            final active = selectedId == a.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(
+                                  '${a.fullName} • ${a.shortAddress}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: active ? Colors.white : textPrimary,
+                                  ),
+                                ),
+                                selected: active,
+                                onSelected: (_) {
+                                  setSheetState(() => selectedId = a.id);
+                                  nameC.text = a.fullName;
+                                  phoneC.text = a.phone;
+                                  addr1C.text = a.addressLine1;
+                                  cityC.text = a.city;
+                                  stateC.text = a.state;
+                                  pinC.text = a.pincode;
+                                },
+                                selectedColor: primaryBlue,
+                                backgroundColor: const Color(0xFFF1F5F9),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    _addrField(t('Full Name'), nameC),
+                    const SizedBox(height: 12),
+                    _addrField(
+                      t('Phone'),
+                      phoneC,
+                      keyboard: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    _addrField(t('Address Line 1'), addr1C),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: _addrField(t('City'), cityC)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _addrField(t('State'), stateC)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _addrField(
+                      t('Pincode'),
+                      pinC,
+                      keyboard: TextInputType.number,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (!fk.currentState!.validate()) return;
+                          Navigator.of(ctx).pop({
+                            'id': selectedId ?? ShippingAddress.generateId(),
+                            'fullName': nameC.text.trim(),
+                            'phone': phoneC.text.trim(),
+                            'addressLine1': addr1C.text.trim(),
+                            'city': cityC.text.trim(),
+                            'state': stateC.text.trim(),
+                            'pincode': pinC.text.trim(),
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryBlue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          t('Save Address'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Let modal route teardown complete before touching state/navigation.
+    await Future<void>.delayed(Duration.zero);
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (address == null || !mounted) return false;
+
+    final savedAddress = ShippingAddress(
+      id: address['id'] ?? ShippingAddress.generateId(),
+      fullName: address['fullName'] ?? '',
+      phone: address['phone'] ?? '',
+      addressLine1: address['addressLine1'] ?? '',
+      city: address['city'] ?? '',
+      state: address['state'] ?? '',
+      pincode: address['pincode'] ?? '',
+    );
+
+    await ShippingAddressService.upsertAddress(savedAddress);
+    await ShippingAddressService.setSelectedAddressId(savedAddress.id);
+    await _loadSavedShippingAddresses();
+    _setAddressControllersFromMap(savedAddress.toOrderPayload());
+    return true;
+  }
 
   Future<void> _proceedToCheckout() async {
-    // Validate stock before showing address form
+    final cart = ref.read(cartProvider);
+    final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
+    final typedCoupon = _normalizedCouponInput;
+    final t = ref.read(localeProvider.notifier).translate;
+    if (typedCoupon.isNotEmpty && !hasActiveCoupon) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t('Tap Apply to use this coupon'),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFF59E0B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
+    // Validate stock before opening address sheet
     setState(() => _isCheckingOut = true);
     final result = await ref.read(cartProvider.notifier).validateStock();
     if (!mounted) return;
@@ -5484,10 +6057,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       return;
     }
 
-    final auth = ref.read(authProvider);
-    _nameCtrl.text = auth.user?.name ?? '';
-    _phoneCtrl.text = auth.user?.phone ?? '';
-    setState(() => _showAddressForm = true);
+    final saved = await _openCartAddressBottomSheet();
+    if (!saved || !mounted) return;
+    await Future<void>.delayed(Duration.zero);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    await _confirmAndPay();
   }
 
   void _showStockIssueSnackbar(List<Map<String, dynamic>> issues) {
@@ -5530,8 +6105,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Future<void> _confirmAndPay() async {
-    if (!_addrFormKey.currentState!.validate()) return;
     final t = ref.read(localeProvider.notifier).translate;
+    final cart = ref.read(cartProvider);
+    final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
 
     final address = {
       'fullName': _nameCtrl.text.trim(),
@@ -5543,21 +6119,22 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     };
 
     setState(() {
-      _showAddressForm = false;
       _isCheckingOut = true;
     });
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.post(
-        '/orders',
-        data: {'shippingAddress': address},
-      );
+      final payload = <String, dynamic>{'shippingAddress': address};
+      if (hasActiveCoupon && _appliedCouponCode != null) {
+        payload['couponCode'] = _appliedCouponCode;
+      }
+      final response = await api.post('/orders', data: payload);
 
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
 
       if (response.data['success'] == true) {
         final orderId = response.data['data']['orderId'].toString();
+        _clearAppliedCouponPreview(clearInput: true);
         ref.read(cartProvider.notifier).clearCart();
         await Future.delayed(const Duration(milliseconds: 100));
         if (mounted) context.push('/payment/$orderId');
@@ -5591,84 +6168,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
     }
-  }
-
-  Widget _buildAddressForm() {
-    final t = ref.read(localeProvider.notifier).translate;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Form(
-        key: _addrFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => setState(() => _showAddressForm = false),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_new, size: 18),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  t('Shipping Address'),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _addrField(t('Full Name'), _nameCtrl),
-            const SizedBox(height: 14),
-            _addrField(t('Phone'), _phoneCtrl, keyboard: TextInputType.phone),
-            const SizedBox(height: 14),
-            _addrField(t('Address Line 1'), _addr1Ctrl),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(child: _addrField(t('City'), _cityCtrl)),
-                const SizedBox(width: 12),
-                Expanded(child: _addrField(t('State'), _stateCtrl)),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _addrField(t('Pincode'), _pinCtrl, keyboard: TextInputType.number),
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _confirmAndPay,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  t('Confirm & Pay'),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _proceedToNegotiationOrder(String negotiationId) async {
@@ -6567,16 +7066,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 // ══════════════════════════════════════════
 class _TrustBadgeMarquee extends StatefulWidget {
   final List<Map<String, dynamic>> items;
-  const _TrustBadgeMarquee({required this.items});
+  final bool isActive;
+  const _TrustBadgeMarquee({required this.items, required this.isActive});
 
   @override
   State<_TrustBadgeMarquee> createState() => _TrustBadgeMarqueeState();
 }
 
-class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee>
-    with SingleTickerProviderStateMixin {
+class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee> {
   late final ScrollController _scrollController;
-  Timer? _timer;
+  bool _isAutoScrolling = false;
 
   static const Color _blue = Color(0xFF2563EB);
   static const Color _txtSec = Color(0xFF64748B);
@@ -6585,25 +7084,73 @@ class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee>
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startScroll());
-  }
-
-  void _startScroll() {
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (_) {
-      if (!_scrollController.hasClients) return;
-      final max = _scrollController.position.maxScrollExtent;
-      final current = _scrollController.offset;
-      if (current >= max) {
-        _scrollController.jumpTo(0);
-      } else {
-        _scrollController.jumpTo(current + 0.8);
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isActive) _startScroll();
     });
   }
 
   @override
+  void didUpdateWidget(covariant _TrustBadgeMarquee oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _startScroll();
+      return;
+    }
+    if (!widget.isActive && oldWidget.isActive) {
+      _isAutoScrolling = false;
+    }
+  }
+
+  void _startScroll() {
+    if (_isAutoScrolling) return;
+    _isAutoScrolling = true;
+    _autoScrollLoop();
+  }
+
+  Future<void> _autoScrollLoop() async {
+    while (mounted && _isAutoScrolling) {
+      if (!widget.isActive) break;
+      if (!_scrollController.hasClients) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        continue;
+      }
+
+      final max = _scrollController.position.maxScrollExtent;
+      if (max <= 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        continue;
+      }
+
+      final remaining = (max - _scrollController.offset).clamp(0.0, max);
+      if (remaining <= 1) {
+        _scrollController.jumpTo(0);
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+        continue;
+      }
+
+      // Smooth GPU-driven animation is cheaper than a 30ms jumpTo timer loop.
+      final durationMs = (remaining * 18).clamp(900, 7000).toInt();
+      try {
+        await _scrollController.animateTo(
+          max,
+          duration: Duration(milliseconds: durationMs),
+          curve: Curves.linear,
+        );
+      } catch (_) {
+        break;
+      }
+
+      if (!mounted || !_isAutoScrolling) break;
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+    }
+  }
+
+  @override
   void dispose() {
-    _timer?.cancel();
+    _isAutoScrolling = false;
     _scrollController.dispose();
     super.dispose();
   }
