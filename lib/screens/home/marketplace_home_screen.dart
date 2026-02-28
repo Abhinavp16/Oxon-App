@@ -701,8 +701,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     try {
       final params = <String, dynamic>{};
       if (query.trim().isNotEmpty) params['q'] = query;
-      if (_selectedFilterCategory != null)
+      if (_selectedFilterCategory != null) {
         params['category'] = _selectedFilterCategory;
+      }
       if (_selectedFilterBrand != null) params['brand'] = _selectedFilterBrand;
 
       final endpoint = query.trim().isNotEmpty
@@ -2703,8 +2704,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           (product['purchaseCountMin'] as num?)?.toInt() ?? 0;
                       final pMax =
                           (product['purchaseCountMax'] as num?)?.toInt() ?? 0;
-                      if (pMin <= 0 && pMax <= 0)
+                      if (pMin <= 0 && pMax <= 0) {
                         return const SizedBox.shrink();
+                      }
                       final effectiveMax = pMax > pMin ? pMax : pMin;
                       final dayOfYear = DateTime.now()
                           .difference(DateTime(DateTime.now().year))
@@ -3835,7 +3837,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      t('Qty: ${quantity} units'),
+                      t('Qty: $quantity units'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -6010,7 +6012,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       addressLine1: address['addressLine1'] ?? '',
       city: address['city'] ?? '',
       state: address['state'] ?? '',
-      pincode: address['pincode'] ?? '',
+      pincode: address['pincode'] ?? '', slot: '',
     );
 
     await ShippingAddressService.upsertAddress(savedAddress);

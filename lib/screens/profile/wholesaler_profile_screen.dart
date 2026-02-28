@@ -297,6 +297,13 @@ class _WholesalerProfileScreenState extends State<WholesalerProfileScreen> {
                             showBorder: true,
                           ),
                           _buildMenuItem(
+                            icon: Icons.local_offer_outlined,
+                            iconBgColor: slate100,
+                            iconColor: slate900,
+                            title: 'My Coupon & Offer Code',
+                            showBorder: true,
+                          ),
+                          _buildMenuItem(
                             icon: Icons.logout,
                             iconBgColor: red100,
                             iconColor: red500,

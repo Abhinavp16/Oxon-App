@@ -298,10 +298,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _apiClient.put(
         '/auth/profile',
         data: {
-          if (name != null) 'name': name,
-          if (avatar != null) 'avatar': avatar,
-          if (phone != null) 'phone': phone,
-          if (address != null) 'address': address,
+          'name': ?name,
+          'avatar': ?avatar,
+          'phone': ?phone,
+          'address': ?address,
         },
       );
 

@@ -281,5 +281,7 @@ class LocaleNotifier extends StateNotifier<String> {
           'वीपि पर प्रीमियम बीजों और आधुनिक सिंचाई उपकरणों की विविधता प्रभावशाली है। वाकई आधुनिक खेती के लिए यह एक ही स्थान पर सब कुछ है।',
     },
     'REFERRAL PROGRAM': {'Hindi': 'रेफरल कार्यक्रम'},
+    'My Coupon & Offer Code': {'Hindi': 'मेरे कूपन और ऑफर कोड'},
+    'View and redeem your offers': {'Hindi': 'अपने ऑफर देखें और रिडीम करें'},
   };
 }

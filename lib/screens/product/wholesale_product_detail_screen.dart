@@ -12,7 +12,7 @@ class WholesaleProductDetailScreen extends StatefulWidget {
 
 class _WholesaleProductDetailScreenState
     extends State<WholesaleProductDetailScreen> {
-  int _currentImageIndex = 0;
+  final int _currentImageIndex = 0;
   bool _descriptionExpanded = true;
 
   // Colors from design

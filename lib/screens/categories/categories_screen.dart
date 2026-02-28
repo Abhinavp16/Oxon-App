@@ -123,17 +123,22 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final lower = name.toLowerCase();
     if (lower.contains('tractor')) return Icons.agriculture_rounded;
     if (lower.contains('harvest')) return Icons.grass_rounded;
-    if (lower.contains('irrigat') || lower.contains('pump'))
+    if (lower.contains('irrigat') || lower.contains('pump')) {
       return Icons.water_drop_rounded;
-    if (lower.contains('seed') || lower.contains('plant'))
+    }
+    if (lower.contains('seed') || lower.contains('plant')) {
       return Icons.eco_rounded;
-    if (lower.contains('fertil') || lower.contains('chemic'))
+    }
+    if (lower.contains('fertil') || lower.contains('chemic')) {
       return Icons.science_rounded;
-    if (lower.contains('tool') || lower.contains('equip'))
+    }
+    if (lower.contains('tool') || lower.contains('equip')) {
       return Icons.build_rounded;
+    }
     if (lower.contains('spray')) return Icons.shower_rounded;
-    if (lower.contains('storage') || lower.contains('silo'))
+    if (lower.contains('storage') || lower.contains('silo')) {
       return Icons.warehouse_rounded;
+    }
     return Icons.category_rounded;
   }
 

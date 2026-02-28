@@ -41,6 +41,10 @@ import '../../screens/dev/developer_menu_screen.dart';
 import '../../screens/wishlist/wishlist_screen.dart';
 import '../../screens/profile/account_conversion_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
+import '../../screens/profile/addresses_screen.dart';
+import '../../screens/profile/payment_methods_screen.dart';
+import '../../screens/profile/about_veepee_screen.dart';
+import '../../screens/profile/coupon_offer_screen.dart';
 import '../../screens/referral/referral_screen.dart';
 
 final appRouter = GoRouter(
@@ -221,7 +225,11 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/notifications',
-      builder: (context, state) => const NotificationsCenterScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final initialTab = extra?['bottomTab'] as int? ?? 4;
+        return NotificationsCenterScreen(initialTab: initialTab);
+      },
     ),
     GoRoute(
       path: '/inventory',
@@ -250,6 +258,22 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/referral',
       builder: (context, state) => const ReferralScreen(),
+    ),
+    GoRoute(
+      path: '/addresses',
+      builder: (context, state) => const AddressesScreen(),
+    ),
+    GoRoute(
+      path: '/payment-methods',
+      builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+    GoRoute(
+      path: '/about',
+      builder: (context, state) => const AboutVeepeeScreen(),
+    ),
+    GoRoute(
+      path: '/my-coupons',
+      builder: (context, state) => const CouponOfferScreen(),
     ),
   ],
   errorBuilder: (context, state) =>

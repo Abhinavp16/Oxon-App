@@ -228,6 +228,12 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => context.push('/referral'),
                   ),
                   _buildMenuItem(
+                    icon: HugeIcons.strokeRoundedTicket01,
+                    title: t('My Coupon & Offer Code'),
+                    subtitle: t('View and redeem your offers'),
+                    onTap: () {},
+                  ),
+                  _buildMenuItem(
                     icon: HugeIcons.strokeRoundedFile01,
                     title: t('Terms & Policies'),
                     subtitle: t('Privacy, terms of use'),

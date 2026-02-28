@@ -47,7 +47,7 @@ class WholesaleDetailScreen extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Container(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: Icon(
@@ -69,12 +69,12 @@ class WholesaleDetailScreen extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        Container(
+                        SizedBox(
                           width: 40,
                           height: 40,
                           child: Icon(Icons.share, color: slate700, size: 20),
                         ),
-                        Container(
+                        SizedBox(
                           width: 40,
                           height: 40,
                           child: Icon(

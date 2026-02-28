@@ -207,8 +207,9 @@ class CartNotifier extends StateNotifier<CartState> {
 
     // Optimistic local update
     final updatedItems = state.items.map((i) {
-      if (i.productId == productId)
+      if (i.productId == productId) {
         return i.copyWith(quantity: quantity, clearIssue: true);
+      }
       return i;
     }).toList();
     state = state.copyWith(items: updatedItems);
@@ -229,11 +230,12 @@ class CartNotifier extends StateNotifier<CartState> {
       if (msg != null && msg.contains('Insufficient stock')) {
         // Revert to previous quantity
         final reverted = state.items.map((i) {
-          if (i.productId == productId)
+          if (i.productId == productId) {
             return i.copyWith(
               quantity: item.quantity,
               stockIssue: 'Only ${item.stock} available',
             );
+          }
           return i;
         }).toList();
         state = state.copyWith(items: reverted);

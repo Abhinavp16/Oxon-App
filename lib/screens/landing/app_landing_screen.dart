@@ -573,12 +573,15 @@ class _AppLandingScreenState extends ConsumerState<AppLandingScreen> {
           IconData icon = HugeIcons.strokeRoundedTicket01;
           final title = offer['title'].toLowerCase();
           if (title.contains('seed')) icon = HugeIcons.strokeRoundedLeaf01;
-          if (title.contains('water') || title.contains('irrigation'))
+          if (title.contains('water') || title.contains('irrigation')) {
             icon = HugeIcons.strokeRoundedDroplet;
-          if (title.contains('tool') || title.contains('parts'))
+          }
+          if (title.contains('tool') || title.contains('parts')) {
             icon = HugeIcons.strokeRoundedSettings01;
-          if (title.contains('fertilizer'))
+          }
+          if (title.contains('fertilizer')) {
             icon = HugeIcons.strokeRoundedPackage;
+          }
 
           return _buildVoucherCard(
             offer['title'],

@@ -237,10 +237,12 @@ class _AccountConversionScreenState
                         hint: 'Enter 15-digit GSTIN',
                         icon: HugeIcons.strokeRoundedFile01,
                         validator: (value) {
-                          if (value?.isEmpty ?? true)
+                          if (value?.isEmpty ?? true) {
                             return 'GST number is required';
-                          if (value!.length != 15)
+                          }
+                          if (value!.length != 15) {
                             return 'Invalid GST number format';
+                          }
                           return null;
                         },
                       ),
@@ -283,10 +285,12 @@ class _AccountConversionScreenState
                         icon: HugeIcons.strokeRoundedCall02,
                         keyboardType: TextInputType.phone,
                         validator: (value) {
-                          if (value?.isEmpty ?? true)
+                          if (value?.isEmpty ?? true) {
                             return 'Phone number is required';
-                          if (value!.length < 10)
+                          }
+                          if (value!.length < 10) {
                             return 'Enter a valid phone number';
+                          }
                           return null;
                         },
                       ),

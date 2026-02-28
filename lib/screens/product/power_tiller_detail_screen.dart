@@ -71,12 +71,12 @@ class PowerTillerDetailScreen extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Container(
+                        SizedBox(
                           width: 40,
                           height: 40,
                           child: Icon(Icons.share, color: slate700, size: 20),
                         ),
-                        Container(
+                        SizedBox(
                           width: 40,
                           height: 40,
                           child: Icon(

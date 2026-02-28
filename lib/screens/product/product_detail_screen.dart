@@ -204,8 +204,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   String _fmt(dynamic price) {
     if (price == null) return '0';
     final v = (price is int) ? price.toDouble() : (price as num).toDouble();
-    if (v >= 100000)
+    if (v >= 100000) {
       return '${(v / 100000).toStringAsFixed(v % 100000 == 0 ? 0 : 1)}L';
+    }
     if (v >= 1000) {
       final f = v.toStringAsFixed(0);
       final r = StringBuffer();

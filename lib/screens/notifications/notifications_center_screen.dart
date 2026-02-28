@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class NotificationsCenterScreen extends StatefulWidget {
-  const NotificationsCenterScreen({super.key});
+  const NotificationsCenterScreen({super.key, this.initialTab = 4});
+
+  final int initialTab;
 
   @override
   State<NotificationsCenterScreen> createState() => _NotificationsCenterScreenState();
 }
 
 class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
-  int _selectedNavIndex = 2;
+  late int _selectedNavIndex;
 
   // Colors from design
   static const Color primary = Color(0xFF46ec13);
@@ -24,6 +27,12 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
   static const Color gray500 = Color(0xFF6b7280);
   static const Color gray600 = Color(0xFF4b5563);
   static const Color red500 = Color(0xFFef4444);
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedNavIndex = widget.initialTab;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +55,16 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                     SizedBox(
                       width: 40,
                       height: 40,
-                      child: Icon(Icons.arrow_back_ios, color: textDark),
+                      child: IconButton(
+                        icon: Icon(Icons.arrow_back_ios_new, color: textDark, size: 18),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/home', extra: {'tab': 4});
+                          }
+                        },
+                      ),
                     ),
                     Expanded(
                       child: Text(
@@ -62,7 +80,10 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                     SizedBox(
                       width: 40,
                       height: 40,
-                      child: Icon(Icons.settings, color: textDark),
+                      child: IconButton(
+                        icon: Icon(Icons.settings, color: textDark),
+                        onPressed: () => context.go('/home', extra: {'tab': 4}),
+                      ),
                     ),
                   ],
                 ),
@@ -185,10 +206,11 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildNavItem(Icons.home, 'Home', 0, false),
-                _buildNavItem(Icons.list_alt, 'Orders', 1, false),
-                _buildNavItem(Icons.notifications, 'Alerts', 2, true, showBadge: true),
-                _buildNavItem(Icons.person, 'Profile', 3, false),
+                _buildNavItem(Icons.home_outlined, 'Home', 0),
+                _buildNavItem(Icons.search_outlined, 'Search', 1),
+                _buildNavItem(Icons.grid_view_rounded, 'Categories', 2),
+                _buildNavItem(Icons.shopping_cart_outlined, 'Cart', 3),
+                _buildNavItem(Icons.person_outline, 'Profile', 4),
               ],
             ),
           ),
@@ -308,9 +330,13 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index, bool isSelected, {bool showBadge = false}) {
+  Widget _buildNavItem(IconData icon, String label, int index, {bool showBadge = false}) {
+    final isSelected = _selectedNavIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = index),
+      onTap: () {
+        setState(() => _selectedNavIndex = index);
+        context.go('/home', extra: {'tab': index});
+      },
       child: Stack(
         children: [
           Column(

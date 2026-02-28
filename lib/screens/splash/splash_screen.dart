@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hugeicons/hugeicons.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../../core/providers/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -48,26 +46,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.black,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: const HugeIcon(
-                icon: HugeIcons.strokeRoundedPlant03,
-                size: 60,
-                color: AppColors.primary,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/oxon logo.jpeg',
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'AgriMart',
+              'oXon',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
@@ -77,7 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Wholesale Agricultural Marketplace',
+              'D2C & D2B AGRI WORLD',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
