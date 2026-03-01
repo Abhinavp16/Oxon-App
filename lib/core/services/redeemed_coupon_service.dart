@@ -35,11 +35,29 @@ class RedeemedCoupon {
 }
 
 class RedeemedCouponService {
-  static const _key = 'redeemed_coupons';
+  static const _legacyKey = 'redeemed_coupons';
 
-  static Future<List<RedeemedCoupon>> getCoupons() async {
+  static String _keyForUser(String userKey) {
+    final safe = userKey.trim().isEmpty
+        ? 'guest'
+        : userKey.trim().toLowerCase().replaceAll(' ', '_');
+    return 'redeemed_coupons_$safe';
+  }
+
+  static Future<List<RedeemedCoupon>> getCoupons({required String userKey}) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
+    final key = _keyForUser(userKey);
+    var raw = prefs.getString(key);
+
+    // Backward compatibility: migrate legacy coupons once to the active user key.
+    if ((raw == null || raw.isEmpty)) {
+      final legacyRaw = prefs.getString(_legacyKey);
+      if (legacyRaw != null && legacyRaw.isNotEmpty) {
+        await prefs.setString(key, legacyRaw);
+        await prefs.remove(_legacyKey);
+        raw = legacyRaw;
+      }
+    }
     if (raw == null || raw.isEmpty) return [];
     final parsed = jsonDecode(raw);
     if (parsed is! List) return [];
@@ -51,6 +69,7 @@ class RedeemedCouponService {
   }
 
   static Future<void> redeemCoupon({
+    required String userKey,
     required String code,
     required String title,
     required String rule,
@@ -58,7 +77,7 @@ class RedeemedCouponService {
     final normalizedCode = code.trim().toUpperCase();
     if (normalizedCode.isEmpty) return;
 
-    final current = await getCoupons();
+    final current = await getCoupons(userKey: userKey);
     final exists = current.any((c) => c.code == normalizedCode);
     if (!exists) {
       current.insert(
@@ -70,14 +89,17 @@ class RedeemedCouponService {
           redeemedAt: DateTime.now().millisecondsSinceEpoch,
         ),
       );
-      await _save(current);
+      await _save(userKey: userKey, coupons: current);
     }
   }
 
-  static Future<void> _save(List<RedeemedCoupon> coupons) async {
+  static Future<void> _save({
+    required String userKey,
+    required List<RedeemedCoupon> coupons,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-      _key,
+      _keyForUser(userKey),
       jsonEncode(coupons.map((c) => c.toJson()).toList()),
     );
   }

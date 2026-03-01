@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/providers/auth_provider.dart';
 import '../../core/services/redeemed_coupon_service.dart';
+import '../../core/services/storage_service.dart';
 
-class CouponOfferScreen extends StatefulWidget {
+class CouponOfferScreen extends ConsumerStatefulWidget {
   const CouponOfferScreen({super.key});
 
   @override
-  State<CouponOfferScreen> createState() => _CouponOfferScreenState();
+  ConsumerState<CouponOfferScreen> createState() => _CouponOfferScreenState();
 }
 
-class _CouponOfferScreenState extends State<CouponOfferScreen> {
+class _CouponOfferScreenState extends ConsumerState<CouponOfferScreen> {
   List<RedeemedCoupon> _coupons = [];
   bool _loading = true;
 
@@ -22,7 +25,18 @@ class _CouponOfferScreenState extends State<CouponOfferScreen> {
   }
 
   Future<void> _loadCoupons() async {
-    final coupons = await RedeemedCouponService.getCoupons();
+    final user = ref.read(authProvider).user;
+    final userData = await StorageService.getUserData();
+    final userKey = user?.id.isNotEmpty == true
+        ? user!.id
+        : (user?.phone ??
+              user?.email ??
+              userData?['id']?.toString() ??
+              userData?['_id']?.toString() ??
+              userData?['phone']?.toString() ??
+              userData?['email']?.toString() ??
+              'guest');
+    final coupons = await RedeemedCouponService.getCoupons(userKey: userKey);
     if (!mounted) return;
     setState(() {
       _coupons = coupons;

@@ -16,6 +16,7 @@ import '../../core/config/api_config.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/redeemed_coupon_service.dart';
 import '../../core/services/shipping_address_service.dart';
 import '../../core/services/transliteration_service.dart';
 import '../categories/categories_screen.dart';
@@ -622,14 +623,19 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         final List<dynamic> items = response.data['data'] ?? [];
         setState(() {
           _offers = items.map<Map<String, dynamic>>((item) {
+            final discountType = item['discountType']?.toString() ?? '';
+            final discountValue = item['discountValue'];
             return {
               'title': item['title'] ?? '',
-              'discount': item['discountType'] == 'percentage'
-                  ? '${item['discountValue']}%'
-                  : '₹${item['discountValue']}',
-              'type': item['discountType'],
-              'value': item['discountValue'],
-              'code': item['code'],
+              'discount': discountType == 'percentage'
+                  ? '$discountValue%'
+                  : '₹$discountValue',
+              'type': discountType,
+              'value': discountValue,
+              'code': item['code']?.toString(),
+              'rule': discountType == 'percentage'
+                  ? 'Up to $discountValue% off on selected products'
+                  : 'Flat Rs $discountValue off on eligible orders',
             };
           }).toList();
           _isLoadingOffers = false;
@@ -1706,18 +1712,24 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       '20%',
                       const Color(0xFF3B82F6),
                       Icons.water_drop_rounded,
+                      couponCode: 'IRR20',
+                      rule: 'Up to 20% off on selected irrigation kits',
                     ),
                     _buildModernOfferCard(
                       t('Premium Seeds'),
                       '15%',
                       const Color(0xFF10B981),
                       Icons.grass_rounded,
+                      couponCode: 'SEED15',
+                      rule: 'Up to 15% off on selected premium seeds',
                     ),
                     _buildModernOfferCard(
                       t('Tractor Parts'),
                       '10%',
                       const Color(0xFF8B5CF6),
                       Icons.settings_rounded,
+                      couponCode: 'TRACT10',
+                      rule: 'Up to 10% off on selected tractor parts',
                     ),
                   ]
                 : _offers.map((offer) {
@@ -1740,6 +1752,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       offer['discount'] ?? '',
                       colors[index % colors.length],
                       icons[index % icons.length],
+                      couponCode: offer['code']?.toString(),
+                      rule:
+                          offer['rule']?.toString() ??
+                          'Apply during checkout to unlock offer',
                     );
                   }).toList(),
           ),
@@ -1753,6 +1769,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     String discount,
     Color color,
     IconData icon,
+    {String? couponCode, String? rule}
   ) {
     final t = ref.read(localeProvider.notifier).translate;
     const double cardW = 145;
@@ -1952,14 +1969,26 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                   ),
                                 ],
                               ),
-                              child: Center(
-                                child: Text(
-                                  t('REDEEM'),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: color,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2.5,
+                              child: GestureDetector(
+                                onTap: () => _redeemOffer(
+                                  code:
+                                      (couponCode?.trim().isNotEmpty ?? false)
+                                      ? couponCode!.trim()
+                                      : title.replaceAll(' ', '').toUpperCase(),
+                                  title: title,
+                                  rule:
+                                      rule ??
+                                      'Apply during checkout to unlock this offer',
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    t('REDEEM'),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: color,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1974,6 +2003,32 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _redeemOffer({
+    required String code,
+    required String title,
+    required String rule,
+  }) async {
+    final user = ref.read(authProvider).user;
+    final userKey = user?.id.isNotEmpty == true
+        ? user!.id
+        : (user?.phone ?? user?.email ?? 'guest');
+    await RedeemedCouponService.redeemCoupon(
+      userKey: userKey,
+      code: code,
+      title: title,
+      rule: rule,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$code redeemed. Check My Coupon & Offer Code.',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -2816,7 +2871,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget _buildCartContent() {
     final cart = ref.watch(cartProvider);
     final t = ref.read(localeProvider.notifier).translate;
-    final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
+                      final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
+                      final isCouponLocked =
+                          _appliedCouponCode != null &&
+                          _normalizedCouponInput == _appliedCouponCode;
     final couponDiscount = hasActiveCoupon ? _appliedCouponDiscount : 0.0;
     final payableTotal = math
         .max(cart.grandTotal - couponDiscount, 0)
@@ -3018,9 +3076,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     return Dismissible(
                       key: Key(item.productId),
                       direction: DismissDirection.endToStart,
-                      onDismissed: (_) => ref
-                          .read(cartProvider.notifier)
-                          .removeItem(item.productId),
+                      onDismissed: (_) =>
+                          _removeCartItemAndRefreshCoupon(item.productId),
                       background: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
@@ -3144,9 +3201,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         GestureDetector(
-                                          onTap: () => ref
-                                              .read(cartProvider.notifier)
-                                              .updateQuantity(
+                                          onTap: () =>
+                                              _updateCartQtyAndRefreshCoupon(
                                                 item.productId,
                                                 item.quantity - 1,
                                               ),
@@ -3184,9 +3240,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                           ),
                                         ),
                                         GestureDetector(
-                                          onTap: () => ref
-                                              .read(cartProvider.notifier)
-                                              .updateQuantity(
+                                          onTap: () =>
+                                              _updateCartQtyAndRefreshCoupon(
                                                 item.productId,
                                                 item.quantity + 1,
                                               ),
@@ -3346,6 +3401,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _couponCtrl,
+                          enabled: !isCouponLocked && !_isApplyingCoupon,
                           textCapitalization: TextCapitalization.characters,
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
@@ -3363,8 +3419,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                           decoration: InputDecoration(
-                            labelText: t('Coupon Code'),
-                            hintText: t('Enter coupon code'),
+                            labelText: t('Coupon / Affiliate Code'),
+                            hintText: t('Enter coupon or affiliate code'),
                             labelStyle: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               color: textSecondary,
@@ -3402,6 +3458,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         height: 44,
                         child: ElevatedButton(
                           onPressed: _isApplyingCoupon
+                              || isCouponLocked
                               ? null
                               : _applyCouponPreview,
                           style: ElevatedButton.styleFrom(
@@ -3422,7 +3479,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                   ),
                                 )
                               : Text(
-                                  t('Apply'),
+                                  t(isCouponLocked ? 'Applied' : 'Apply'),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -3432,18 +3489,21 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       ),
                     ],
                   ),
-                  if (_appliedCouponCode != null &&
-                      !hasActiveCoupon &&
-                      _normalizedCouponInput == _appliedCouponCode) ...[
+                  if (isCouponLocked) ...[
                     const SizedBox(height: 6),
                     Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        t('Cart changed, apply coupon again'),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: textMuted,
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: () => setState(
+                          () => _clearAppliedCouponPreview(clearInput: true),
+                        ),
+                        child: Text(
+                          t('Change code'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: primaryBlue,
+                          ),
                         ),
                       ),
                     ),
@@ -4053,21 +4113,24 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         'color': const Color(0xFF059669),
         'title': t('Addresses'),
         'subtitle': null,
-        'onTap': () {},
+        'onTap': () {
+          context.push('/addresses').then((_) => _loadSavedShippingAddresses());
+        },
       },
       {
         'icon': HugeIcons.strokeRoundedCreditCard,
         'color': const Color(0xFF2563EB),
         'title': t('Payment Methods'),
         'subtitle': null,
-        'onTap': () {},
+        'onTap': () => context.push('/payment-methods'),
       },
       {
         'icon': HugeIcons.strokeRoundedNotification02,
         'color': const Color(0xFF7C3AED),
         'title': t('Notifications'),
         'subtitle': null,
-        'onTap': () {},
+        'onTap': () =>
+            context.push('/notifications', extra: {'bottomTab': 4}),
       },
       {
         'icon': HugeIcons.strokeRoundedHelpCircle,
@@ -4081,7 +4144,14 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         'color': const Color(0xFF4338CA),
         'title': t('About'),
         'subtitle': null,
-        'onTap': () {},
+        'onTap': () => context.push('/about'),
+      },
+      {
+        'icon': HugeIcons.strokeRoundedTicket01,
+        'color': const Color(0xFFDC2626),
+        'title': t('My Coupon & Offer Code'),
+        'subtitle': null,
+        'onTap': () => context.push('/my-coupons'),
       },
       if (user?.role != 'wholesaler')
         {
@@ -5723,11 +5793,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _appliedCouponItemCountSnapshot = null;
   }
 
-  Future<void> _applyCouponPreview() async {
+  Future<void> _applyCouponPreview({
+    bool showSuccessToast = true,
+    bool showErrorToast = true,
+    bool recordRedeem = true,
+  }) async {
     final t = ref.read(localeProvider.notifier).translate;
     final cart = ref.read(cartProvider);
     final couponCode = _normalizedCouponInput;
-    if (couponCode.isEmpty || cart.items.isEmpty) return;
+    if (_isApplyingCoupon || couponCode.isEmpty || cart.items.isEmpty) return;
 
     setState(() => _isApplyingCoupon = true);
     try {
@@ -5738,29 +5812,50 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       );
       final data = Map<String, dynamic>.from(response.data['data'] ?? {});
       final discount = (data['discount'] as num?)?.toDouble() ?? 0;
+      final discountSource = (data['discountSource'] as String?) ?? 'offer';
 
       if (!mounted) return;
+      final latestCart = ref.read(cartProvider);
       setState(() {
         _isApplyingCoupon = false;
         _appliedCouponCode = couponCode;
         _appliedCouponDiscount = discount;
-        _appliedCouponSubtotalSnapshot = cart.subtotal;
-        _appliedCouponItemCountSnapshot = cart.itemCount;
+        _appliedCouponSubtotalSnapshot = latestCart.subtotal;
+        _appliedCouponItemCountSnapshot = latestCart.itemCount;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            t('Coupon applied successfully'),
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+      if (recordRedeem) {
+        final user = ref.read(authProvider).user;
+        final userKey = user?.id.isNotEmpty == true
+            ? user!.id
+            : (user?.phone ?? user?.email ?? 'guest');
+        await RedeemedCouponService.redeemCoupon(
+          userKey: userKey,
+          code: couponCode,
+          title: couponCode,
+          rule: 'Applied successfully during checkout',
+        );
+      }
+      if (showSuccessToast) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              t(
+                discountSource == 'affiliate'
+                    ? 'Affiliate code applied'
+                    : 'Coupon applied successfully',
+              ),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
-          backgroundColor: const Color(0xFF16A34A),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+        );
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       final msg =
@@ -5769,24 +5864,60 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         _isApplyingCoupon = false;
         _clearAppliedCouponPreview();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            msg,
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+      if (showErrorToast) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              msg,
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
-          backgroundColor: const Color(0xFFDC2626),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _isApplyingCoupon = false);
     }
+  }
+
+  Future<void> _autoReapplyCouponIfNeeded() async {
+    final cart = ref.read(cartProvider);
+    if (cart.items.isEmpty) {
+      if (mounted) {
+        setState(() => _clearAppliedCouponPreview(clearInput: true));
+      }
+      return;
+    }
+
+    if (_appliedCouponCode == null) return;
+    if (_normalizedCouponInput != _appliedCouponCode) return;
+    if (_hasActiveAppliedCoupon(cart)) return;
+    if (_isApplyingCoupon) return;
+
+    await _applyCouponPreview(
+      showSuccessToast: false,
+      showErrorToast: false,
+      recordRedeem: false,
+    );
+  }
+
+  Future<void> _updateCartQtyAndRefreshCoupon(
+    String productId,
+    int quantity,
+  ) async {
+    await ref.read(cartProvider.notifier).updateQuantity(productId, quantity);
+    await _autoReapplyCouponIfNeeded();
+  }
+
+  Future<void> _removeCartItemAndRefreshCoupon(String productId) async {
+    await ref.read(cartProvider.notifier).removeItem(productId);
+    await _autoReapplyCouponIfNeeded();
   }
 
   Future<void> _loadSavedShippingAddresses() async {

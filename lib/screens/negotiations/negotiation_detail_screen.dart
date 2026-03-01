@@ -336,7 +336,7 @@ class _NegotiationDetailScreenState
                   ),
                   const SizedBox(height: 12),
                   _addrField(
-                    'Coupon Code (Optional)',
+                    'Coupon / Affiliate Code (Optional)',
                     couponCtrl,
                     required: false,
                   ),
