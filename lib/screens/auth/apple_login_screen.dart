@@ -65,11 +65,6 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF34C759), Color(0xFF30B050)],
-                          ),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
@@ -79,10 +74,12 @@ class _AppleLoginScreenState extends ConsumerState<AppleLoginScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.eco_rounded,
-                          color: Colors.white,
-                          size: 44,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.asset(
+                            'assets/images/oxon logo.jpeg',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),

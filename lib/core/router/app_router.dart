@@ -45,6 +45,7 @@ import '../../screens/profile/addresses_screen.dart';
 import '../../screens/profile/payment_methods_screen.dart';
 import '../../screens/profile/about_veepee_screen.dart';
 import '../../screens/profile/coupon_offer_screen.dart';
+import '../../screens/profile/legal_policy_screen.dart';
 import '../../screens/referral/referral_screen.dart';
 
 final appRouter = GoRouter(
@@ -274,6 +275,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/my-coupons',
       builder: (context, state) => const CouponOfferScreen(),
+    ),
+    GoRoute(
+      path: '/legal/:policyId',
+      builder: (context, state) =>
+          LegalPolicyScreen(policyId: state.pathParameters['policyId'] ?? ''),
     ),
   ],
   errorBuilder: (context, state) =>

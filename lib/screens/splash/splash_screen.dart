@@ -36,11 +36,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     
     debugPrint('[Splash] Auth check done: isAuthenticated=${authState.isAuthenticated}, user=${authState.user?.name}');
     
-    if (authState.isAuthenticated) {
-      context.go('/home');
-    } else {
-      context.go('/login');
-    }
+    context.go('/home');
   }
 
   @override

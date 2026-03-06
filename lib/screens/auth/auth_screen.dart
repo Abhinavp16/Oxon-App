@@ -28,6 +28,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
   bool _isWholesaler = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _agreedToOxonCallsAndMessages = false;
+  bool _showPolicyDetails = false;
   File? _documentFile;
   
   // Animation Controllers
@@ -112,6 +114,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
     _confirmPasswordController.clear();
     _nameController.clear();
     _businessNameController.clear();
+    _agreedToOxonCallsAndMessages = false;
+    _showPolicyDetails = false;
     _documentFile = null;
   }
 
@@ -155,6 +159,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
       }
       if (_confirmPasswordController.text != password) {
         _showError('Passwords do not match');
+        return;
+      }
+      if (!_agreedToOxonCallsAndMessages) {
+        _showError('Please accept Terms & Conditions and Privacy Policy');
         return;
       }
 
@@ -220,9 +228,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _isLogin 
-                          ? 'Sign in to continue to AgriMart'
-                          : 'Join AgriMart today',
+                        _isLogin
+                          ? 'Sign in to continue to OXON'
+                          : 'Join OXON today',
                         style: AppFonts.bodyMedium(color: _textMuted),
                       ),
                       const SizedBox(height: 32),
@@ -240,6 +248,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                       // Form Fields
                       _buildForm(),
                       const SizedBox(height: 28),
+
+                      if (!_isLogin) ...[
+                        _buildOxonConsentCheckbox(),
+                        const SizedBox(height: 20),
+                      ],
                       
                       // Submit Button
                       _buildSubmitButton(authState.isLoading),
@@ -267,11 +280,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
         width: 72,
         height: 72,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [_primaryColor, _primaryColor.withOpacity(0.8)],
-          ),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -281,10 +289,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             ),
           ],
         ),
-        child: HugeIcon(
-          icon: _isWholesaler ? HugeIcons.strokeRoundedStore01 : HugeIcons.strokeRoundedPlant03,
-          color: Colors.white,
-          size: 36,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Image.asset(
+            'assets/images/oxon logo.jpeg',
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );
@@ -637,6 +647,97 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                 _isLogin ? 'Sign In' : 'Create Account',
                 style: AppFonts.button(color: Colors.white),
               ),
+      ),
+    );
+  }
+
+  Widget _buildOxonConsentCheckbox() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _agreedToOxonCallsAndMessages,
+                onChanged: (value) =>
+                    setState(() => _agreedToOxonCallsAndMessages = value ?? false),
+                activeColor: _primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                side: const BorderSide(
+                  color: Color(0xFFC7C7CC),
+                  width: 1.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    'By continuing, you agree to our Terms & Conditions and Privacy Policy.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.bodyMedium(
+                      color: _textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => setState(() => _showPolicyDetails = !_showPolicyDetails),
+                icon: Icon(
+                  _showPolicyDetails
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: _textMuted,
+                ),
+              ),
+            ],
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 220),
+            crossFadeState:
+                _showPolicyDetails ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+            firstChild: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '- We collect basic details like name, phone, email, and app usage data.',
+                    style: AppFonts.bodySmall(color: _textMuted),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '- We use this data to process orders, provide support, and improve services.',
+                    style: AppFonts.bodySmall(color: _textMuted),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '- We share data only with logistics, payment, service partners, or legal authorities.',
+                    style: AppFonts.bodySmall(color: _textMuted),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '- You can request access, correction, or deletion of your data where permitted.',
+                    style: AppFonts.bodySmall(color: _textMuted),
+                  ),
+                ],
+              ),
+            ),
+            secondChild: const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }

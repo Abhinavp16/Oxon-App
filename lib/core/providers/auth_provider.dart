@@ -295,14 +295,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
+      final data = <String, dynamic>{};
+      if (name != null) data['name'] = name;
+      if (avatar != null) data['avatar'] = avatar;
+      if (phone != null) data['phone'] = phone;
+      if (address != null) data['address'] = address;
+
       final response = await _apiClient.put(
         '/auth/profile',
-        data: {
-          'name': ?name,
-          'avatar': ?avatar,
-          'phone': ?phone,
-          'address': ?address,
-        },
+        data: data,
       );
 
       if (response.data['success'] == true) {
@@ -327,6 +328,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
         error: 'An unexpected error occurred',
       );
       return false;
+    }
+  }
+
+  Future<String?> uploadProfileAvatar(String filePath) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath),
+      });
+      final response = await _apiClient.post(
+        '/auth/profile/avatar',
+        data: formData,
+      );
+
+      if (response.data['success'] == true) {
+        final userData = response.data['data']['user'];
+        final user = UserModel.fromJson(userData);
+        state = state.copyWith(user: user, isLoading: false);
+        await StorageService.saveUserData(userData);
+        return response.data['data']['avatarUrl']?.toString();
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        error: response.data['message'] ?? 'Avatar upload failed',
+      );
+      return null;
+    } on DioException catch (e) {
+      final message = e.response?.data?['message'] ?? 'Avatar upload failed';
+      state = state.copyWith(isLoading: false, error: message);
+      return null;
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred',
+      );
+      return null;
     }
   }
 

@@ -3,15 +3,22 @@
 library;
 
 class ApiConfig {
-  // For Android Emulator: use 10.0.2.2
-  // For iOS Simulator: use localhost or 127.0.0.1
-  // For Physical Device: use your computer's local IP (e.g., 192.168.1.100)
-  // Run 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux) to find your IP
-  // CURRENT IP (Check 'ipconfig' in Windows)
-  static const String localIp = '192.168.1.14';
+  // Override at build/run time:
+  // flutter run --dart-define=API_BASE_URL=http://<YOUR_IP>:5000/api/v1
+  // or
+  // flutter run --dart-define=API_LOCAL_IP=<YOUR_IP>
+  //
+  // Current fallback host IP from local machine config.
+  static const String localIp = String.fromEnvironment(
+    'API_LOCAL_IP',
+    defaultValue: '192.168.1.3',
+  );
 
-  // Base URL - Change this based on where you are running the app
-  static const String baseUrl = 'http://$localIp:5000/api/v1';
+  // Base URL (can be overridden with API_BASE_URL).
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://$localIp:5000/api/v1',
+  );
 
   // Alternative URLs for reference
   static const String emulatorUrl = 'http://10.0.2.2:5000/api/v1';

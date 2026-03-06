@@ -39,6 +39,7 @@ class LocaleNotifier extends StateNotifier<String> {
     'Account Settings': {'Hindi': 'खाता सेटिंग'},
     'Log Out': {'Hindi': 'लॉग आउट'},
     'Negotiate': {'Hindi': 'मोलभाव'},
+    'Chat With Dealer': {'Hindi': 'डीलर से चैट करें'},
     'Home': {'Hindi': 'होम'},
     'Search': {'Hindi': 'खोजें'},
     'Profile': {'Hindi': 'प्रोफ़ाइल'},
@@ -258,25 +259,25 @@ class LocaleNotifier extends StateNotifier<String> {
     'What Our Customers Say': {'Hindi': 'हमारे ग्राहक क्या कहते हैं'},
     'Rajesh Kumar': {'Hindi': 'राजेश कुमार'},
     'Progressive Farmer, Punjab': {'Hindi': 'प्रगतिशील किसान, पंजाब'},
-    'Veepee has completely changed how I source my tools. The bulk pricing and quality are unbeatable for my 50-acre farm.': {
+    'OXON has completely changed how I source my tools. The bulk pricing and quality are unbeatable for my 50-acre farm.': {
       'Hindi':
           'वीपि ने मेरे उपकरणों के स्रोत के तरीके को पूरी तरह से बदल दिया है। मेरे 50 एकड़ के खेत के लिए थोक मूल्य और गुणवत्ता बेजोड़ हैं।',
     },
     'Priya Sharma': {'Hindi': 'प्रिया शर्मा'},
     'Agri-Retailer, Delhi': {'Hindi': 'कृषि-विक्रेता, दिल्ली'},
-    'As a retailer, I need reliable delivery and authentic brands. Veepee\'s pan-India service is a lifesaver for my business.': {
+    'As a retailer, I need reliable delivery and authentic brands. OXON\'s pan-India service is a lifesaver for my business.': {
       'Hindi':
           'एक खुदरा विक्रेता के रूप में, मुझे विश्वसनीय वितरण और प्रामाणिक ब्रांडों की आवश्यकता है। वीपि की अखिल भारतीय सेवा मेरे व्यवसाय के लिए जीवन रक्षक है।',
     },
     'Amit Patel': {'Hindi': 'अमित पटेल'},
     'Wholesale Distributor, Gujarat': {'Hindi': 'थोक वितरक, गुजरात'},
-    'I\'ve been using Veepee for a year now. It has greatly simplified how I manage large orders and track inventory.': {
+    'I\'ve been using OXON for a year now. It has greatly simplified how I manage large orders and track inventory.': {
       'Hindi':
           'मैं पिछले एक साल से वीपि का उपयोग कर रहा हूँ। इसने मेरे बड़े ऑर्डर्स को प्रबंधित करने और इन्वेंट्री को ट्रैक करने के तरीके को बहुत सरल बना दिया है।',
     },
     'Anjali Singh': {'Hindi': 'अंजलि सिंह'},
     'Organic Farm Owner, UP': {'Hindi': 'जैविक फार्म मालिक, यूपी'},
-    'The variety of premium seeds and modern irrigation tools on Veepee is impressive. Truly a one-stop shop for modern farming.': {
+    'The variety of premium seeds and modern irrigation tools on OXON is impressive. Truly a one-stop shop for modern farming.': {
       'Hindi':
           'वीपि पर प्रीमियम बीजों और आधुनिक सिंचाई उपकरणों की विविधता प्रभावशाली है। वाकई आधुनिक खेती के लिए यह एक ही स्थान पर सब कुछ है।',
     },

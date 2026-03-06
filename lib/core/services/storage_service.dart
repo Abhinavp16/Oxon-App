@@ -7,6 +7,7 @@ class StorageService {
   static const _refreshTokenKey = 'refresh_token';
   static const _userDataKey = 'user_data';
   static const _isFirstLaunchKey = 'is_first_launch';
+  static const _guestTrialStartedAtKey = 'guest_trial_started_at_ms';
 
   static const _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -61,6 +62,19 @@ class StorageService {
   static Future<void> setFirstLaunchComplete() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isFirstLaunchKey, false);
+  }
+
+  // Guest Trial Management
+  static Future<DateTime> getOrCreateGuestTrialStartedAt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedMs = prefs.getInt(_guestTrialStartedAtKey);
+    if (storedMs != null) {
+      return DateTime.fromMillisecondsSinceEpoch(storedMs);
+    }
+
+    final now = DateTime.now();
+    await prefs.setInt(_guestTrialStartedAtKey, now.millisecondsSinceEpoch);
+    return now;
   }
 
   // Clear All

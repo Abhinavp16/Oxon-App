@@ -18,8 +18,10 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/redeemed_coupon_service.dart';
 import '../../core/services/shipping_address_service.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/services/transliteration_service.dart';
 import '../categories/categories_screen.dart';
+import '../profile/legal_policy_screen.dart';
 import '../../widgets/product_image_placeholder.dart';
 import '../../core/providers/wishlist_provider.dart';
 import '../../core/providers/order_count_provider.dart';
@@ -34,6 +36,8 @@ class MarketplaceHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
+  static const Duration _guestInitialFreeUseDuration = Duration(seconds: 30);
+  static const Duration _guestPromptRepeatDuration = Duration(seconds: 40);
   late int _selectedNavIndex;
   bool _isCheckingOut = false;
   int _currentCarouselIndex = 0;
@@ -47,7 +51,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       receiveTimeout: ApiConfig.receiveTimeout,
     ),
   );
-
   // Blue Theme Colors - Apple-like design
   static const Color primaryBlue = Color(0xFF2563EB);
   static const Color primaryBlueDark = Color(0xFF1D4ED8);
@@ -103,6 +106,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   // Reviews state
   List<Map<String, dynamic>> _dynamicReviews = [];
   bool _isLoadingReviews = true;
+  Timer? _guestAuthPromptTimer;
+  bool _isGuestAuthDialogVisible = false;
 
   @override
   void initState() {
@@ -150,7 +155,72 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(cartProvider.notifier).fetchCart();
       _startAutoRotate();
+      _initGuestAuthPromptFlow();
     });
+  }
+
+  Future<void> _initGuestAuthPromptFlow() async {
+    if (!mounted) return;
+    if (ref.read(authProvider).isAuthenticated) return;
+
+    final trialStartAt = await StorageService.getOrCreateGuestTrialStartedAt();
+    if (!mounted) return;
+
+    final elapsed = DateTime.now().difference(trialStartAt);
+    final initialDelay = _guestInitialFreeUseDuration - elapsed;
+    if (initialDelay.isNegative || initialDelay == Duration.zero) {
+      _showGuestAuthPrompt();
+      return;
+    }
+
+    _guestAuthPromptTimer?.cancel();
+    _guestAuthPromptTimer = Timer(initialDelay, _showGuestAuthPrompt);
+  }
+
+  void _scheduleNextGuestPrompt() {
+    _guestAuthPromptTimer?.cancel();
+    _guestAuthPromptTimer = Timer(_guestPromptRepeatDuration, () {
+      _showGuestAuthPrompt();
+    });
+  }
+
+  Future<void> _showGuestAuthPrompt() async {
+    if (!mounted) return;
+    final auth = ref.read(authProvider);
+    if (auth.isAuthenticated || _isGuestAuthDialogVisible) return;
+
+    _isGuestAuthDialogVisible = true;
+    final shouldOpenLogin = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Login Required'),
+          content: const Text(
+            'Please login or sign up to continue enjoying all features.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Skip'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Login / Sign Up'),
+            ),
+          ],
+        );
+      },
+    );
+    _isGuestAuthDialogVisible = false;
+
+    if (!mounted) return;
+    if (ref.read(authProvider).isAuthenticated) return;
+
+    if (shouldOpenLogin == true) {
+      context.push('/login');
+    }
+    _scheduleNextGuestPrompt();
   }
 
   Future<void> _initNotifications() async {
@@ -1431,6 +1501,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   void dispose() {
     _heroAutoRotateTimer?.cancel();
     _promoAutoRotateTimer?.cancel();
+    _guestAuthPromptTimer?.cancel();
     _carouselController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
@@ -1573,6 +1644,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   const SizedBox(height: 8),
                   _buildCarousel(),
                   const SizedBox(height: 24),
+                  _buildPartnershipStrip(),
+                  const SizedBox(height: 16),
                   _buildOfferSection(),
                   const SizedBox(height: 24),
                   _buildCategorySection(),
@@ -2003,6 +2076,54 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPartnershipStrip() {
+    final items = <Map<String, dynamic>>[
+      {'image': 'assets/images/oxon logo.jpeg', 'label': 'OXON'},
+      {'icon': Icons.eco_outlined, 'label': 'EcoTech'},
+      {'icon': Icons.bolt_rounded, 'label': 'Kargill'},
+      {'icon': Icons.layers_outlined, 'label': 'AgriPlus'},
+      {'icon': Icons.water_drop_outlined, 'label': 'V-Flow'},
+      {'icon': Icons.build_outlined, 'label': 'HeavyDuty'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+                'AUTHORIZED REPRESENTATIVE & PARTNERSHIPS',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3,
+                  color: textMuted,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 42,
+              child: _PartnershipMarquee(
+                items: items,
+                isActive: _selectedNavIndex == 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2751,6 +2872,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         ),
                     ],
                   ),
+                  const SizedBox(height: 4),
                   const SizedBox(height: 4),
                   // Live Purchase Counter (list view)
                   Builder(
@@ -4106,9 +4228,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget _buildProfileContent() {
     final t = ref.read(localeProvider.notifier).translate;
     final user = ref.watch(authProvider).user;
+    final isGuest = user == null;
 
-    final settings = [
+    final profileItems = [
       {
+        'type': 'setting',
         'icon': HugeIcons.strokeRoundedLocation01,
         'color': const Color(0xFF059669),
         'title': t('Addresses'),
@@ -4118,6 +4242,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         },
       },
       {
+        'type': 'setting',
         'icon': HugeIcons.strokeRoundedCreditCard,
         'color': const Color(0xFF2563EB),
         'title': t('Payment Methods'),
@@ -4125,6 +4250,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         'onTap': () => context.push('/payment-methods'),
       },
       {
+        'type': 'setting',
         'icon': HugeIcons.strokeRoundedNotification02,
         'color': const Color(0xFF7C3AED),
         'title': t('Notifications'),
@@ -4133,6 +4259,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             context.push('/notifications', extra: {'bottomTab': 4}),
       },
       {
+        'type': 'setting',
         'icon': HugeIcons.strokeRoundedHelpCircle,
         'color': const Color(0xFFD97706),
         'title': t('Help & Support'),
@@ -4140,6 +4267,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         'onTap': () => context.push('/help'),
       },
       {
+        'type': 'setting',
+        'icon': HugeIcons.strokeRoundedFile01,
+        'color': const Color(0xFF0891B2),
+        'title': t('Legal & Policies'),
+        'subtitle': null,
+        'onTap': () => _showLegalPoliciesSheet(),
+      },
+      {
+        'type': 'setting',
         'icon': HugeIcons.strokeRoundedInformationCircle,
         'color': const Color(0xFF4338CA),
         'title': t('About'),
@@ -4147,6 +4283,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         'onTap': () => context.push('/about'),
       },
       {
+        'type': 'setting',
         'icon': HugeIcons.strokeRoundedTicket01,
         'color': const Color(0xFFDC2626),
         'title': t('My Coupon & Offer Code'),
@@ -4155,6 +4292,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       },
       if (user?.role != 'wholesaler')
         {
+          'type': 'setting',
           'icon': HugeIcons.strokeRoundedStore02,
           'color': primaryBlue,
           'title': t('Convert to Wholesaler'),
@@ -4232,10 +4370,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(
-                            HugeIcons.strokeRoundedArrowLeft01,
-                            color: Colors.white,
-                            size: 24,
+                          IconButton(
+                            onPressed: () {
+                              if (_selectedNavIndex != 0) {
+                                setState(() => _selectedNavIndex = 0);
+                              }
+                            },
+                            icon: const Icon(
+                              HugeIcons.strokeRoundedArrowLeft01,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                           Text(
                             t('Profile'),
@@ -4245,10 +4390,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const Icon(
-                            HugeIcons.strokeRoundedSettings01,
-                            color: Colors.white,
-                            size: 24,
+                          IconButton(
+                            onPressed: () => context.push(
+                              isGuest ? '/login' : '/edit-profile',
+                            ),
+                            icon: const Icon(
+                              HugeIcons.strokeRoundedSettings01,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ],
                       ),
@@ -4375,7 +4525,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               ],
                             ),
                           ),
-                        if (user == null ||
+                        if (isGuest ||
                             (user.phone == null && user.address == null))
                           Text(
                             user?.email ?? 'Sign in to sync data',
@@ -4385,6 +4535,36 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                        if (isGuest) ...[
+                          const SizedBox(height: 14),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: () => context.push('/login'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Login',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -4436,7 +4616,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           t('Edit Profile'),
                           '0',
                           color: const Color(0xFFF59E0B), // Amber
-                          onTap: () => context.push('/edit-profile'),
+                          onTap: () =>
+                              context.push(isGuest ? '/login' : '/edit-profile'),
                         ),
                       ],
                     ),
@@ -4460,15 +4641,40 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         ],
                       ),
                       child: Column(
-                        children: List.generate(settings.length, (index) {
-                          final setting = settings[index];
+                        children: List.generate(profileItems.length, (index) {
+                          final item = profileItems[index];
+                          final isHeader = item['type'] == 'header';
+                          if (isHeader) {
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  item['title'] as String,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: textMuted,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
+                          final nextIsHeader =
+                              index < profileItems.length - 1 &&
+                              profileItems[index + 1]['type'] == 'header';
+                          final showDivider =
+                              index < profileItems.length - 1 && !nextIsHeader;
+
                           return _buildSettingItem(
-                            icon: setting['icon'] as IconData,
-                            iconColor: setting['color'] as Color,
-                            title: setting['title'] as String,
-                            subtitle: setting['subtitle'] as String?,
-                            showDivider: index < settings.length - 1,
-                            onTap: setting['onTap'] as VoidCallback,
+                            icon: item['icon'] as IconData,
+                            iconColor: item['color'] as Color,
+                            title: item['title'] as String,
+                            subtitle: item['subtitle'] as String?,
+                            showDivider: showDivider,
+                            onTap: item['onTap'] as VoidCallback,
                           );
                         }),
                       ),
@@ -4479,7 +4685,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 120),
                     child: TextButton.icon(
-                      onPressed: () => context.go('/login'),
+                      onPressed: () async {
+                        await ref.read(authProvider.notifier).logout();
+                        if (mounted) {
+                          context.go('/login');
+                        }
+                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -4658,6 +4869,104 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
+  Future<void> _showLegalPoliciesSheet() async {
+    final t = ref.read(localeProvider.notifier).translate;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: 0.88,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: borderLight,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    t('Legal & Policies'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: LegalPolicyCatalog.items.length,
+                      itemBuilder: (context, index) {
+                        final policy = LegalPolicyCatalog.items[index];
+                        return _buildPolicySheetItem(
+                          icon: policy.icon,
+                          color: policy.color,
+                          title: t(policy.title),
+                          policyId: policy.id,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPolicySheetItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String policyId,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: HugeIcon(icon: icon, color: color, size: 18),
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+      ),
+      trailing: HugeIcon(
+        icon: HugeIcons.strokeRoundedArrowRight01,
+        color: textMuted,
+        size: 18,
+      ),
+      onTap: () {
+        Navigator.of(context).pop();
+        context.push('/legal/$policyId');
+      },
+    );
+  }
+
   Widget _buildAppBar() {
     final t = ref.read(localeProvider.notifier).translate;
     return Container(
@@ -4675,15 +4984,19 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   color: primaryBlue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.eco_rounded,
-                  color: primaryBlue,
-                  size: 24,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/oxon logo.jpeg',
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Text(
-                'Veepee',
+                'OXON',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -5524,7 +5837,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category label
                   if (category.isNotEmpty)
                     Text(
                       category,
@@ -5538,7 +5850,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   const SizedBox(height: 2),
-                  // Product Name
                   Text(
                     _getDisplayName(product, currentLang),
                     style: GoogleFonts.plusJakartaSans(
@@ -6154,6 +6465,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Future<void> _proceedToCheckout() async {
+    if (!ref.read(authProvider).isAuthenticated) {
+      await _showCheckoutLoginRequiredPopup();
+      return;
+    }
+
     final cart = ref.read(cartProvider);
     final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
     final typedCoupon = _normalizedCouponInput;
@@ -6275,10 +6591,28 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
-      final msg =
-          e.response?.data?['message']?.toString() ?? t('Checkout failed');
+      if (e.response?.statusCode == 401) {
+        await _showCheckoutLoginRequiredPopup();
+        return;
+      }
+      final data = e.response?.data;
+      final map = data is Map ? data : null;
+      final error = map?['error'];
+      final errorMap = error is Map ? error : null;
+      var msg =
+          map?['message']?.toString() ??
+          errorMap?['message']?.toString() ??
+          e.message ??
+          t('Checkout failed');
+      if (e.type == DioExceptionType.connectionError ||
+          msg.contains('No route to host') ||
+          msg.contains('Connection refused')) {
+        msg =
+            'Cannot reach server. Check backend is running and API URL in api_config.dart.';
+      }
       // If it's a stock issue from the server, refresh cart to show updated stock
-      final code = e.response?.data?['code']?.toString();
+      final code =
+          map?['code']?.toString() ?? errorMap?['code']?.toString();
       if (code == 'INSUFFICIENT_STOCK') {
         ref.read(cartProvider.notifier).fetchCart();
         ref.read(cartProvider.notifier).validateStock();
@@ -6300,6 +6634,38 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
+    }
+  }
+
+  Future<void> _showCheckoutLoginRequiredPopup() async {
+    if (!mounted) return;
+    if (ref.read(authProvider).isAuthenticated) return;
+
+    final shouldOpenLogin = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Login Required'),
+          content: const Text(
+            'You can add products to cart and view them, but login is required to buy.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Login'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (shouldOpenLogin == true) {
+      context.push('/login');
     }
   }
 
@@ -6763,28 +7129,28 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               'name': 'Rajesh Kumar',
               'role': 'Progressive Farmer, Punjab',
               'review':
-                  'Veepee has completely changed how I source my tools. The bulk pricing and quality are unbeatable for my 50-acre farm.',
+                  'OXON has completely changed how I source my tools. The bulk pricing and quality are unbeatable for my 50-acre farm.',
               'rating': 5.0,
             },
             {
               'name': 'Priya Sharma',
               'role': 'Agri-Retailer, Delhi',
               'review':
-                  "As a retailer, I need reliable delivery and authentic brands. Veepee's pan-India service is a lifesaver for my business.",
+                  "As a retailer, I need reliable delivery and authentic brands. OXON's pan-India service is a lifesaver for my business.",
               'rating': 5.0,
             },
             {
               'name': 'Amit Patel',
               'role': 'Wholesale Distributor, Gujarat',
               'review':
-                  "I've been using Veepee for a year now. It has greatly simplified how I manage large orders and track inventory.",
+                  "I've been using OXON for a year now. It has greatly simplified how I manage large orders and track inventory.",
               'rating': 4.5,
             },
             {
               'name': 'Anjali Singh',
               'role': 'Organic Farm Owner, UP',
               'review':
-                  "The variety of premium seeds and modern irrigation tools on Veepee is impressive. Truly a one-stop shop for modern farming.",
+                  "The variety of premium seeds and modern irrigation tools on OXON is impressive. Truly a one-stop shop for modern farming.",
               'rating': 5.0,
             },
           ];
@@ -7325,6 +7691,156 @@ class _TrustBadgeMarqueeState extends State<_TrustBadgeMarquee> {
 }
 
 // ── Helpers for ticket-style offer cards ──────────────────────────────────────
+
+class _PartnershipMarquee extends StatefulWidget {
+  final List<Map<String, dynamic>> items;
+  final bool isActive;
+  const _PartnershipMarquee({required this.items, required this.isActive});
+
+  @override
+  State<_PartnershipMarquee> createState() => _PartnershipMarqueeState();
+}
+
+class _PartnershipMarqueeState extends State<_PartnershipMarquee> {
+  late final ScrollController _scrollController;
+  bool _isAutoScrolling = false;
+
+  static const Color _blue = Color(0xFF2563EB);
+  static const Color _txtSec = Color(0xFF64748B);
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isActive) _startScroll();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _PartnershipMarquee oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _startScroll();
+      return;
+    }
+    if (!widget.isActive && oldWidget.isActive) {
+      _isAutoScrolling = false;
+    }
+  }
+
+  void _startScroll() {
+    if (_isAutoScrolling) return;
+    _isAutoScrolling = true;
+    _autoScrollLoop();
+  }
+
+  Future<void> _autoScrollLoop() async {
+    while (mounted && _isAutoScrolling) {
+      if (!widget.isActive) break;
+      if (!_scrollController.hasClients) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        continue;
+      }
+
+      final max = _scrollController.position.maxScrollExtent;
+      if (max <= 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        continue;
+      }
+
+      final remaining = (max - _scrollController.offset).clamp(0.0, max);
+      if (remaining <= 1) {
+        _scrollController.jumpTo(0);
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+        continue;
+      }
+
+      final durationMs = (remaining * 18).clamp(900, 7000).toInt();
+      try {
+        await _scrollController.animateTo(
+          max,
+          duration: Duration(milliseconds: durationMs),
+          curve: Curves.linear,
+        );
+      } catch (_) {
+        break;
+      }
+
+      if (!mounted || !_isAutoScrolling) break;
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+    }
+  }
+
+  @override
+  void dispose() {
+    _isAutoScrolling = false;
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: widget.items.length,
+      itemBuilder: (_, i) {
+        final item = widget.items[i];
+        final imagePath = item['image'] as String?;
+        final icon = item['icon'] as IconData?;
+        final label = (item['label'] ?? '') as String;
+
+        return Container(
+          margin: const EdgeInsets.only(right: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (imagePath != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: Image.asset(
+                    imagePath,
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.handshake_outlined,
+                      size: 16,
+                      color: _blue,
+                    ),
+                  ),
+                )
+              else if (icon != null)
+                Icon(icon, size: 16, color: _blue)
+              else
+                Icon(Icons.handshake_outlined, size: 16, color: _blue),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _txtSec,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
 
 class _TicketClipper extends CustomClipper<Path> {
   const _TicketClipper();

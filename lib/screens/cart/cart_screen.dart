@@ -50,6 +50,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   Future<void> _proceedToCheckout() async {
     final cart = ref.read(cartProvider);
     if (cart.items.isEmpty) return;
+    if (!ref.read(authProvider).isAuthenticated) {
+      await _showLoginRequiredPopup();
+      return;
+    }
 
     // Validate stock before checkout
     setState(() => _isValidating = true);
@@ -89,8 +93,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
-      final msg = e.response?.data?['message']?.toString() ?? 'Checkout failed';
-      final code = e.response?.data?['code']?.toString();
+      if (e.response?.statusCode == 401) {
+        await _showLoginRequiredPopup();
+        return;
+      }
+      final data = e.response?.data;
+      final map = data is Map ? data : null;
+      final error = map?['error'];
+      final errorMap = error is Map ? error : null;
+      var msg =
+          map?['message']?.toString() ??
+          errorMap?['message']?.toString() ??
+          e.message ??
+          'Checkout failed';
+      if (e.type == DioExceptionType.connectionError ||
+          msg.contains('No route to host') ||
+          msg.contains('Connection refused')) {
+        msg =
+            'Cannot reach server. Check backend is running and API URL in api_config.dart.';
+      }
+      final code =
+          map?['code']?.toString() ?? errorMap?['code']?.toString();
       // If stock issue from server, refresh cart to show updated stock
       if (code == 'INSUFFICIENT_STOCK') {
         await ref.read(cartProvider.notifier).fetchCart();
@@ -114,6 +137,35 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCheckingOut = false);
+    }
+  }
+
+  Future<void> _showLoginRequiredPopup() async {
+    final shouldOpenLogin = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Login Required'),
+          content: const Text(
+            'You can add products to cart, but login is required to place an order.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Login'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (shouldOpenLogin == true) {
+      context.push('/login');
     }
   }
 

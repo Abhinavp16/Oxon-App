@@ -320,13 +320,18 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           Container(
             width: 48, height: 48,
             decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.agriculture_rounded, color: primaryBlue, size: 24),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/oxon logo.jpeg',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          Text('AgriMart', style: GoogleFonts.plusJakartaSans(
+          Text('OXON', style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary)),
           const SizedBox(height: 4),
           Text('Version 1.0.0', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textMuted)),

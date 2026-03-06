@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +18,7 @@ import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/wishlist_provider.dart';
 import '../../core/providers/locale_provider.dart';
+import '../../widgets/verified_seller_badge.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -32,14 +34,14 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _cartBounce;
-  late Animation<double> _cartScale;
   final PageController _imgCtrl = PageController();
   int _imgIndex = 0;
   bool _addedToCart = false;
   int _quantity = 1;
   bool _descExpanded = false;
-  // _isFav removed – now using wishlistProvider
+  // _isFav removed â€“ now using wishlistProvider
   bool _shippingOpen = false;
+  bool _isBuyNowLoading = false;
   YoutubePlayerController? _ytCtrl;
   bool _videoReady = false;
   Map<String, dynamic>? _product;
@@ -74,10 +76,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _cartScale = Tween<double>(
-      begin: 1.0,
-      end: 1.08,
-    ).animate(CurvedAnimation(parent: _cartBounce, curve: Curves.easeOutBack));
     _fetchProduct();
     _fetchWhatsappNumber();
   }
@@ -139,6 +137,27 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         });
         _trackView();
       }
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final map = data is Map ? data : null;
+      final error = map?['error'];
+      final errorMap = error is Map ? error : null;
+      var msg =
+          map?['message']?.toString() ??
+          errorMap?['message']?.toString() ??
+          e.message ??
+          'Failed to load product details';
+      if (e.type == DioExceptionType.connectionError ||
+          msg.contains('No route to host') ||
+          msg.contains('Connection refused')) {
+        msg =
+            'Cannot reach server. Check backend is running and API URL in api_config.dart.';
+      }
+      debugPrint('Error fetching product: $msg');
+      setState(() {
+        _isLoading = false;
+        _error = msg;
+      });
     } catch (e) {
       debugPrint('Error fetching product: $e');
       setState(() {
@@ -221,12 +240,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     return v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 2);
   }
 
-  // ══════════════════════════════════════════
+  // ------------------------------------------
   // BUILD
-  // ══════════════════════════════════════════
+  // ------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final t = ref.watch(localeProvider.notifier).translate;
+    final currentLang = ref.watch(localeProvider);
+    final t = ref.read(localeProvider.notifier).translate;
     final bp = MediaQuery.of(context).padding.bottom;
     final tp = MediaQuery.of(context).padding.top;
 
@@ -325,7 +345,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       );
     }
 
-    final currentLang = ref.watch(localeProvider);
     final name =
         (currentLang == 'Hindi' &&
             _product!['nameHindi'] != null &&
@@ -344,17 +363,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final minWsQty = _product!['minWholesaleQuantity'] ?? 5;
     final stock = _product!['stock'] ?? 0;
     final inStock = (stock is int ? stock : 0) > 0;
-    final isFeatured = _product!['isFeatured'] == true;
-    final isHot = _product!['isHot'] == true;
     final isWholesaler = ref.watch(authProvider).user?.isWholesaler == true;
     final negEnabled = _product!['negotiationEnabled'] == true && isWholesaler;
-    int disc = 0;
-    final mrpNum = (mrp is num) ? mrp : null;
-    final priceNum = (price is num) ? price : null;
-    if (mrpNum != null && priceNum != null && mrpNum > priceNum) {
-      disc = (((mrpNum - priceNum) / mrpNum) * 100).round();
-    }
-
+    final bottomContentInset = inStock ? 185.0 : 120.0;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -373,7 +384,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   parent: BouncingScrollPhysics(),
                 ),
                 slivers: [
-                  SliverToBoxAdapter(child: SizedBox(height: tp + 56)),
+                  SliverToBoxAdapter(child: SizedBox(height: tp + 64)),
                   SliverToBoxAdapter(child: _imageCarousel()),
                   SliverToBoxAdapter(
                     child: _infoSection(
@@ -381,11 +392,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       sku,
                       price,
                       mrp,
-                      disc,
                       stock,
                       inStock,
-                      isFeatured,
-                      isHot,
+                      !isWholesaler,
                       t,
                     ),
                   ),
@@ -399,7 +408,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   SliverToBoxAdapter(child: _descSection(desc, t)),
                   SliverToBoxAdapter(child: _videoSection(t)),
                   SliverToBoxAdapter(child: _shippingSection(t)),
-                  SliverToBoxAdapter(child: SizedBox(height: 100 + bp)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: bottomContentInset + bp),
+                  ),
                 ],
               ),
             ),
@@ -422,7 +433,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
-  // ── TOP BAR ──
+  // -- TOP BAR --
   Widget _topBar(
     double tp,
     String name,
@@ -539,13 +550,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   Widget _imageCarousel() {
     if (_images.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
         child: Container(
           height: 260,
           decoration: BoxDecoration(
             color: _card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _border),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _border.withOpacity(0.7)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: const Center(
             child: Icon(Icons.image_outlined, size: 56, color: _txtMuted),
@@ -554,20 +572,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       );
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _border.withOpacity(0.7)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
               AspectRatio(
@@ -579,7 +598,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   itemBuilder: (_, i) {
                     final img = CachedNetworkImage(
                       imageUrl: _images[i],
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       placeholder: (_, __) => Container(
                         color: _card,
                         child: const Center(
@@ -614,23 +633,63 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   },
                 ),
               ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withOpacity(0.05),
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.06),
+                        ],
+                        stops: const [0.0, 0.55, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               if (_images.length > 1)
                 Positioned(
-                  bottom: 14,
+                  bottom: 16,
                   left: 0,
                   right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _images.length,
-                      (i) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        width: i == _imgIndex ? 20 : 6,
-                        height: 6,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          color: i == _imgIndex ? _blue : _txt.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(3),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.86),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: _border.withOpacity(0.6)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(
+                          _images.length,
+                          (i) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: i == _imgIndex ? 18 : 6,
+                            height: 6,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              color: i == _imgIndex
+                                  ? _blue
+                                  : _txt.withOpacity(0.22),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -649,13 +708,34 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     String sku,
     dynamic price,
     dynamic mrp,
-    int disc,
     dynamic stock,
     bool inStock,
-    bool featured,
-    bool hot,
+    bool showNegotiate,
     String Function(String) t,
   ) {
+    final priceNum = price is num ? price.toDouble() : double.tryParse('$price') ?? 0;
+    final mrpNum = mrp is num ? mrp.toDouble() : double.tryParse('$mrp') ?? 0;
+    final disc =
+        (mrpNum > 0 && priceNum > 0 && mrpNum > priceNum)
+            ? (((mrpNum - priceNum) / mrpNum) * 100).round()
+            : 0;
+
+    final rawRating = _product?['averageRating'] ?? _product?['rating'];
+    final rating = rawRating is num
+        ? rawRating.toDouble()
+        : double.tryParse(rawRating?.toString() ?? '') ?? 0.0;
+    final ratingCountRaw = _product?['ratingCount'] ?? _product?['reviewCount'];
+    final ratingCount = ratingCountRaw is num
+        ? ratingCountRaw.toInt()
+        : int.tryParse(ratingCountRaw?.toString() ?? '') ?? 0;
+    final brandDetails =
+        (_product?['brandName'] ??
+                _product?['brand'] ??
+                _product?['companyName'] ??
+                _product?['manufacturer'] ??
+                'OXON')
+            .toString();
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(20),
@@ -674,31 +754,68 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (featured || hot) ...[
-            Row(
-              children: [
-                if (featured) _badge(t('TOP RATED'), _blue),
-                if (hot) ...[
-                  if (featured) const SizedBox(width: 8),
-                  _badge(t('Hot Deal'), _amber),
-                ],
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (sku.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                sku,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: _txtMuted,
-                  letterSpacing: 0.5,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFD6E6FF)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: Color(0xFFF59E0B),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      rating > 0 ? rating.toStringAsFixed(1) : 'N/A',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: _txt,
+                      ),
+                    ),
+                    if (ratingCount > 0) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '($ratingCount)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _txtSec,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
+              const Spacer(),
+              const VerifiedSellerBadge(compact: true),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.storefront_rounded, size: 16, color: _txtSec),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${t('Brand')}: $brandDetails',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _txtSec,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Text(
             name,
             style: GoogleFonts.plusJakartaSans(
@@ -709,38 +826,62 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 16),
-          // Price container
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _bg,
-              borderRadius: BorderRadius.circular(14),
+          const SizedBox(height: 8),
+          Text(
+            '${t('SKU')}: ${sku.isNotEmpty ? sku : 'MILL-001'}',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _txtSec,
+              letterSpacing: 0.2,
             ),
-            child: Row(
+          ),
+          const SizedBox(height: 6),
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _txtSec,
+              ),
               children: [
-                if (price != null)
-                  Text(
-                    '₹${_fmt(price)}',
-                    style: GoogleFonts.raleway(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: _txt,
-                    ),
+                TextSpan(text: '${t('MRP')}: '),
+                TextSpan(
+                  text: mrp != null
+                      ? '₹${_fmt(mrp)}'
+                      : (price != null ? '₹${_fmt(price)}' : 'N/A'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _txtSec,
+                    decoration: TextDecoration.lineThrough,
                   ),
-                if (mrp != null && mrp != price) ...[
-                  const SizedBox(width: 10),
-                  Text(
-                    '₹${_fmt(mrp)}',
-                    style: GoogleFonts.raleway(
-                      fontSize: 16,
-                      color: _txtMuted,
-                      decoration: TextDecoration.lineThrough,
-                    ),
+                ),
+              ],
+            ),
+          ),
+          if (price != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  '${t('Special Price')}: ',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _txtSec,
                   ),
-                ],
-                if (disc > 0) ...[
-                  const SizedBox(width: 10),
+                ),
+                Text(
+                  '₹${_fmt(price)}',
+                  style: GoogleFonts.raleway(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: _txt,
+                  ),
+                ),
+                const Spacer(),
+                if (disc > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -750,19 +891,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       color: _green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(
-                      '$disc% ${t('OFF')}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: _green,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.local_offer_outlined,
+                          size: 14,
+                          color: _green,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$disc% ${t('OFF')}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _green,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
               ],
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           // Live Purchase Counter
           Builder(
@@ -846,26 +997,74 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 color: inStock ? _green : _red,
               ),
               const SizedBox(width: 6),
-              Text(
-                inStock
-                    ? (stock is int && stock <= 10
-                          ? '${t('Only')} $stock ${t('left')}'
-                          : t('In Stock'))
-                    : t('Out of Stock'),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: inStock ? _green : _red,
+              Expanded(
+                child: Text(
+                  inStock
+                      ? (stock is int && stock <= 10
+                            ? '${t('Only')} $stock ${t('left')}'
+                            : t('In Stock'))
+                      : t('Out of Stock'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: inStock ? _green : _red,
+                  ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                t('Incl. taxes'),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: _txtMuted,
+              if (showNegotiate) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _openBulkNegotiationSheet(name, price, t),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF5A8C69), Color(0xFF2F6D4D)],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2F6D4D).withOpacity(0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const FaIcon(
+                          FontAwesomeIcons.whatsapp,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t('Chat With Dealer'),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ] else ...[
+                Text(
+                  t('Incl. taxes'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: _txtMuted,
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -1170,7 +1369,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
-  // ── NEGOTIATE CARD ──
+  // -- NEGOTIATE CARD --
   Widget _negotiateCard(
     String name,
     dynamic price,
@@ -1537,11 +1736,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
-  // ── SHIPPING ──
+  // -- SHIPPING --
   Widget _shippingSection(String Function(String) t) {
     final terms =
         _product?['shippingTerms']?.toString() ??
-        'Free shipping on orders above ₹5,000. Standard delivery 5-7 '
+        'Free shipping on orders above â‚¹5,000. Standard delivery 5-7 '
             'business days.\n\nReturn Policy: 7-day returns for unused items '
             'in original packaging.';
     return Container(
@@ -1632,7 +1831,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   void _openWhatsApp(String name, dynamic price) {
-    final pPrice = price != null ? '₹${_fmt(price)}' : '';
+    final pPrice = price != null ? 'â‚¹${_fmt(price)}' : '';
     final msg =
         'Hi, I need help with this product:\n\n'
         '*$name*${pPrice.isNotEmpty ? ' - $pPrice' : ''}\n\n'
@@ -1834,7 +2033,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     String qty,
     String details,
   ) {
-    final pPrice = price != null ? '₹${_fmt(price)}' : '';
+    final pPrice = price != null ? 'â‚¹${_fmt(price)}' : '';
     final msg =
         '*BULK NEGOTIATION REQUEST*\n\n'
         '*Product:* $name\n'
@@ -1849,7 +2048,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
-  // ── BOTTOM BAR ──
+  // -- BOTTOM BAR --
   Widget _bottomBar(
     String name,
     dynamic price,
@@ -1941,9 +2140,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               ),
             Row(
               children: [
-                // Cart button
-                ScaleTransition(
-                  scale: _cartScale,
+                Expanded(
                   child: GestureDetector(
                     onTap: inStock && !_addedToCart
                         ? () {
@@ -1973,85 +2170,75 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                             });
                           }
                         : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: 52,
-                      height: 52,
+                    child: Container(
+                      height: 56,
                       decoration: BoxDecoration(
-                        color: _addedToCart ? _green : _bg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _addedToCart ? _green : _border,
+                        color: _card,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: _border),
+                      ),
+                      child: Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _addedToCart
+                                  ? Icons.check_rounded
+                                  : Icons.shopping_cart_outlined,
+                              size: 22,
+                              color: _txt,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              t('Add to Cart'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: _txt,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Icon(
-                        _addedToCart
-                            ? Icons.check_rounded
-                            : Icons.shopping_cart_outlined,
-                        size: 20,
-                        color: _addedToCart ? Colors.white : _blue,
-                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                // WhatsApp
-                GestureDetector(
-                  onTap: () => _openBulkNegotiationSheet(name, price, t),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF25D366).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF25D366).withOpacity(0.3),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.chat_rounded,
-                      size: 20,
-                      color: Color(0xFF25D366),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Buy Now
+                const SizedBox(width: 12),
                 Expanded(
                   child: GestureDetector(
-                    onTap: inStock
-                        ? () {
-                            final img = _images.isNotEmpty ? _images[0] : null;
-                            ref
-                                .read(cartProvider.notifier)
-                                .addItem(
-                                  productId: widget.productId,
-                                  name: name,
-                                  image: img,
-                                  price: (price is int)
-                                      ? price.toDouble()
-                                      : (price as num?)?.toDouble() ?? 0,
-                                  mrp: (mrp is int)
-                                      ? mrp.toDouble()
-                                      : (mrp as num?)?.toDouble(),
-                                  quantity: _quantity,
-                                  stock: stock is int ? stock : 99,
-                                );
-                            _trackEvent('cart_add');
-                            final isWholesaler =
-                                ref.read(authProvider).user?.isWholesaler ==
-                                true;
-                            context.go(
-                              '/home',
-                              extra: {'tab': isWholesaler ? 2 : 3},
-                            );
+                    onTap: inStock && !_isBuyNowLoading
+                        ? () async {
+                            setState(() => _isBuyNowLoading = true);
+                            try {
+                              final img = _images.isNotEmpty ? _images[0] : null;
+                              await ref.read(cartProvider.notifier).addItem(
+                                productId: widget.productId,
+                                name: name,
+                                image: img,
+                                price: (price is int)
+                                    ? price.toDouble()
+                                    : (price as num?)?.toDouble() ?? 0,
+                                mrp: (mrp is int)
+                                    ? mrp.toDouble()
+                                    : (mrp as num?)?.toDouble(),
+                                quantity: _quantity,
+                                stock: stock is int ? stock : 99,
+                              );
+                              _trackEvent('cart_add');
+                              if (!mounted) return;
+                              context.push('/cart');
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isBuyNowLoading = false);
+                              }
+                            }
                           }
                         : null,
                     child: Container(
-                      height: 52,
+                      height: 56,
                       decoration: BoxDecoration(
-                        color: inStock ? _blue : _txtMuted,
-                        borderRadius: BorderRadius.circular(16),
+                        color: inStock && !_isBuyNowLoading ? _blue : _txtMuted,
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: inStock
                             ? [
                                 BoxShadow(
@@ -2063,61 +2250,27 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                             : null,
                       ),
                       child: Center(
-                        child: Text(
-                          t('Buy Now'),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                        child: _isBuyNowLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                t('Buy Now'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                           ),
-                        ),
                       ),
                     ),
                   ),
                 ),
-                // Negotiate
-                if (negEnabled) ...[
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () =>
-                        _openNegotiateSheet(name, price, wsPrice, minQty, t),
-                    child: Container(
-                      height: 52,
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _violet.withOpacity(0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.handshake_outlined,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Negotiate',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ],
@@ -2126,9 +2279,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
-  // ══════════════════════════════════════════
+  // ------------------------------------------
   // NEGOTIATE SHEET (native Flutter animation)
-  // ══════════════════════════════════════════
+  // ------------------------------------------
   void _openNegotiateSheet(
     String productName,
     dynamic retailPrice,
@@ -2501,7 +2654,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     ),
                   ),
                   Text(
-                    '$qty ${t('units')} · ${t('Retail')}: ₹${_fmt(rp)}/${t('unit')}',
+                    '$qty ${t('units')} Â· ${t('Retail')}: â‚¹${_fmt(rp)}/${t('unit')}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: _txtSec,
@@ -2542,7 +2695,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               color: _txt,
             ),
             decoration: InputDecoration(
-              prefixText: '₹ ',
+              prefixText: 'â‚¹ ',
               prefixStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -2578,7 +2731,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   child: Column(
                     children: [
                       Text(
-                        '₹${_fmt(v)}',
+                        'â‚¹${_fmt(v)}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -2615,7 +2768,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '${t('Save')} ₹${_fmt(savings)} ${t('total')} ($pct% ${t('off')} × $qty ${t('units')})',
+                    '${t('Save')} â‚¹${_fmt(savings)} ${t('total')} ($pct% ${t('off')} Ã— $qty ${t('units')})',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -2756,11 +2909,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               _divider(),
               _reviewLine(t('Quantity'), '$qty ${t('units')}'),
               _divider(),
-              _reviewLine(t('Your Price'), '₹${_fmt(target)}/${t('unit')}'),
+              _reviewLine(t('Your Price'), 'â‚¹${_fmt(target)}/${t('unit')}'),
               _divider(),
               _reviewLine(
                 t('Retail Price'),
-                '₹${_fmt(rp)}/${t('unit')}',
+                'â‚¹${_fmt(rp)}/${t('unit')}',
                 muted: true,
               ),
               _divider(),
@@ -2776,7 +2929,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     ),
                   ),
                   Text(
-                    '₹${_fmt(total)}',
+                    'â‚¹${_fmt(total)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -2802,7 +2955,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 Icon(Icons.trending_down_rounded, color: _green, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  '${t('You save')} ₹${_fmt(saved)} ${t('vs retail')}',
+                  '${t('You save')} â‚¹${_fmt(saved)} ${t('vs retail')}',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -3037,9 +3190,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 }
 
-// ══════════════════════════════════════════
+// ------------------------------------------
 // FULLSCREEN VIDEO PAGE (overlay)
-// ══════════════════════════════════════════
+// ------------------------------------------
 class _FullscreenVideoPage extends StatefulWidget {
   final String videoId;
   const _FullscreenVideoPage({required this.videoId});
@@ -3128,9 +3281,9 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   }
 }
 
-// ══════════════════════════════════════════
+// ------------------------------------------
 // TRUST BADGE MARQUEE for product detail
-// ══════════════════════════════════════════
+// ------------------------------------------
 class _ProductTrustBadgeMarquee extends StatefulWidget {
   @override
   State<_ProductTrustBadgeMarquee> createState() =>
@@ -3220,3 +3373,4 @@ class _ProductTrustBadgeMarqueeState extends State<_ProductTrustBadgeMarquee> {
     );
   }
 }
+

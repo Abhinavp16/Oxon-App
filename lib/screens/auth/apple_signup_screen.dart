@@ -20,7 +20,8 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _agreedToTerms = false;
+  bool _agreedToOxonCallsAndMessages = false;
+  bool _showPolicyDetails = false;
 
   @override
   void dispose() {
@@ -34,10 +35,10 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (!_agreedToTerms) {
+    if (!_agreedToOxonCallsAndMessages) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please agree to the Terms & Conditions'),
+          content: Text('Please accept Terms & Conditions and Privacy Policy'),
           backgroundColor: Color(0xFFFF3B30),
         ),
       );
@@ -107,7 +108,7 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Join AgriMart today',
+                      'Join OXON today',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
                         color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
@@ -259,54 +260,110 @@ class _AppleSignupScreenState extends ConsumerState<AppleSignupScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Terms & Conditions
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Checkbox(
-                            value: _agreedToTerms,
-                            onChanged: (value) => setState(() => _agreedToTerms = value ?? false),
-                            activeColor: const Color(0xFF007AFF),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            side: BorderSide(
-                              color: isDark ? const Color(0xFF48484A) : const Color(0xFFC7C7CC),
-                              width: 1.5,
-                            ),
-                          ),
+                    // OXON Consent
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF48484A) : const Color(0xFFE5E7EB),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
-                            child: RichText(
-                              text: TextSpan(
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93),
-                                  height: 1.4,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Checkbox(
+                                value: _agreedToOxonCallsAndMessages,
+                                onChanged: (value) => setState(
+                                  () => _agreedToOxonCallsAndMessages = value ?? false,
                                 ),
-                                children: [
-                                  const TextSpan(text: 'I agree to the '),
-                                  TextSpan(
-                                    text: 'Terms of Service',
-                                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF007AFF)),
+                                activeColor: const Color(0xFF007AFF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                side: BorderSide(
+                                  color: isDark ? const Color(0xFF48484A) : const Color(0xFFC7C7CC),
+                                  width: 1.5,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Text(
+                                    'By continuing, you agree to our Terms & Conditions and Privacy Policy.',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
+                                    ),
                                   ),
-                                  const TextSpan(text: ' and '),
-                                  TextSpan(
-                                    text: 'Privacy Policy',
-                                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF007AFF)),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => setState(() => _showPolicyDetails = !_showPolicyDetails),
+                                icon: Icon(
+                                  _showPolicyDetails
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
+                                ),
+                              ),
+                            ],
+                          ),
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 220),
+                            crossFadeState: _showPolicyDetails
+                                ? CrossFadeState.showFirst
+                                : CrossFadeState.showSecond,
+                            firstChild: Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '- We collect basic details like name, phone, email, and app usage data.',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '- We use this data to process orders, provide support, and improve services.',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '- We share data only with logistics, payment, service partners, or legal authorities.',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '- You can request access, correction, or deletion of your data where permitted.',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF6E6E73),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
+                            secondChild: const SizedBox.shrink(),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 32),
 

@@ -39,7 +39,6 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -49,7 +48,12 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.agriculture, color: Colors.white, size: 30),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/oxon logo.jpeg',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
 

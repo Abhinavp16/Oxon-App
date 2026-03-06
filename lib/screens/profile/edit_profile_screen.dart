@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/locale_provider.dart';
 
@@ -19,6 +20,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   late TextEditingController _avatarController;
+  bool _isUploadingAvatar = false;
 
   @override
   void initState() {
@@ -67,6 +69,41 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  Future<void> _pickAndUploadAvatar() async {
+    if (_isUploadingAvatar) return;
+    final t = ref.read(localeProvider.notifier).translate;
+    try {
+      final picker = ImagePicker();
+      final file = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      setState(() => _isUploadingAvatar = true);
+      final avatarUrl = await ref
+          .read(authProvider.notifier)
+          .uploadProfileAvatar(file.path);
+
+      if (!mounted) return;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        setState(() => _avatarController.text = avatarUrl);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('Profile updated successfully'))),
+        );
+      } else {
+        final error = ref.read(authProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t(error ?? 'Failed to update profile'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(localeProvider.notifier).translate;
@@ -103,46 +140,59 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             children: [
               // Profile Picture Section
               Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[100],
-                        image: _avatarController.text.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(_avatarController.text),
-                                fit: BoxFit.cover,
+                child: InkWell(
+                  onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
+                  borderRadius: BorderRadius.circular(60),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[100],
+                          image: _avatarController.text.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(_avatarController.text),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: _avatarController.text.isEmpty
+                            ? const Icon(
+                                HugeIcons.strokeRoundedUser,
+                                size: 40,
+                                color: Colors.grey,
                               )
                             : null,
                       ),
-                      child: _avatarController.text.isEmpty
-                          ? const Icon(
-                              HugeIcons.strokeRoundedUser,
-                              size: 40,
-                              color: Colors.grey,
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF6366F1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          HugeIcons.strokeRoundedCamera01,
-                          size: 16,
-                          color: Colors.white,
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF6366F1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: _isUploadingAvatar
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  HugeIcons.strokeRoundedCamera01,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -173,13 +223,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              _buildTextField(
-                label: t('Avatar URL'),
-                controller: _avatarController,
-                icon: HugeIcons.strokeRoundedLink01,
-                hint: t('Enter image URL'),
-                onChanged: (val) => setState(() {}),
-              ),
               const SizedBox(height: 40),
 
               SizedBox(

@@ -62,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: primary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -73,13 +72,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                       border: Border.all(
                         color: primary.withOpacity(0.05),
-                        width: 4,
+                        width: 2,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.agriculture,
-                      color: Colors.white,
-                      size: 30,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/oxon logo.jpeg',
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

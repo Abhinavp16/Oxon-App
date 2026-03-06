@@ -204,7 +204,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         'key': data['razorpayKeyId'],
         'amount': data['amount'],
         'currency': data['currency'],
-        'name': 'AgriMart',
+        'name': 'OXON',
         'description': 'Order #${data['orderNumber']}',
         'order_id': data['razorpayOrderId'],
         'prefill': {

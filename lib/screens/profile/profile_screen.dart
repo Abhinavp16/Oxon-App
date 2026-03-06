@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/locale_provider.dart';
+import '../../core/providers/auth_provider.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -253,7 +254,12 @@ class ProfileScreen extends ConsumerWidget {
                 subtitle: t('Log out of your account'),
                 iconColor: AppColors.error,
                 titleColor: AppColors.error,
-                onTap: () => context.go('/login'),
+                onTap: () async {
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    context.go('/login');
+                  }
+                },
               ),
             ),
             const SizedBox(height: 40),

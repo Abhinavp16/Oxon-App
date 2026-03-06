@@ -7,7 +7,7 @@ class AboutVeepeeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('About Veepee')),
+      appBar: AppBar(title: const Text('About OXON')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -22,8 +22,18 @@ class AboutVeepeeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/oxon logo.jpeg',
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Text(
-                  'Veepee',
+                  'OXON',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -44,7 +54,7 @@ class AboutVeepeeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Veepee is an agriculture-focused commerce platform connecting retailers, wholesalers, and suppliers. '
+            'OXON is an agriculture-focused commerce platform connecting retailers, wholesalers, and suppliers. '
             'You can discover products, place orders, negotiate bulk deals, and manage delivery from one app.',
             style: GoogleFonts.plusJakartaSans(fontSize: 14, height: 1.6),
           ),
