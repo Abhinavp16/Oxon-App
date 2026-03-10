@@ -1,4 +1,4 @@
-package com.enchanted.veepeeimpex
+package com.veepeeimpex.oxon
 
 import io.flutter.embedding.android.FlutterActivity
 

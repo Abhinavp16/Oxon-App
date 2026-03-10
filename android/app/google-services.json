@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "639746337160",
-    "project_id": "agrimart-1ae15",
-    "storage_bucket": "agrimart-1ae15.firebasestorage.app"
+    "project_number": "1060967452570",
+    "project_id": "oxon-90ac6",
+    "storage_bucket": "oxon-90ac6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:639746337160:android:3f9aa0182ecdc09fe4323d",
+        "mobilesdk_app_id": "1:1060967452570:android:dd3bf9aef62cf54309f423",
         "android_client_info": {
           "package_name": "com.enchanted.veepeeimpex"
         }
@@ -15,7 +15,26 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDx9NdFF5PlRQlwnf-EMzq5BD0LqJu1wE0"
+          "current_key": "AIzaSyDxd9D7BlqctOaCfON-sL-_LFXcnyFx_CQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1060967452570:android:a6b02674538397f409f423",
+        "android_client_info": {
+          "package_name": "com.veepeeimpex.oxon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxd9D7BlqctOaCfON-sL-_LFXcnyFx_CQ"
         }
       ],
       "services": {
