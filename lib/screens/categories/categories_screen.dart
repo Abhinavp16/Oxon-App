@@ -57,6 +57,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               (item) => <String, dynamic>{
                 'id': item['_id']?.toString() ?? item['id']?.toString() ?? '',
                 'name': item['name']?.toString() ?? '',
+                'slug': item['slug']?.toString() ?? '',
                 'image': item['image']?.toString() ?? '',
                 'count': item['productCount'] ?? item['count'] ?? 0,
               },
@@ -70,7 +71,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         });
 
         if (cats.isNotEmpty) {
-          _fetchProductsForCategory(cats[0]['name']);
+          _fetchProductsForCategory(cats[0]);
         }
       }
     } catch (e) {
@@ -79,12 +80,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     }
   }
 
-  Future<void> _fetchProductsForCategory(String categoryName) async {
+  Future<void> _fetchProductsForCategory(Map<String, dynamic> category) async {
     setState(() => _isLoadingProducts = true);
     try {
+      final categoryFilter =
+          (category['slug']?.toString().trim().isNotEmpty ?? false)
+          ? category['slug'].toString().trim()
+          : category['name']?.toString().trim() ?? '';
       final response = await _dio.get(
         '/products',
-        queryParameters: {'category': categoryName},
+        queryParameters: {'category': categoryFilter},
       );
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
@@ -143,17 +148,19 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    final currentSelectedName = _categories.isNotEmpty
-        ? _categories[_selectedCategoryIndex]['name']
+    final currentSelectedCategory = _categories.isNotEmpty
+        ? Map<String, dynamic>.from(_categories[_selectedCategoryIndex])
         : null;
     await _fetchCategories();
-    if (currentSelectedName != null) {
+    if (currentSelectedCategory != null) {
       final index = _categories.indexWhere(
-        (c) => c['name'] == currentSelectedName,
+        (c) =>
+            c['slug'] == currentSelectedCategory['slug'] ||
+            c['name'] == currentSelectedCategory['name'],
       );
       if (index != -1) {
         setState(() => _selectedCategoryIndex = index);
-        await _fetchProductsForCategory(currentSelectedName);
+        await _fetchProductsForCategory(_categories[index]);
       }
     }
   }
@@ -281,7 +288,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return GestureDetector(
             onTap: () {
               setState(() => _selectedCategoryIndex = index);
-              _fetchProductsForCategory(cat['name']);
+              _fetchProductsForCategory(cat);
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
