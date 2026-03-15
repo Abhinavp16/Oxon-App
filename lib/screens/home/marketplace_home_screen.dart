@@ -78,6 +78,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   String? _selectedFilterCategory;
   String? _selectedFilterBrand;
   List<String> _categories = [];
+  List<Map<String, dynamic>> _categoryData = [];
+  bool _isLoadingCategories = true;
 
   // Hero banners from API (top carousel)
   List<Map<String, dynamic>> _heroBanners = [];
@@ -620,8 +622,50 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Future<void> _fetchCategories() async {
+    setState(() => _isLoadingCategories = true);
+    try {
+      // Try the dedicated categories endpoint first (with images)
+      var response = await _dio.get('/categories?active=true');
+      debugPrint('Categories API response status: ${response.statusCode}');
+      debugPrint('Categories API response: ${response.data}');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final List<dynamic> items = response.data['data'] ?? [];
+        debugPrint('Categories items count: ${items.length}');
+        if (items.isNotEmpty) {
+          debugPrint('First category item: ${items.first}');
+          setState(() {
+            _categoryData = items.map<Map<String, dynamic>>((item) {
+              // Backend returns image as object: { url: "...", publicId: "..." }
+              // Also handle case where image might be a string directly
+              String imageUrl = '';
+              if (item['image'] != null) {
+                if (item['image'] is Map) {
+                  imageUrl = item['image']['url']?.toString() ?? '';
+                } else if (item['image'] is String) {
+                  imageUrl = item['image'].toString();
+                }
+              }
+              debugPrint('Category ${item['name']}: imageUrl = $imageUrl');
+              return {
+                'name': item['name']?.toString() ?? '',
+                'image': imageUrl,
+                'slug': item['slug']?.toString() ?? '',
+              };
+            }).toList();
+            _categories = _categoryData.map((c) => c['name'] as String).toList();
+            _isLoadingCategories = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching categories from /categories: $e');
+    }
+
+    // Fallback to products/categories
     try {
       final response = await _dio.get('/products/categories');
+      debugPrint('Products categories API response: ${response.data}');
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
         setState(() {
@@ -629,10 +673,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               .map<String>((item) => item['name']?.toString() ?? '')
               .where((n) => n.isNotEmpty)
               .toList();
+          _isLoadingCategories = false;
         });
       }
     } catch (e) {
       debugPrint('Error fetching categories: $e');
+      setState(() => _isLoadingCategories = false);
     }
   }
 
@@ -1731,11 +1777,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   ),
                 ),
               ),
-              const Icon(
-                HugeIcons.strokeRoundedMic01,
-                color: textMuted,
-                size: 20,
-              ),
             ],
           ),
         ),
@@ -2144,60 +2185,124 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       rule: rule,
     );
     if (!mounted) return;
+
+    // Copy code to clipboard
+    await Clipboard.setData(ClipboardData(text: code));
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          '$code redeemed. Check My Coupon & Offer Code.',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '$code copied! Use it in cart or find it in "My Coupons" in Profile.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  // Fallback dummy categories if API fails
+  List<Map<String, dynamic>> get _fallbackCategories {
+    final t = ref.read(localeProvider.notifier).translate;
+    return [
+      {
+        'name': t('Power Tools'),
+        'image': 'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Processing'),
+        'image': 'https://images.unsplash.com/photo-1581093458791-9f3c3250a8b0?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Tractors'),
+        'image': 'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Seeds'),
+        'image': 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Irrigation'),
+        'image': 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Drones'),
+        'image': 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Fertilizers'),
+        'image': 'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'name': t('Harvesters'),
+        'image': 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=80',
+      },
+    ];
+  }
+
+  // Skeleton loader for categories
+  Widget _buildCategorySkeleton() {
+    return SizedBox(
+      height: 130,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(left: 16, right: 8),
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 90,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 12,
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildCategorySection() {
     final t = ref.read(localeProvider.notifier).translate;
-    final categories = [
-      {
-        'name': t('Power Tools'),
-        'image':
-            'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Processing'),
-        'image':
-            'https://images.unsplash.com/photo-1581093458791-9f3c3250a8b0?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Tractors'),
-        'image':
-            'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Seeds'),
-        'image':
-            'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Irrigation'),
-        'image':
-            'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Drones'),
-        'image':
-            'https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Fertilizers'),
-        'image':
-            'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Harvesters'),
-        'image':
-            'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=80',
-      },
-    ];
+
+    // Use dynamic data if available, otherwise fallback
+    final categories = _categoryData.isNotEmpty
+        ? _categoryData
+        : _fallbackCategories;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2215,96 +2320,112 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   color: textPrimary,
                 ),
               ),
-              Text(
-                t('See All'),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: primaryBlue,
+              GestureDetector(
+                onTap: () => context.push('/categories'),
+                child: Text(
+                  t('See All'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: primaryBlue,
+                  ),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 130,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 16, right: 8, bottom: 4),
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: categories.map((cat) {
-                return Container(
-                  width: 90,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
-                        blurRadius: 10,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(20),
-                            bottom: Radius.circular(20),
-                          ),
-                          child: CachedNetworkImage(
-                            imageUrl: cat['image']!,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(
-                              color: const Color(0xFFF1F5F9),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: primaryBlue,
-                                ),
-                              ),
+
+        // Show skeleton while loading
+        if (_isLoadingCategories)
+          _buildCategorySkeleton()
+        else
+          SizedBox(
+            height: 130,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 16, right: 8, bottom: 4),
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: categories.map((cat) {
+                  return Container(
+                    width: 90,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.07),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(20),
+                              bottom: Radius.circular(20),
                             ),
-                            errorWidget: (_, __, ___) => Container(
-                              color: const Color(0xFFF1F5F9),
-                              child: const Icon(
-                                Icons.image_not_supported_outlined,
-                                color: textMuted,
-                              ),
+                            child: (cat['image']?.toString() ?? '').isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: cat['image']!.toString(),
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      color: const Color(0xFFF1F5F9),
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: primaryBlue,
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: const Color(0xFFF1F5F9),
+                                      child: const Icon(
+                                        Icons.image_not_supported_outlined,
+                                        color: textMuted,
+                                      ),
+                                    ),
+                                  )
+                                : Container(
+                                    color: const Color(0xFFF1F5F9),
+                                    child: const Icon(
+                                      Icons.category_outlined,
+                                      color: textMuted,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 4,
+                          ),
+                          child: Text(
+                            cat['name']?.toString() ?? '',
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: textPrimary,
                             ),
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 4,
-                        ),
-                        child: Text(
-                          cat['name']!,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -5162,6 +5283,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           child: PageView.builder(
             controller: _carouselController,
             itemCount: _heroBanners.length,
+            physics: const ClampingScrollPhysics(),
             onPageChanged: (index) {
               setState(() => _currentCarouselIndex = index);
             },
@@ -6877,6 +6999,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           child: PageView.builder(
             controller: _promoBannerController,
             itemCount: _promoBanners.length,
+            physics: const ClampingScrollPhysics(),
             onPageChanged: (i) => setState(() => _currentPromoBannerIndex = i),
             itemBuilder: (context, index) {
               final banner = _promoBanners[index];

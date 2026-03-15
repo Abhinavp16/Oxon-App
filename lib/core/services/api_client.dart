@@ -3,7 +3,7 @@ import 'package:veepee_impex/core/config/api_config.dart';
 import 'storage_service.dart';
 
 class ApiClient {
-  static const String baseUrl = ApiConfig.baseUrl;
+  static final String baseUrl = ApiConfig.baseUrl;
 
   late final Dio _dio;
 

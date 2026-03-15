@@ -54,12 +54,23 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         final List<dynamic> items = response.data['data'] ?? [];
         final cats = items
             .map<Map<String, dynamic>>(
-              (item) => <String, dynamic>{
-                'id': item['_id']?.toString() ?? item['id']?.toString() ?? '',
-                'name': item['name']?.toString() ?? '',
-                'slug': item['slug']?.toString() ?? '',
-                'image': item['image']?.toString() ?? '',
-                'count': item['productCount'] ?? item['count'] ?? 0,
+              (item) {
+                // Backend returns image as object: { url: "...", publicId: "..." }
+                String imageUrl = '';
+                if (item['image'] != null) {
+                  if (item['image'] is Map) {
+                    imageUrl = item['image']['url']?.toString() ?? '';
+                  } else if (item['image'] is String) {
+                    imageUrl = item['image'].toString();
+                  }
+                }
+                return <String, dynamic>{
+                  'id': item['_id']?.toString() ?? item['id']?.toString() ?? '',
+                  'name': item['name']?.toString() ?? '',
+                  'slug': item['slug']?.toString() ?? '',
+                  'image': imageUrl,
+                  'count': item['productCount'] ?? item['count'] ?? 0,
+                };
               },
             )
             .where((c) => (c['name'] as String).isNotEmpty)
@@ -285,6 +296,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         itemBuilder: (context, index) {
           final cat = _categories[index];
           final isSelected = _selectedCategoryIndex == index;
+          final imageUrl = cat['image']?.toString() ?? '';
           return GestureDetector(
             onTap: () {
               setState(() => _selectedCategoryIndex = index);
@@ -314,10 +326,28 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                           : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(
-                      _categoryIcon(cat['name'] ?? ''),
-                      size: 22,
-                      color: isSelected ? primaryBlue : textSecondary,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: imageUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Icon(
+                                _categoryIcon(cat['name'] ?? ''),
+                                size: 22,
+                                color: isSelected ? primaryBlue : textSecondary,
+                              ),
+                              errorWidget: (_, __, ___) => Icon(
+                                _categoryIcon(cat['name'] ?? ''),
+                                size: 22,
+                                color: isSelected ? primaryBlue : textSecondary,
+                              ),
+                            )
+                          : Icon(
+                              _categoryIcon(cat['name'] ?? ''),
+                              size: 22,
+                              color: isSelected ? primaryBlue : textSecondary,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 6),
