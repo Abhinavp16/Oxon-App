@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/locale_provider.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/services/storage_service.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
@@ -27,13 +28,23 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   static const Color textMuted = Color(0xFF94A3B8);
   static const Color borderLight = Color(0xFFE2E8F0);
 
-  final Dio _dio = Dio(
+  late final Dio _dio = Dio(
     BaseOptions(
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: ApiConfig.connectTimeout,
       receiveTimeout: ApiConfig.receiveTimeout,
     ),
-  );
+  )..interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await StorageService.getAccessToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
 
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _products = [];

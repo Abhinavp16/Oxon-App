@@ -48,13 +48,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   bool _isLoading = true;
   String _whatsappNumber = '';
   String? _error;
-  final Dio _dio = Dio(
+  late final Dio _dio = Dio(
     BaseOptions(
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: ApiConfig.connectTimeout,
       receiveTimeout: ApiConfig.receiveTimeout,
     ),
-  );
+  )..interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await StorageService.getAccessToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
 
   // Spotlyst Q1 Design Tokens
   static const Color _blue = Color(0xFF2563EB);

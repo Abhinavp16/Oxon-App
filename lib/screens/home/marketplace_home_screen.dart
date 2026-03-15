@@ -44,13 +44,23 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   final PageController _carouselController = PageController();
   final TextEditingController _searchController = TextEditingController();
   // Use ApiConfig.baseUrl - update the IP in lib/core/config/api_config.dart
-  final Dio _dio = Dio(
+  late final Dio _dio = Dio(
     BaseOptions(
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: ApiConfig.connectTimeout,
       receiveTimeout: ApiConfig.receiveTimeout,
     ),
-  );
+  )..interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await StorageService.getAccessToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
   // Blue Theme Colors - Apple-like design
   static const Color primaryBlue = Color(0xFF2563EB);
   static const Color primaryBlueDark = Color(0xFF1D4ED8);
@@ -1632,6 +1642,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       return [
         _buildHomeContent(),
         _buildSearchContent(),
+        const CategoriesScreen(),
         _buildCartContent(),
         _buildNegotiationsContent(),
         _buildProfileContent(),
@@ -7533,13 +7544,18 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       t('Search'),
                       1,
                     ),
-                    _buildCartNavItem(2),
+                    _buildNavItem(
+                      HugeIcons.strokeRoundedDashboardSquare01,
+                      t('Categories'),
+                      2,
+                    ),
+                    _buildCartNavItem(3),
                     _buildNavItem(
                       HugeIcons.strokeRoundedHandGrip,
                       t('Negotiate'),
-                      3,
+                      4,
                     ),
-                    _buildNavItem(HugeIcons.strokeRoundedUser, t('Profile'), 4),
+                    _buildNavItem(HugeIcons.strokeRoundedUser, t('Profile'), 5),
                   ]
                 : [
                     _buildNavItem(HugeIcons.strokeRoundedHome01, t('Home'), 0),
