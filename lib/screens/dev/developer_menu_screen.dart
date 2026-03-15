@@ -81,7 +81,7 @@ class DeveloperMenuScreen extends StatelessWidget {
           _buildSection('Orders & Shipping', [
             _ScreenItem('Dispatch Management', const DispatchManagementScreen()),
             _ScreenItem('Order Success', const OrderSuccessScreen()),
-            _ScreenItem('Shipment Tracking', const ShipmentTrackingScreen()),
+            _ScreenItem('Shipment Tracking', const ShipmentTrackingScreen(orderId: 'demo')),
           ], context),
 
           _buildSection('Cart & Payment', [
