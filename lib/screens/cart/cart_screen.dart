@@ -20,6 +20,13 @@ class CartScreen extends ConsumerStatefulWidget {
 class _CartScreenState extends ConsumerState<CartScreen> {
   bool _isCheckingOut = false;
   bool _isValidating = false;
+  // Coupon state
+  String _couponCode = '';
+  double _discount = 0;
+  String? _appliedCouponCode;
+  bool _isApplyingCoupon = false;
+  String? _couponError;
+  bool _couponSuccess = false;
 
   @override
   void initState() {
@@ -45,6 +52,66 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
+  }
+
+  Future<void> _applyCoupon() async {
+    if (_couponCode.isEmpty) {
+      setState(() {
+        _couponError = 'Please enter a coupon code';
+        _couponSuccess = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isApplyingCoupon = true;
+      _couponError = null;
+    });
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final cart = ref.read(cartProvider);
+
+      // Calculate subtotal
+      final subtotal = cart.items.fold(0.0, (sum, item) => sum + item.total);
+
+      // Call backend to validate coupon
+      final response = await api.post(
+        '/orders/preview-coupon',
+        data: {
+          'couponCode': _couponCode,
+          'subtotal': subtotal,
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.data['success'] == true) {
+        setState(() {
+          _discount = (response.data['data']['discount'] ?? 0).toDouble();
+          _appliedCouponCode = _couponCode;
+          _couponSuccess = true;
+          _couponError = null;
+        });
+      } else {
+        setState(() {
+          _couponError = response.data['message'] ?? 'Invalid coupon code';
+          _couponSuccess = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _couponError = 'Failed to apply coupon';
+        _couponSuccess = false;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isApplyingCoupon = false;
+        });
+      }
+    }
   }
 
   Future<void> _proceedToCheckout() async {
@@ -77,7 +144,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       final api = ref.read(apiClientProvider);
       final response = await api.post(
         '/orders',
-        data: {'shippingAddress': address},
+        data: {
+          'shippingAddress': address,
+          if (_appliedCouponCode != null && _appliedCouponCode!.isNotEmpty)
+            'couponCode': _appliedCouponCode,
+        },
       );
 
       if (!mounted) return;
@@ -551,6 +622,126 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   ),
                 ),
 
+                // Coupon Input Section
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.gray200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.local_offer_outlined, size: 20, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Apply Coupon / Affiliate Code',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              onChanged: (value) => setState(() => _couponCode = value.toUpperCase()),
+                              decoration: InputDecoration(
+                                hintText: 'Enter coupon code',
+                                hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary.withOpacity(0.5)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: AppColors.gray300),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: AppColors.gray300),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: AppColors.primary),
+                                ),
+                                filled: true,
+                                fillColor: AppColors.gray50,
+                              ),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 14),
+                              controller: TextEditingController(text: _appliedCouponCode ?? ''),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            height: 44,
+                            child: ElevatedButton(
+                              onPressed: _isApplyingCoupon ? null : _applyCoupon,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: _isApplyingCoupon
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      _appliedCouponCode != null ? 'Applied' : 'Apply',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_couponError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _couponError!,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ],
+                      if (_couponSuccess && _appliedCouponCode != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Code applied: ₹${_fmt(_discount)} discount',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
                 // Price Summary
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -593,6 +784,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               .translate('Delivery Fee'),
                           '₹${_fmt(cart.deliveryFee)}',
                         ),
+                        if (_discount > 0) ...[
+                          const SizedBox(height: 8),
+                          _buildPriceRow(
+                            'Discount',
+                            '-₹${_fmt(_discount)}',
+                            isDiscount: true,
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         const Divider(color: AppColors.gray100),
                         const SizedBox(height: 12),
@@ -610,7 +809,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               ),
                             ),
                             Text(
-                              '₹${_fmt(cart.grandTotal)}',
+                              '₹${_fmt(cart.grandTotal - _discount)}',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -1053,7 +1252,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     );
   }
 
-  Widget _buildPriceRow(String label, String value, {Color? valueColor}) {
+  Widget _buildPriceRow(String label, String value, {Color? valueColor, bool isDiscount = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1068,8 +1267,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           value,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: valueColor ?? AppColors.textPrimary,
+            fontWeight: isDiscount ? FontWeight.w600 : FontWeight.w500,
+            color: isDiscount ? AppColors.success : (valueColor ?? AppColors.textPrimary),
           ),
         ),
       ],
