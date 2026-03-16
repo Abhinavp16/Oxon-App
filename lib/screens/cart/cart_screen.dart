@@ -704,9 +704,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.gray50,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.gray200),
+                            border: Border.all(color: AppColors.gray300),
                           ),
                           child: Row(
                             children: [
@@ -721,7 +721,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   },
                                   decoration: InputDecoration(
                                     hintText: 'Enter coupon code',
-                                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary.withValues(alpha: 0.6)),
+                                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary),
                                     border: InputBorder.none,
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
