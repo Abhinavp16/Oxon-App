@@ -702,7 +702,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
                         // Coupon Input Row
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
@@ -721,17 +721,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   },
                                   decoration: InputDecoration(
                                     hintText: 'Enter coupon code',
-                                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: AppColors.gray300),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: AppColors.gray300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: AppColors.primary),
+                                    ),
                                   ),
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 13),
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 14),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               SizedBox(
-                                height: 36,
+                                height: 48,
                                 child: ElevatedButton(
                                   onPressed: _isApplyingCoupon || _couponCode.isEmpty ? null : _applyCoupon,
                                   style: ElevatedButton.styleFrom(
