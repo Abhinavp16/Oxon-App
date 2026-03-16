@@ -2221,22 +2221,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                             setState(() => _isBuyNowLoading = true);
                             try {
                               final img = _images.isNotEmpty ? _images[0] : null;
-                              await ref.read(cartProvider.notifier).addItem(
-                                productId: widget.productId,
-                                name: name,
-                                image: img,
-                                price: (price is int)
-                                    ? price.toDouble()
-                                    : (price as num?)?.toDouble() ?? 0,
-                                mrp: (mrp is int)
-                                    ? mrp.toDouble()
-                                    : (mrp as num?)?.toDouble(),
-                                quantity: _quantity,
-                                stock: stock is int ? stock : 99,
-                              );
-                              _trackEvent('cart_add');
+                              final productPrice = (price is int)
+                                  ? price.toDouble()
+                                  : (price as num?)?.toDouble() ?? 0;
+                              final productMrp = (mrp is int)
+                                  ? mrp.toDouble()
+                                  : (mrp as num?)?.toDouble();
+                              final productStock = stock is int ? stock : 99;
+
                               if (!mounted) return;
-                              context.push('/cart');
+                              context.push('/buy-now', extra: {
+                                'productId': widget.productId,
+                                'productName': name,
+                                'productImage': img,
+                                'price': productPrice,
+                                'mrp': productMrp,
+                                'quantity': _quantity,
+                                'stock': productStock,
+                              });
                             } finally {
                               if (mounted) {
                                 setState(() => _isBuyNowLoading = false);

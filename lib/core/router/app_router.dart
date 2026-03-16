@@ -16,6 +16,7 @@ import '../../screens/product/wholesale_detail_screen.dart';
 import '../../screens/product/edit_product_screen.dart';
 import '../../screens/product/add_product_screen.dart';
 import '../../screens/cart/cart_screen.dart';
+import '../../screens/cart/buy_now_screen.dart';
 import '../../screens/cart/shopping_cart_screen.dart';
 import '../../screens/payment/payment_screen.dart';
 import '../../screens/payment/upi_payment_screen.dart';
@@ -191,6 +192,21 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/shopping-cart',
       builder: (context, state) => const ShoppingCartScreen(),
+    ),
+    GoRoute(
+      path: '/buy-now',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return BuyNowScreen(
+          productId: extra?['productId'] ?? '',
+          productName: extra?['productName'] ?? '',
+          productImage: extra?['productImage'],
+          price: (extra?['price'] ?? 0).toDouble(),
+          mrp: extra?['mrp']?.toDouble(),
+          quantity: extra?['quantity'] ?? 1,
+          stock: extra?['stock'] ?? 99,
+        );
+      },
     ),
     GoRoute(
       path: '/upi-payment',
