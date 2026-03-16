@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../config/api_config.dart';
@@ -85,6 +86,9 @@ class CartState {
 
 class CartNotifier extends StateNotifier<CartState> {
   final Dio _dio;
+
+  // Debounce timers for quantity updates to prevent race conditions
+  final Map<String, Timer> _quantityDebounceTimers = {};
 
   CartNotifier()
     : _dio = Dio(
@@ -192,6 +196,9 @@ class CartNotifier extends StateNotifier<CartState> {
 
   Future<String?> updateQuantity(String productId, int quantity) async {
     if (quantity < 1) {
+      // Cancel any pending debounce and remove item
+      _quantityDebounceTimers[productId]?.cancel();
+      _quantityDebounceTimers.remove(productId);
       removeItem(productId);
       return null;
     }
@@ -205,7 +212,7 @@ class CartNotifier extends StateNotifier<CartState> {
       return 'Only ${item.stock} available';
     }
 
-    // Optimistic local update
+    // Optimistic local update - always apply immediately
     final updatedItems = state.items.map((i) {
       if (i.productId == productId) {
         return i.copyWith(quantity: quantity, clearIssue: true);
@@ -214,7 +221,29 @@ class CartNotifier extends StateNotifier<CartState> {
     }).toList();
     state = state.copyWith(items: updatedItems);
 
-    // Sync with backend — use server response as source of truth
+    // Cancel any pending debounce timer for this product
+    _quantityDebounceTimers[productId]?.cancel();
+
+    // Debounce the API call - wait 500ms before sending to backend
+    // This prevents race conditions from rapid clicks
+    _quantityDebounceTimers[productId] = Timer(const Duration(milliseconds: 500), () async {
+      await _syncQuantityToBackend(productId, quantity);
+    });
+
+    return null;
+  }
+
+  // Separate method to sync quantity to backend (called after debounce)
+  Future<void> _syncQuantityToBackend(String productId, int quantity) async {
+    // Find current quantity from state (may have changed since debounce started)
+    final currentItem = state.items.firstWhere(
+      (i) => i.productId == productId,
+      orElse: () => state.items.first,
+    );
+
+    // Skip if quantity changed since we started debounce
+    if (currentItem.quantity != quantity) return;
+
     try {
       final dio = await _authedDio;
       final response = await dio.put(
@@ -226,23 +255,22 @@ class CartNotifier extends StateNotifier<CartState> {
         state = state.copyWith(items: serverItems);
       }
     } on DioException catch (e) {
+      // Only handle stock errors - other errors silently fail (local state is already updated)
       final msg = e.response?.data?['message']?.toString();
       if (msg != null && msg.contains('Insufficient stock')) {
         // Revert to previous quantity
         final reverted = state.items.map((i) {
           if (i.productId == productId) {
             return i.copyWith(
-              quantity: item.quantity,
-              stockIssue: 'Only ${item.stock} available',
+              quantity: currentItem.quantity,
+              stockIssue: 'Only ${currentItem.stock} available',
             );
           }
           return i;
         }).toList();
         state = state.copyWith(items: reverted);
-        return 'Only ${item.stock} available';
       }
     }
-    return null;
   }
 
   Future<Map<String, dynamic>> validateStock() async {
