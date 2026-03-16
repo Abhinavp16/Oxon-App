@@ -102,8 +102,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         _orderNumber = order['orderNumber'] ?? '';
         _existingScreenshot = payment['screenshotUrl'];
         
-        // Default to razorpay if enabled, otherwise bank transfer
-        _selectedMethod = _razorpayEnabled ? 'razorpay' : 'bank';
+        // Default to bank transfer only (razorpay disabled)
+        _selectedMethod = 'bank';
         
         _isLoading = false;
       });
@@ -411,64 +411,65 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(children: [
-              if (_razorpayEnabled)
-                Expanded(child: _buildTabButton('razorpay', 'Pay via UPI', Icons.flash_on_rounded)),
-              if (_razorpayEnabled && _bankTransferEnabled)
-                const SizedBox(width: 4),
+              // [COMMENTED OUT RAZORPAY] if (_razorpayEnabled)
+              //   Expanded(child: _buildTabButton('razorpay', 'Pay via UPI', Icons.flash_on_rounded)),
+              // if (_razorpayEnabled && _bankTransferEnabled)
+              //   const SizedBox(width: 4),
               if (_bankTransferEnabled)
                 Expanded(child: _buildTabButton('bank', 'Bank Transfer', Icons.account_balance_rounded)),
             ]),
           ),
           const SizedBox(height: 20),
 
-          // Razorpay Section
-          if (_selectedMethod == 'razorpay' && _razorpayEnabled) ...[
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
-              child: Column(children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.flash_on_rounded, size: 40, color: AppColors.primary)),
-                const SizedBox(height: 16),
-                Text('Quick & Secure Payment', style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                const SizedBox(height: 8),
-                Text('Pay instantly using UPI, Cards, or Net Banking via Razorpay',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary)),
-                const SizedBox(height: 24),
-                SizedBox(width: double.infinity, height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isProcessingRazorpay ? null : _initiateRazorpayPayment,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white, elevation: 4,
-                      shadowColor: AppColors.primary.withOpacity(0.3),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: _isProcessingRazorpay
-                      ? const SizedBox(width: 24, height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                      : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.lock_rounded, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Pay ₹${_formatPrice(_orderTotal)}',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
-                        ]))),
-                const SizedBox(height: 12),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.verified_user_rounded, size: 14, color: AppColors.success),
-                  const SizedBox(width: 4),
-                  Text('Secured by Razorpay', style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12, color: AppColors.textSecondary)),
-                ]),
-              ]),
-            ),
-          ],
+          // [COMMENTED OUT RAZORPAY SECTION]
+          // // Razorpay Section
+          // if (_selectedMethod == 'razorpay' && _razorpayEnabled) ...[
+          //   Container(
+          //     padding: const EdgeInsets.all(24),
+          //     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
+          //       border: Border.all(color: AppColors.border),
+          //       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
+          //     child: Column(children: [
+          //       Container(
+          //         padding: const EdgeInsets.all(16),
+          //         decoration: BoxDecoration(
+          //           color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+          //         child: Icon(Icons.flash_on_rounded, size: 40, color: AppColors.primary)),
+          //       const SizedBox(height: 16),
+          //       Text('Quick & Secure Payment', style: GoogleFonts.plusJakartaSans(
+          //         fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          //       const SizedBox(height: 8),
+          //       Text('Pay instantly using UPI, Cards, or Net Banking via Razorpay',
+          //         textAlign: TextAlign.center,
+          //         style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary)),
+          //       const SizedBox(height: 24),
+          //       SizedBox(width: double.infinity, height: 56,
+          //         child: ElevatedButton(
+          //           onPressed: _isProcessingRazorpay ? null : _initiateRazorpayPayment,
+          //           style: ElevatedButton.styleFrom(
+          //             backgroundColor: AppColors.primary,
+          //             foregroundColor: Colors.white, elevation: 4,
+          //             shadowColor: AppColors.primary.withOpacity(0.3),
+          //             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          //           child: _isProcessingRazorpay
+          //             ? const SizedBox(width: 24, height: 24,
+          //                 child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+          //             : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          //                 const Icon(Icons.lock_rounded, size: 20),
+          //                 const SizedBox(width: 8),
+          //                 Text('Pay ₹${_formatPrice(_orderTotal)}',
+          //                   style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
+          //               ]))),
+          //       const SizedBox(height: 12),
+          //       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          //         Icon(Icons.verified_user_rounded, size: 14, color: AppColors.success),
+          //         const SizedBox(width: 4),
+          //         Text('Secured by Razorpay', style: GoogleFonts.plusJakartaSans(
+          //           fontSize: 12, color: AppColors.textSecondary)),
+          //       ]),
+          //     ]),
+          //   ),
+          // ],
 
           // Bank Transfer Section
           if (_selectedMethod == 'bank' && _bankTransferEnabled) ...[
