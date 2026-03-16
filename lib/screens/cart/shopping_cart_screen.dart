@@ -3,7 +3,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ShoppingCartScreen extends StatefulWidget {
-  const ShoppingCartScreen({super.key});
+  final Map<String, dynamic>? buyNowProduct;
+  final int buyNowQuantity;
+
+  const ShoppingCartScreen({
+    super.key,
+    this.buyNowProduct,
+    this.buyNowQuantity = 1,
+  });
 
   @override
   State<ShoppingCartScreen> createState() => _ShoppingCartScreenState();
