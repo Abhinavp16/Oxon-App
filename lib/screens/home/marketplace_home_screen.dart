@@ -580,6 +580,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               'price': item['price'] ?? item['retailPrice'] ?? 0,
               'originalPrice': item['mrp'] ?? item['originalPrice'] ?? 0,
               'image': image,
+              'isFeatured': item['isFeatured'] == true,
               'isHot': item['isFeatured'] == true || item['isHot'] == true,
               'isNew': item['isNew'] == true,
               'inStock': item['inStock'] != false,
