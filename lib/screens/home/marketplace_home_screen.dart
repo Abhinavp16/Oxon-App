@@ -2562,30 +2562,69 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   ),
                 ),
                 if (_searchQuery.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchResults = [];
-                        _isSearching = false;
-                        _searchQuery = '';
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: borderLight,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: textSecondary,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Always show filter button when searching so users can apply filters
+                      GestureDetector(
+                        onTap: _showFilterSheet,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedFilterHorizontal,
+                                color: (_selectedFilterCategory != null ||
+                                        _selectedFilterBrand != null)
+                                    ? primaryBlue
+                                    : textMuted,
+                                size: 22,
+                              ),
+                              if (_selectedFilterCategory != null ||
+                                  _selectedFilterBrand != null)
+                                Positioned(
+                                  top: -2,
+                                  right: -4,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: primaryBlue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchResults = [];
+                            _isSearching = false;
+                            _searchQuery = '';
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: borderLight,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                 else
                   GestureDetector(
