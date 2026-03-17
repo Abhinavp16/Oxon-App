@@ -5760,7 +5760,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  if (isFeatured) {
+                    context.push('/popular-products');
+                  } else {
+                    context.push('/hot-deals');
+                  }
+                },
                 child: Text(
                   t('View all'),
                   style: GoogleFonts.plusJakartaSans(
