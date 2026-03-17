@@ -4420,14 +4420,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       },
       {
         'type': 'setting',
-        'icon': HugeIcons.strokeRoundedCreditCard,
-        'color': const Color(0xFF2563EB),
-        'title': t('Payment Methods'),
-        'subtitle': null,
-        'onTap': () => context.push('/payment-methods'),
-      },
-      {
-        'type': 'setting',
         'icon': HugeIcons.strokeRoundedNotification02,
         'color': const Color(0xFF7C3AED),
         'title': t('Notifications'),
