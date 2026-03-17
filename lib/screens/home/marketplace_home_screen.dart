@@ -176,6 +176,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated || _isGuestAuthDialogVisible) return;
 
+    // Don't show popup on auth routes
+    final currentPath = GoRouterState.of(context).uri.toString();
+    if (currentPath == '/login' ||
+        currentPath == '/register' ||
+        currentPath == '/signup' ||
+        currentPath == '/role-login' ||
+        currentPath == '/wholesaler-registration') {
+      return;
+    }
+
     _isGuestAuthDialogVisible = true;
     final shouldOpenLogin = await showDialog<bool>(
       context: context,
