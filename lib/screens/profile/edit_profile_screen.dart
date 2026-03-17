@@ -18,7 +18,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
-  late TextEditingController _addressController;
   late TextEditingController _avatarController;
   bool _isUploadingAvatar = false;
 
@@ -28,7 +27,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final user = ref.read(authProvider).user;
     _nameController = TextEditingController(text: user?.name);
     _phoneController = TextEditingController(text: user?.phone);
-    _addressController = TextEditingController(text: user?.address);
     _avatarController = TextEditingController(text: user?.avatar);
   }
 
@@ -36,7 +34,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     _avatarController.dispose();
     super.dispose();
   }
@@ -48,7 +45,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           .updateProfile(
             name: _nameController.text.trim(),
             phone: _phoneController.text.trim(),
-            address: _addressController.text.trim(),
             avatar: _avatarController.text.trim(),
           );
 
@@ -212,14 +208,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 controller: _phoneController,
                 icon: HugeIcons.strokeRoundedSmartPhone01,
                 keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 20),
-
-              _buildTextField(
-                label: t('Address'),
-                controller: _addressController,
-                icon: HugeIcons.strokeRoundedLocation01,
-                maxLines: 3,
               ),
               const SizedBox(height: 20),
 
