@@ -1750,7 +1750,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   Widget _shippingSection(String Function(String) t) {
     final terms =
         _product?['shippingTerms']?.toString() ??
-        'Free shipping on orders above â‚¹5,000. Standard delivery 5-7 '
+        'Free shipping on orders above ₹5,000. Standard delivery 5-7 '
             'business days.\n\nReturn Policy: 7-day returns for unused items '
             'in original packaging.';
     return Container(
@@ -1841,7 +1841,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   void _openWhatsApp(String name, dynamic price) {
-    final pPrice = price != null ? 'â‚¹${_fmt(price)}' : '';
+    final pPrice = price != null ? '₹${_fmt(price)}' : '';
     final msg =
         'Hi, I need help with this product:\n\n'
         '*$name*${pPrice.isNotEmpty ? ' - $pPrice' : ''}\n\n'
@@ -2043,7 +2043,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     String qty,
     String details,
   ) {
-    final pPrice = price != null ? 'â‚¹${_fmt(price)}' : '';
+    final pPrice = price != null ? '₹${_fmt(price)}' : '';
     final msg =
         '*BULK NEGOTIATION REQUEST*\n\n'
         '*Product:* $name\n'
@@ -2666,7 +2666,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     ),
                   ),
                   Text(
-                    '$qty ${t('units')} Â· ${t('Retail')}: â‚¹${_fmt(rp)}/${t('unit')}',
+                    '$qty ${t('units')} · ${t('Retail')}: ₹${_fmt(rp)}/${t('unit')}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: _txtSec,
@@ -2707,7 +2707,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               color: _txt,
             ),
             decoration: InputDecoration(
-              prefixText: 'â‚¹ ',
+              prefixText: '₹ ',
               prefixStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -2743,7 +2743,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   child: Column(
                     children: [
                       Text(
-                        'â‚¹${_fmt(v)}',
+                        '₹${_fmt(v)}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -2780,7 +2780,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '${t('Save')} â‚¹${_fmt(savings)} ${t('total')} ($pct% ${t('off')} Ã— $qty ${t('units')})',
+                    '${t('Save')} ₹${_fmt(savings)} ${t('total')} ($pct% ${t('off')} × $qty ${t('units')})',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -2921,11 +2921,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               _divider(),
               _reviewLine(t('Quantity'), '$qty ${t('units')}'),
               _divider(),
-              _reviewLine(t('Your Price'), 'â‚¹${_fmt(target)}/${t('unit')}'),
+              _reviewLine(t('Your Price'), '₹${_fmt(target)}/${t('unit')}'),
               _divider(),
               _reviewLine(
                 t('Retail Price'),
-                'â‚¹${_fmt(rp)}/${t('unit')}',
+                '₹${_fmt(rp)}/${t('unit')}',
                 muted: true,
               ),
               _divider(),
@@ -2941,7 +2941,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     ),
                   ),
                   Text(
-                    'â‚¹${_fmt(total)}',
+                    '₹${_fmt(total)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -2967,7 +2967,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 Icon(Icons.trending_down_rounded, color: _green, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  '${t('You save')} â‚¹${_fmt(saved)} ${t('vs retail')}',
+                  '${t('You save')} ₹${_fmt(saved)} ${t('vs retail')}',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
