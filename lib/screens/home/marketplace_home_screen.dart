@@ -737,12 +737,20 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
   Future<void> _fetchOffers() async {
     try {
-      final user = ref.read(authProvider).user;
-      final role = user?.role ?? 'buyer';
+      final auth = ref.read(authProvider);
+      String targetGroup;
+
+      if (auth.isAuthenticated) {
+        // User is logged in - use their role
+        targetGroup = auth.user?.role ?? 'buyer';
+      } else {
+        // Guest user - show customer/buyer offers
+        targetGroup = 'buyer';
+      }
 
       final response = await _dio.get(
         '/offers',
-        queryParameters: {'targetGroup': role},
+        queryParameters: {'targetGroup': targetGroup},
       );
 
       if (response.statusCode == 200) {
@@ -770,6 +778,41 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     } catch (e) {
       debugPrint('Error fetching offers: $e');
       setState(() => _isLoadingOffers = false);
+      // For guest users, try fetching buyer offers as fallback
+      final auth = ref.read(authProvider);
+      if (!auth.isAuthenticated) {
+        try {
+          final response = await _dio.get(
+            '/offers',
+            queryParameters: {'targetGroup': 'buyer'},
+          );
+          if (response.statusCode == 200) {
+            final List<dynamic> items = response.data['data'] ?? [];
+            if (items.isNotEmpty && mounted) {
+              setState(() {
+                _offers = items.map<Map<String, dynamic>>((item) {
+                  final discountType = item['discountType']?.toString() ?? '';
+                  final discountValue = item['discountValue'];
+                  return {
+                    'title': item['title'] ?? '',
+                    'discount': discountType == 'percentage'
+                        ? '$discountValue%'
+                        : '₹$discountValue',
+                    'type': discountType,
+                    'value': discountValue,
+                    'code': item['code']?.toString(),
+                    'rule': discountType == 'percentage'
+                        ? 'Up to $discountValue% off on selected products'
+                        : 'Flat Rs $discountValue off on eligible orders',
+                  };
+                }).toList();
+              });
+            }
+          }
+        } catch (e2) {
+          debugPrint('Error fetching buyer offers fallback: $e2');
+        }
+      }
     }
   }
 
@@ -1831,32 +1874,34 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           physics: const BouncingScrollPhysics(),
           child: Row(
             children: _offers.isEmpty && !_isLoadingOffers
-                ? [
-                    _buildModernOfferCard(
-                      t('Irrigation Kits'),
-                      '20%',
-                      const Color(0xFF3B82F6),
-                      Icons.water_drop_rounded,
-                      couponCode: 'IRR20',
-                      rule: 'Up to 20% off on selected irrigation kits',
-                    ),
-                    _buildModernOfferCard(
-                      t('Premium Seeds'),
-                      '15%',
-                      const Color(0xFF10B981),
-                      Icons.grass_rounded,
-                      couponCode: 'SEED15',
-                      rule: 'Up to 15% off on selected premium seeds',
-                    ),
-                    _buildModernOfferCard(
-                      t('Tractor Parts'),
-                      '10%',
-                      const Color(0xFF8B5CF6),
-                      Icons.settings_rounded,
-                      couponCode: 'TRACT10',
-                      rule: 'Up to 10% off on selected tractor parts',
-                    ),
-                  ]
+                ? (ref.read(authProvider).isAuthenticated
+                    ? [
+                        _buildModernOfferCard(
+                          t('Irrigation Kits'),
+                          '20%',
+                          const Color(0xFF3B82F6),
+                          Icons.water_drop_rounded,
+                          couponCode: 'IRR20',
+                          rule: 'Up to 20% off on selected irrigation kits',
+                        ),
+                        _buildModernOfferCard(
+                          t('Premium Seeds'),
+                          '15%',
+                          const Color(0xFF10B981),
+                          Icons.grass_rounded,
+                          couponCode: 'SEED15',
+                          rule: 'Up to 15% off on selected premium seeds',
+                        ),
+                        _buildModernOfferCard(
+                          t('Tractor Parts'),
+                          '10%',
+                          const Color(0xFF8B5CF6),
+                          Icons.settings_rounded,
+                          couponCode: 'TRACT10',
+                          rule: 'Up to 10% off on selected tractor parts',
+                        ),
+                      ]
+                    : [])
                 : _offers.map((offer) {
                     final index = _offers.indexOf(offer);
                     final colors = [
