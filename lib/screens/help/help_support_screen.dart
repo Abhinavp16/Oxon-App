@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -125,9 +126,8 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   Widget _buildQuickContactRow() {
     final actions = [
-      {'icon': Icons.chat_rounded, 'label': 'Live Chat', 'color': const Color(0xFF2563EB), 'bg': const Color(0xFFEFF6FF)},
-      {'icon': Icons.call_rounded, 'label': 'Call Us', 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFF0FDF4)},
-      {'icon': Icons.chat_bubble_outline_rounded, 'label': 'WhatsApp', 'color': const Color(0xFF25D366), 'bg': const Color(0xFFF0FDF4)},
+      {'icon': Icons.call_rounded, 'label': 'Call Us', 'color': const Color(0xFF16A34A), 'bg': const Color(0xFFF0FDF4), 'action': 'call'},
+      {'icon': Icons.chat_bubble_outline_rounded, 'label': 'WhatsApp', 'color': const Color(0xFF25D366), 'bg': const Color(0xFFF0FDF4), 'action': 'whatsapp'},
     ];
 
     return Row(
@@ -136,7 +136,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           if (i > 0) const SizedBox(width: 12),
           Expanded(
             child: GestureDetector(
-              onTap: () => _handleQuickAction(actions[i]['label'] as String),
+              onTap: () => _handleQuickAction(actions[i]['action'] as String),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
@@ -343,26 +343,19 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 
-  void _handleQuickAction(String action) {
-    String message;
-    switch (action) {
-      case 'Call Us':
-        message = 'Call us at +91 1800-123-4567';
-        break;
-      case 'Email':
-        message = 'Email us at support@agrimart.com';
-        break;
-      case 'WhatsApp':
-        message = 'WhatsApp us at +91 1800-123-4567';
-        break;
-      default:
-        message = '$action coming soon!';
+  void _handleQuickAction(String action) async {
+    final phoneNumber = '+9118001234567';
+
+    if (action == 'call') {
+      final uri = Uri(scheme: 'tel', path: phoneNumber);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } else if (action == 'whatsapp') {
+      final uri = Uri.parse('https://wa.me/$phoneNumber');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
     }
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-      backgroundColor: primaryBlue,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
   }
 }
