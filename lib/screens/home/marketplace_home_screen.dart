@@ -5520,14 +5520,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   color: textPrimary,
                 ),
               ),
-              Text(
-                t('View all'),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: primaryBlue,
-                ),
-              ),
             ],
           ),
         ),
