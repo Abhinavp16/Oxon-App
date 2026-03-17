@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/providers/auth_provider.dart';
 
-class NotificationsCenterScreen extends StatefulWidget {
+class NotificationsCenterScreen extends ConsumerStatefulWidget {
   const NotificationsCenterScreen({super.key, this.initialTab = 4});
 
   final int initialTab;
 
   @override
-  State<NotificationsCenterScreen> createState() => _NotificationsCenterScreenState();
+  ConsumerState<NotificationsCenterScreen> createState() => _NotificationsCenterScreenState();
 }
 
-class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
-  late int _selectedNavIndex;
+class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterScreen> {
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoading = true;
 
   // Colors from design
   static const Color primary = Color(0xFF46ec13);
@@ -31,7 +34,104 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedNavIndex = widget.initialTab;
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get(
+        '/notifications/my',
+        queryParameters: {'limit': 50},
+      );
+
+      if (response.statusCode == 200 && mounted) {
+        final List<dynamic> items = response.data['data'] ?? [];
+        setState(() {
+          _notifications = items.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['_id']?.toString() ?? '',
+              'title': item['title']?.toString() ?? '',
+              'body': item['body']?.toString() ?? '',
+              'type': item['type']?.toString() ?? 'general',
+              'isRead': item['isRead'] == true,
+              'createdAt': item['createdAt'],
+              'data': item['data'],
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching notifications: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'order':
+        return Icons.shopping_bag;
+      case 'payment':
+        return Icons.verified;
+      case 'shipping':
+        return Icons.local_shipping;
+      case 'negotiation':
+        return Icons.handshake;
+      case 'promotion':
+        return Icons.campaign;
+      case 'system':
+        return Icons.info;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  Color _getIconColor(String type) {
+    switch (type) {
+      case 'order':
+        return statusBlue;
+      case 'payment':
+        return statusGreen;
+      case 'shipping':
+        return gray600;
+      case 'negotiation':
+        return const Color(0xFF7C3AED);
+      case 'promotion':
+        return statusOrange;
+      case 'system':
+        return gray500;
+      default:
+        return gray600;
+    }
+  }
+
+  String _formatTime(String? createdAt) {
+    if (createdAt == null) return 'Just now';
+
+    try {
+      final date = DateTime.parse(createdAt);
+      final now = DateTime.now();
+      final diff = now.difference(date);
+
+      if (diff.inMinutes < 1) {
+        return 'Just now';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes}m ago';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours}h ago';
+      } else if (diff.inDays < 7) {
+        return '${diff.inDays}d ago';
+      } else {
+        return '${date.day}/${date.month}/${date.year}';
+      }
+    } catch (e) {
+      return 'Just now';
+    }
   }
 
   @override
@@ -80,10 +180,6 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                     SizedBox(
                       width: 40,
                       height: 40,
-                      child: IconButton(
-                        icon: Icon(Icons.settings, color: textDark),
-                        onPressed: () => context.go('/home', extra: {'tab': 4}),
-                      ),
                     ),
                   ],
                 ),
@@ -93,285 +189,161 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
 
           // Content
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Today Section
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      'TODAY',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: gray500,
-                        letterSpacing: 1,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _notifications.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _fetchNotifications,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _notifications.length,
+                          itemBuilder: (context, index) {
+                            final notification = _notifications[index];
+                            return _buildNotificationItem(notification);
+                          },
+                        ),
                       ),
-                    ),
-                  ),
-
-                  _buildNotificationItem(
-                    icon: Icons.check_circle,
-                    iconColor: statusGreen,
-                    iconBgColor: statusGreen.withOpacity(0.1),
-                    title: 'Negotiation Accepted',
-                    time: '2h ago',
-                    description: 'Your bulk price for ',
-                    highlight: '50 Mini Mills',
-                    descriptionSuffix: ' was approved!',
-                    actionText: 'View Details',
-                  ),
-
-                  _buildNotificationItem(
-                    icon: Icons.description,
-                    iconColor: statusOrange,
-                    iconBgColor: statusOrange.withOpacity(0.1),
-                    title: 'Counter-offer Received',
-                    time: '5h ago',
-                    description: 'Admin has proposed a new price for the ',
-                    highlight: 'Heavy Duty Tractor',
-                    descriptionSuffix: ' fleet request.',
-                    actionText: 'Respond Now',
-                  ),
-
-                  // Earlier Section
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                    child: Text(
-                      'EARLIER',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: gray500,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-
-                  _buildNotificationItem(
-                    icon: Icons.verified,
-                    iconColor: statusBlue,
-                    iconBgColor: statusBlue.withOpacity(0.1),
-                    title: 'Payment Verified',
-                    time: 'Yesterday',
-                    description: 'Your order ',
-                    highlight: '#123',
-                    descriptionSuffix: ' is now being processed.',
-                    actionText: 'View Order',
-                  ),
-
-                  _buildNotificationItem(
-                    icon: Icons.local_shipping,
-                    iconColor: gray600,
-                    iconBgColor: gray100,
-                    title: 'Order Shipped',
-                    time: '2 days ago',
-                    description: 'The parts for ',
-                    highlight: 'Irrigation System #88',
-                    descriptionSuffix: ' have been dispatched.',
-                    actionText: 'Track Shipment',
-                  ),
-
-                  _buildNotificationItem(
-                    icon: Icons.campaign,
-                    iconColor: primary,
-                    iconBgColor: primary.withOpacity(0.1),
-                    title: 'New Inventory Alert',
-                    time: 'Sep 24',
-                    description: 'Fresh stock of harvesters just arrived from the factory. Bulk discounts available.',
-                    highlight: null,
-                    descriptionSuffix: null,
-                    actionText: null,
-                    opacity: 0.75,
-                  ),
-
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
           ),
         ],
-      ),
-
-      // Bottom Navigation
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
-          border: Border(top: BorderSide(color: gray200)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildNavItem(Icons.home_outlined, 'Home', 0),
-                _buildNavItem(Icons.search_outlined, 'Search', 1),
-                _buildNavItem(Icons.grid_view_rounded, 'Categories', 2),
-                _buildNavItem(Icons.shopping_cart_outlined, 'Cart', 3),
-                _buildNavItem(Icons.person_outline, 'Profile', 4),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildNotificationItem({
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBgColor,
-    required String title,
-    required String time,
-    required String description,
-    String? highlight,
-    String? descriptionSuffix,
-    String? actionText,
-    double opacity = 1.0,
-  }) {
-    return Opacity(
-      opacity: opacity,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: gray100)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_none,
+            size: 64,
+            color: gray400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: gray600,
             ),
-            const SizedBox(width: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You\'ll see your notifications here',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              color: gray500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title & Time
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildNotificationItem(Map<String, dynamic> notification) {
+    final type = notification['type']?.toString() ?? 'general';
+    final isRead = notification['isRead'] == true;
+    final title = notification['title']?.toString() ?? '';
+    final body = notification['body']?.toString() ?? '';
+    final createdAt = notification['createdAt']?.toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isRead
+            ? null
+            : Border.all(color: primary.withOpacity(0.3), width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            // Handle notification tap based on type
+            final data = notification['data'];
+            if (data != null && data is Map) {
+              final orderId = data['orderId']?.toString();
+              if (orderId != null && orderId.isNotEmpty) {
+                context.push('/orders/$orderId');
+              }
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _getIconColor(type).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getIconForType(type),
+                    color: _getIconColor(type),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Content
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: textDark,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                                color: textDark,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _formatTime(createdAt),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: gray500,
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 4),
                       Text(
-                        time,
+                        body,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          color: gray400,
+                          fontSize: 13,
+                          color: gray600,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-
-                  // Description
-                  RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        color: gray600,
-                        height: 1.5,
-                      ),
-                      children: [
-                        TextSpan(text: description),
-                        if (highlight != null)
-                          TextSpan(
-                            text: highlight,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        if (descriptionSuffix != null)
-                          TextSpan(text: descriptionSuffix),
-                      ],
+                ),
+                // Unread indicator
+                if (!isRead)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      color: primary,
+                      shape: BoxShape.circle,
                     ),
                   ),
-
-                  // Action Button
-                  if (actionText != null) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Text(
-                          actionText,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: primary,
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, size: 16, color: primary),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index, {bool showBadge = false}) {
-    final isSelected = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedNavIndex = index);
-        context.go('/home', extra: {'tab': index});
-      },
-      child: Stack(
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? primary : gray400,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                  color: isSelected ? primary : gray400,
-                ),
-              ),
-            ],
           ),
-          if (showBadge)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: red500,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
