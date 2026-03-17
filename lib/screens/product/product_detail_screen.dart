@@ -402,9 +402,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       sku,
                       price,
                       mrp,
+                      wsPrice,
                       stock,
                       inStock,
                       !isWholesaler,
+                      isWholesaler,
                       t,
                     ),
                   ),
@@ -718,9 +720,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     String sku,
     dynamic price,
     dynamic mrp,
+    dynamic wsPrice,
     dynamic stock,
     bool inStock,
     bool showNegotiate,
+    bool isWholesaler,
     String Function(String) t,
   ) {
     final priceNum = price is num ? price.toDouble() : double.tryParse('$price') ?? 0;
@@ -872,10 +876,36 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           ),
           if (price != null) ...[
             const SizedBox(height: 4),
+            // For wholesalers, show customer price first
+            if (isWholesaler) ...[
+              Row(
+                children: [
+                  Text(
+                    '${t('Customer Price')}: ',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _txtSec,
+                    ),
+                  ),
+                  Text(
+                    '₹${_fmt(price)}',
+                    style: GoogleFonts.raleway(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _txtSec,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+            ],
+            // Show the main price (wholesale price for wholesalers, customer price for customers)
             Row(
               children: [
                 Text(
-                  '${t('Special Price')}: ',
+                  isWholesaler ? '${t('Wholesale Price')}: ' : '${t('Special Price')}: ',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -883,7 +913,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   ),
                 ),
                 Text(
-                  '₹${_fmt(price)}',
+                  '₹${_fmt(isWholesaler && wsPrice != null ? wsPrice : price)}',
                   style: GoogleFonts.raleway(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
