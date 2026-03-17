@@ -2332,7 +2332,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.push('/categories'),
+                onTap: () => context.go('/home', extra: {'tab': 2}),
                 child: Text(
                   t('See All'),
                   style: GoogleFonts.plusJakartaSans(
