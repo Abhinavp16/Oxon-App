@@ -880,7 +880,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   ),
                   Text(
                     '₹${_fmt(customerPrice)}',
-                    style: GoogleFonts.raleway(
+                    style: GoogleFonts.montserrat(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: _txtSec,
@@ -904,7 +904,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 ),
                 Text(
                   '₹${_fmt(isWholesaler && wsPrice != null ? wsPrice : price)}',
-                  style: GoogleFonts.raleway(
+                  style: GoogleFonts.montserrat(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: _txt,

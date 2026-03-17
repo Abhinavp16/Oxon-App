@@ -3148,7 +3148,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         children: [
                           Text(
                             '₹${_formatPrice(product['price'] ?? 0)}',
-                            style: GoogleFonts.raleway(
+                            style: GoogleFonts.montserrat(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: textPrimary,
@@ -3158,7 +3158,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             const SizedBox(width: 6),
                             Text(
                               '₹${_formatPrice(product['originalPrice'])}',
-                              style: GoogleFonts.raleway(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w400,
                                 color: textMuted,
