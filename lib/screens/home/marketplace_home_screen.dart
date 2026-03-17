@@ -5734,10 +5734,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildProductsSection(String title, bool isFeatured) {
-    // Popular Products (isFeatured=true) shows all products.
+    // Popular Products (isFeatured=true) shows only products where isFeatured==true.
     // Hot Deals (isFeatured=false) shows only products where isHot==true.
     final filteredProducts = isFeatured
-        ? _products
+        ? _products.where((p) => p['isFeatured'] == true).toList()
         : _products.where((p) => p['isHot'] == true).toList();
     final t = ref.read(localeProvider.notifier).translate;
     final currentLang = ref.read(localeProvider);
