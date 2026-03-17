@@ -143,6 +143,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   String _formatPrice(dynamic price) {
     if (price == null) return '0';
     final num p = price is num ? price : num.tryParse(price.toString()) ?? 0;
+
+    // If price is 1 lakh or more, show in "L" format
+    if (p >= 100000) {
+      final lakhs = p / 100000;
+      if (lakhs == lakhs.roundToDouble()) {
+        return '${lakhs.toStringAsFixed(0)}L';
+      } else {
+        return '${lakhs.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')}L';
+      }
+    }
+
     return NumberFormat('#,##,###').format(p);
   }
 
