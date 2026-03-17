@@ -1057,7 +1057,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               if (showNegotiate) ...[
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => _openBulkNegotiationSheet(name, price, t),
+                  onTap: () => _openCustomerChat(name, sku, price),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -1882,6 +1882,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         'Please share more details.';
     final encoded = Uri.encodeComponent(msg);
     final phone = _whatsappNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final url = Uri.parse('https://wa.me/$phone?text=$encoded');
+    launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
+  void _openCustomerChat(String name, String sku, dynamic price) {
+    final pPrice = price != null ? '₹${_fmt(price)}' : '';
+    final msg =
+        'Hi, I am interested in this product:\n\n'
+        '*Name:* $name\n'
+        '*SKU:* $sku\n'
+        '*Price:* $pPrice\n\n'
+        'Please share more details.';
+    final encoded = Uri.encodeComponent(msg);
+    const phone = '917880080069';
     final url = Uri.parse('https://wa.me/$phone?text=$encoded');
     launchUrl(url, mode: LaunchMode.externalApplication);
   }

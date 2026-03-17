@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -93,10 +94,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
   // Hero banners from API (top carousel)
   List<Map<String, dynamic>> _heroBanners = [];
+  bool _isLoadingHeroBanners = true;
   Timer? _heroAutoRotateTimer;
 
   // Promo banners from API (second carousel)
   List<Map<String, dynamic>> _promoBanners = [];
+  bool _isLoadingPromoBanners = true;
   int _currentPromoBannerIndex = 0;
   final PageController _promoBannerController = PageController();
   Timer? _promoAutoRotateTimer;
@@ -134,34 +137,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _loadSavedShippingAddresses();
     _initNotifications();
     _fetchNotificationCount();
-
-    // Default Banners to ensure visual excellence immediately
-    _heroBanners = [
-      {
-        'title': 'Next-Gen\nTractors',
-        'subtitle': 'Revolutionizing agriculture with AI power',
-        'tag': 'NEW ARRIVAL',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=1000&q=80',
-        'linkUrl': '/market',
-      },
-      {
-        'title': 'Bulk Fertilizer Deals',
-        'subtitle': 'Highest quality boosters for your crops',
-        'tag': 'WHOLESALE',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1000&q=80',
-        'linkUrl': '/market',
-      },
-      {
-        'title': 'Premium Seeds',
-        'subtitle': 'High-yield varieties for every season',
-        'tag': 'FEATURED',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1000&q=80',
-        'linkUrl': '/market',
-      },
-    ];
 
     // Fetch cart from server so it persists across app restarts
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -732,6 +707,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       }
     } catch (e) {
       debugPrint('Error fetching banners: $e');
+    } finally {
+      setState(() {
+        _isLoadingHeroBanners = false;
+        _isLoadingPromoBanners = false;
+      });
     }
   }
 
@@ -5320,6 +5300,22 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildCarousel() {
+    if (_isLoadingHeroBanners) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            height: 220,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+        ),
+      );
+    }
     if (_heroBanners.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -7039,6 +7035,22 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   Widget _buildPromoBannerCarousel() {
+    if (_isLoadingPromoBanners) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+        ),
+      );
+    }
     if (_promoBanners.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
