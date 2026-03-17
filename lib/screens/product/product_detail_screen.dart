@@ -234,20 +234,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     if (price == null) return '0';
     final v = (price is int) ? price.toDouble() : (price as num).toDouble();
     if (v >= 100000) {
-      return '${(v / 100000).toStringAsFixed(v % 100000 == 0 ? 0 : 1)}L';
-    }
-    if (v >= 1000) {
-      final f = v.toStringAsFixed(0);
-      final r = StringBuffer();
-      int c = 0;
-      for (int i = f.length - 1; i >= 0; i--) {
-        if (c == 3 || (c > 3 && (c - 3) % 2 == 0)) r.write(',');
-        r.write(f[i]);
-        c++;
+      // Show 1L, 1.07L, etc. for amounts >= 1 lakh
+      final lakhs = v / 100000;
+      if (lakhs >= 10) {
+        return '${lakhs.toStringAsFixed(0)}L';
+      } else {
+        return '${lakhs.toStringAsFixed(2)}L';
       }
-      return r.toString().split('').reversed.join('');
     }
-    return v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 2);
+    // Show full number for amounts below 1 lakh (e.g., 6455 instead of 6.5K)
+    return v.toStringAsFixed(0);
   }
 
   // ------------------------------------------

@@ -6226,22 +6226,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     if (price == null) return '0';
     final val = (price is int) ? price.toDouble() : (price as num).toDouble();
     if (val >= 100000) {
-      return '${(val / 100000).toStringAsFixed(val % 100000 == 0 ? 0 : 1)}L';
-    }
-    if (val >= 1000) {
-      final formatted = val.toStringAsFixed(0);
-      final result = StringBuffer();
-      int count = 0;
-      for (int i = formatted.length - 1; i >= 0; i--) {
-        if (count == 3 || (count > 3 && (count - 3) % 2 == 0)) {
-          result.write(',');
-        }
-        result.write(formatted[i]);
-        count++;
+      // Show 1L, 1.07L, etc. for amounts >= 1 lakh
+      final lakhs = val / 100000;
+      if (lakhs >= 10) {
+        return '${lakhs.toStringAsFixed(0)}L';
+      } else {
+        return '${lakhs.toStringAsFixed(2)}L';
       }
-      return result.toString().split('').reversed.join('');
     }
-    return val.toStringAsFixed(val.truncateToDouble() == val ? 0 : 2);
+    // Show full number for amounts below 1 lakh (e.g., 6455 instead of 6.5K)
+    return val.toStringAsFixed(0);
   }
 
   // Checkout state for cart address + coupon

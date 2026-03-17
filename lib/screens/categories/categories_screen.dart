@@ -147,14 +147,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     // If price is 1 lakh or more, show in "L" format
     if (p >= 100000) {
       final lakhs = p / 100000;
-      if (lakhs == lakhs.roundToDouble()) {
+      if (lakhs >= 10) {
         return '${lakhs.toStringAsFixed(0)}L';
       } else {
-        return '${lakhs.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')}L';
+        return '${lakhs.toStringAsFixed(2)}L';
       }
     }
 
-    return NumberFormat('#,##,###').format(p);
+    // Show full number for amounts below 1 lakh (e.g., 6455 instead of 6.5K)
+    return p.toStringAsFixed(0);
   }
 
   IconData _categoryIcon(String name) {

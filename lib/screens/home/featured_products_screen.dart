@@ -107,11 +107,14 @@ class _FeaturedProductsScreenState extends ConsumerState<FeaturedProductsScreen>
     if (price == null) return '';
     if (price >= 100000) {
       final lakhs = price / 100000;
-      return '${lakhs.toStringAsFixed(0)}L';
-    } else if (price >= 1000) {
-      final thousands = price / 1000;
-      return '${thousands.toStringAsFixed(1)}K';
+      // Show 1L, 1.07L, etc. for amounts >= 1 lakh
+      if (lakhs >= 10) {
+        return '${lakhs.toStringAsFixed(0)}L';
+      } else {
+        return '${lakhs.toStringAsFixed(2)}L';
+      }
     }
+    // Show full number for amounts below 1 lakh (e.g., 6455 instead of 6.5K)
     return price.toStringAsFixed(0);
   }
 
