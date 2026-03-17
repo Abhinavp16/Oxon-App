@@ -63,17 +63,26 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
 
   Future<void> _loadSavedAddresses() async {
     final addresses = await ShippingAddressService.getAddresses();
-    if (mounted) {
-      setState(() {
-        _savedAddresses = addresses;
-        // Auto-select primary address if available
-        if (addresses.isNotEmpty) {
-          final primary = addresses.where((a) => a.slot == 'primary').toList();
-          if (primary.isNotEmpty) {
-            _selectAddress(primary.first);
-          } else {
-            _selectAddress(addresses.first);
-          }
+    if (!mounted) return;
+
+    // Determine which address to select
+    ShippingAddress? addressToSelect;
+    if (addresses.isNotEmpty) {
+      final primary = addresses.where((a) => a.slot == 'primary').toList();
+      addressToSelect = primary.isNotEmpty ? primary.first : addresses.first;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _savedAddresses = addresses;
+    });
+
+    // Select address after setState completes
+    if (addressToSelect != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _selectAddress(addressToSelect!);
         }
       });
     }
@@ -330,6 +339,48 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
   }
 
   Widget _buildCouponSection() {
+    // Show simplified view when coupon is applied
+    if (_couponSuccess && _discount > 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF16a34a).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF16a34a)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Color(0xFF16a34a), size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Coupon applied! You save ₹${_discount.toStringAsFixed(0)}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF16a34a),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _couponSuccess = false;
+                  _discount = 0;
+                  _appliedCouponCode = null;
+                  _couponCode = '';
+                });
+              },
+              icon: const Icon(Icons.close, color: Color(0xFF16a34a), size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show input field when no coupon applied
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -358,9 +409,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                     border: Border.all(
                       color: _couponError != null
                           ? AppColors.error
-                          : _couponSuccess
-                              ? const Color(0xFF16a34a)
-                              : const Color(0xFFe2e8f0),
+                          : const Color(0xFFe2e8f0),
                     ),
                     borderRadius: BorderRadius.circular(24),
                   ),
@@ -368,14 +417,9 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                     onChanged: (value) {
                       setState(() {
                         _couponCode = value.toUpperCase();
-                        if (_couponSuccess) {
-                          _couponSuccess = false;
-                          _discount = 0;
-                          _appliedCouponCode = null;
-                        }
                       });
                     },
-                    enabled: _appliedCouponCode == null && !_isApplyingCoupon,
+                    enabled: !_isApplyingCoupon,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       color: const Color(0xFF0f172a),
@@ -388,9 +432,6 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                      suffixIcon: _couponSuccess
-                          ? const Icon(Icons.check_circle, color: Color(0xFF16a34a), size: 20)
-                          : null,
                     ),
                   ),
                 ),
@@ -399,7 +440,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _appliedCouponCode != null || _isApplyingCoupon
+                  onPressed: _couponCode.isEmpty || _isApplyingCoupon
                       ? null
                       : _applyCoupon,
                   style: ElevatedButton.styleFrom(
@@ -423,7 +464,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                           ),
                         )
                       : Text(
-                          _appliedCouponCode != null ? 'Applied' : 'Apply',
+                          'Apply',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -440,30 +481,6 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 color: AppColors.error,
-              ),
-            ),
-          ],
-          if (_couponSuccess && _discount > 0) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF16a34a).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Color(0xFF16a34a), size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Coupon applied! You save ₹${_discount.toStringAsFixed(2)}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF16a34a),
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -510,7 +527,9 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
           const SizedBox(height: 12),
           if (_savedAddresses.isEmpty)
             InkWell(
-              onTap: _showAddressDialog,
+              onTap: () {
+                context.push('/addresses').then((_) => _loadSavedAddresses());
+              },
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -737,145 +756,173 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
   Future<void> _showAddressDialog() async {
     final nameController = TextEditingController(text: _name);
     final phoneController = TextEditingController(text: _phone);
-    final addressController = TextEditingController(text: _fullAddress);
+    final address1Controller = TextEditingController(text: _addressLine1);
+    final cityController = TextEditingController(text: _city);
+    final stateController = TextEditingController(text: _state);
+    final pinController = TextEditingController(text: _pincode);
+    final formKey = GlobalKey<FormState>();
 
     final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
+      builder: (ctx) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
         ),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          margin: EdgeInsets.only(top: MediaQuery.of(ctx).padding.top + 40),
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Delivery Address',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0f172a),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: nameController,
-                style: GoogleFonts.plusJakartaSans(fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  labelStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748b)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFe2e8f0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF135bec)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                style: GoogleFonts.plusJakartaSans(fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  labelStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748b)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFe2e8f0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF135bec)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: addressController,
-                maxLines: 3,
-                style: GoogleFonts.plusJakartaSans(fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Full Address',
-                  labelStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748b)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFe2e8f0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF135bec)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (nameController.text.isEmpty ||
-                        phoneController.text.isEmpty ||
-                        addressController.text.isEmpty) {
-                      return;
-                    }
-                    Navigator.pop(context, {
-                      'name': nameController.text,
-                      'phone': phoneController.text,
-                      'address': addressController.text,
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF135bec),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFe2e8f0),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Save Address',
+                  Text(
+                    'Shipping Address',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0f172a),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  _buildAddressField('Full Name', nameController, TextInputType.text),
+                  const SizedBox(height: 12),
+                  _buildAddressField('Phone', phoneController, TextInputType.phone),
+                  const SizedBox(height: 12),
+                  _buildAddressField('Address Line 1', address1Controller, TextInputType.text),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildAddressField('City', cityController, TextInputType.text),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildAddressField('State', stateController, TextInputType.text),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildAddressField('Pincode', pinController, TextInputType.number),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (formKey.currentState!.validate()) {
+                          Navigator.of(ctx).pop({
+                            'fullName': nameController.text.trim(),
+                            'phone': phoneController.text.trim(),
+                            'addressLine1': address1Controller.text.trim(),
+                            'city': cityController.text.trim(),
+                            'state': stateController.text.trim(),
+                            'pincode': pinController.text.trim(),
+                          });
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF135bec),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Confirm & Pay',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
 
-    if (result != null) {
-      final addressText = result['address'] ?? '';
-      // Try to parse address components from the full address
-      // Format expected: "Address, City, State - Pincode"
-      final parts = addressText.split(',');
-      setState(() {
-        _name = result['name'] ?? '';
-        _phone = result['phone'] ?? '';
-        _fullAddress = addressText;
-        _addressLine1 = parts.isNotEmpty ? parts[0].trim() : '';
-        _city = parts.length > 1 ? parts[1].trim() : '';
-        _state = parts.length > 2 ? parts[2].split('-').first.trim() : '';
-        _pincode = parts.length > 2 && parts[2].contains('-')
-            ? parts[2].split('-').last.trim()
-            : '';
-        _selectedAddressId = 'manual';
+    // Dispose controllers first
+    nameController.dispose();
+    phoneController.dispose();
+    address1Controller.dispose();
+    cityController.dispose();
+    stateController.dispose();
+    pinController.dispose();
+
+    // Then update state after the frame has settled to avoid widget tree issues
+    if (result != null && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _name = result['fullName'] ?? '';
+            _phone = result['phone'] ?? '';
+            _addressLine1 = result['addressLine1'] ?? '';
+            _city = result['city'] ?? '';
+            _state = result['state'] ?? '';
+            _pincode = result['pincode'] ?? '';
+            _fullAddress = '$_addressLine1, $_city, $_state - $_pincode';
+            _selectedAddressId = 'manual';
+          });
+        }
       });
     }
+  }
+
+  Widget _buildAddressField(String label, TextEditingController controller, TextInputType keyboardType) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748b)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFe2e8f0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFe2e8f0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF135bec)),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFdc2626)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
   }
 
   Future<void> _showAddressSelectionDialog() async {
@@ -885,8 +932,8 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
     if (!mounted) return;
 
     if (_savedAddresses.isEmpty) {
-      // No saved addresses, show add new address dialog
-      _showAddressDialog();
+      // No saved addresses, navigate to address screen to add new
+      context.push('/addresses').then((_) => _loadSavedAddresses());
       return;
     }
 
@@ -916,7 +963,12 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context, 'add_new');
+                    Navigator.pop(context);
+                    // Navigate to address screen to add new address
+                    context.push('/addresses').then((_) {
+                      // Reload addresses after returning
+                      _loadSavedAddresses();
+                    });
                   },
                   child: Text(
                     '+ Add New',
@@ -1022,12 +1074,14 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
       ),
     );
 
-    if (result == 'add_new') {
-      _showAddressDialog();
-    } else if (result != null) {
+    if (result != null && mounted) {
       final selectedAddress =
           _savedAddresses.firstWhere((a) => a.id == result);
-      _selectAddress(selectedAddress);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _selectAddress(selectedAddress);
+        }
+      });
     }
   }
 
