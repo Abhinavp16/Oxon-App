@@ -368,6 +368,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         '';
     final sku = _product!['sku']?.toString() ?? '';
     final price = _product!['price'] ?? _product!['retailPrice'];
+    final customerPrice = _product!['retailPrice'] ?? _product!['price'];
     final mrp = _product!['mrp'];
     final wsPrice = _product!['wholesalePrice'];
     final minWsQty = _product!['minWholesaleQuantity'] ?? 5;
@@ -402,6 +403,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       sku,
                       price,
                       mrp,
+                      customerPrice,
                       wsPrice,
                       stock,
                       inStock,
@@ -720,6 +722,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     String sku,
     dynamic price,
     dynamic mrp,
+    dynamic customerPrice,
     dynamic wsPrice,
     dynamic stock,
     bool inStock,
@@ -889,7 +892,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     ),
                   ),
                   Text(
-                    '₹${_fmt(price)}',
+                    '₹${_fmt(customerPrice)}',
                     style: GoogleFonts.raleway(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -905,7 +908,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
             Row(
               children: [
                 Text(
-                  isWholesaler ? '${t('Wholesale Price')}: ' : '${t('Special Price')}: ',
+                  '${t('Special Price')}: ',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
