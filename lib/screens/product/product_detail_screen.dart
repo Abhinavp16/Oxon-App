@@ -233,16 +233,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   String _fmt(dynamic price) {
     if (price == null) return '0';
     final v = (price is int) ? price.toDouble() : (price as num).toDouble();
-    if (v >= 100000) {
-      // Show 1L, 1.07L, etc. for amounts >= 1 lakh
-      final lakhs = v / 100000;
-      if (lakhs >= 10) {
-        return '${lakhs.toStringAsFixed(0)}L';
-      } else {
-        return '${lakhs.toStringAsFixed(2)}L';
-      }
-    }
-    // Show full number for amounts below 1 lakh (e.g., 6455 instead of 6.5K)
+    // Always show full numbers on product detail page
     return v.toStringAsFixed(0);
   }
 
