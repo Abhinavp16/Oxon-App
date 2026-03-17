@@ -250,7 +250,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   Widget _buildContactCard() {
     final contacts = [
-      {'icon': Icons.email_rounded, 'title': 'Email Us', 'value': 'support@agrimart.com', 'color': const Color(0xFF2563EB)},
+      {'icon': Icons.email_rounded, 'title': 'Email Us', 'value': 'ixveepee@gmail.com', 'color': const Color(0xFF2563EB)},
       {'icon': Icons.call_rounded, 'title': 'Call Us', 'value': '+91 78800 80069', 'color': const Color(0xFF16A34A)},
       {'icon': Icons.access_time_rounded, 'title': 'Working Hours', 'value': 'Mon – Sat, 9:00 AM – 6:00 PM', 'color': const Color(0xFF7C3AED)},
     ];
