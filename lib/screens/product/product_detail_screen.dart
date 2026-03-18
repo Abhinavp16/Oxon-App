@@ -48,23 +48,25 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   bool _isLoading = true;
   String _whatsappNumber = '';
   String? _error;
-  late final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: ApiConfig.connectTimeout,
-      receiveTimeout: ApiConfig.receiveTimeout,
-    ),
-  )..interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final token = await StorageService.getAccessToken();
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          return handler.next(options);
-        },
-      ),
-    );
+  late final Dio _dio =
+      Dio(
+          BaseOptions(
+            baseUrl: ApiConfig.baseUrl,
+            connectTimeout: ApiConfig.connectTimeout,
+            receiveTimeout: ApiConfig.receiveTimeout,
+          ),
+        )
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) async {
+              final token = await StorageService.getAccessToken();
+              if (token != null) {
+                options.headers['Authorization'] = 'Bearer $token';
+              }
+              return handler.next(options);
+            },
+          ),
+        );
 
   // Spotlyst Q1 Design Tokens
   static const Color _blue = Color(0xFF2563EB);
@@ -717,12 +719,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     bool isWholesaler,
     String Function(String) t,
   ) {
-    final priceNum = price is num ? price.toDouble() : double.tryParse('$price') ?? 0;
+    final priceNum = price is num
+        ? price.toDouble()
+        : double.tryParse('$price') ?? 0;
     final mrpNum = mrp is num ? mrp.toDouble() : double.tryParse('$mrp') ?? 0;
-    final disc =
-        (mrpNum > 0 && priceNum > 0 && mrpNum > priceNum)
-            ? (((mrpNum - priceNum) / mrpNum) * 100).round()
-            : 0;
+    final disc = (mrpNum > 0 && priceNum > 0 && mrpNum > priceNum)
+        ? (((mrpNum - priceNum) / mrpNum) * 100).round()
+        : 0;
 
     final rawRating = _product?['averageRating'] ?? _product?['rating'];
     final rating = rawRating is num
@@ -761,7 +764,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(999),
@@ -896,7 +902,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               children: [
                 Text(
                   '${t('Special Price')}: ',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: _txtSec,
@@ -904,7 +910,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 ),
                 Text(
                   '₹${_fmt(isWholesaler && wsPrice != null ? wsPrice : price)}',
-                  style: GoogleFonts.montserrat(
+                  style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: _txt,
@@ -2254,7 +2260,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                         ? () async {
                             setState(() => _isBuyNowLoading = true);
                             try {
-                              final img = _images.isNotEmpty ? _images[0] : null;
+                              final img = _images.isNotEmpty
+                                  ? _images[0]
+                                  : null;
                               final productPrice = (price is int)
                                   ? price.toDouble()
                                   : (price as num?)?.toDouble() ?? 0;
@@ -2264,15 +2272,18 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                               final productStock = stock is int ? stock : 99;
 
                               if (!mounted) return;
-                              context.push('/buy-now', extra: {
-                                'productId': widget.productId,
-                                'productName': name,
-                                'productImage': img,
-                                'price': productPrice,
-                                'mrp': productMrp,
-                                'quantity': _quantity,
-                                'stock': productStock,
-                              });
+                              context.push(
+                                '/buy-now',
+                                extra: {
+                                  'productId': widget.productId,
+                                  'productName': name,
+                                  'productImage': img,
+                                  'price': productPrice,
+                                  'mrp': productMrp,
+                                  'quantity': _quantity,
+                                  'stock': productStock,
+                                },
+                              );
                             } finally {
                               if (mounted) {
                                 setState(() => _isBuyNowLoading = false);
@@ -2312,7 +2323,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                 ),
-                          ),
+                              ),
                       ),
                     ),
                   ),
@@ -3419,4 +3430,3 @@ class _ProductTrustBadgeMarqueeState extends State<_ProductTrustBadgeMarquee> {
     );
   }
 }
-

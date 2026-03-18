@@ -45,23 +45,25 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   final PageController _carouselController = PageController();
   final TextEditingController _searchController = TextEditingController();
   // Use ApiConfig.baseUrl - update the IP in lib/core/config/api_config.dart
-  late final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: ApiConfig.connectTimeout,
-      receiveTimeout: ApiConfig.receiveTimeout,
-    ),
-  )..interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final token = await StorageService.getAccessToken();
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          return handler.next(options);
-        },
-      ),
-    );
+  late final Dio _dio =
+      Dio(
+          BaseOptions(
+            baseUrl: ApiConfig.baseUrl,
+            connectTimeout: ApiConfig.connectTimeout,
+            receiveTimeout: ApiConfig.receiveTimeout,
+          ),
+        )
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) async {
+              final token = await StorageService.getAccessToken();
+              if (token != null) {
+                options.headers['Authorization'] = 'Bearer $token';
+              }
+              return handler.next(options);
+            },
+          ),
+        );
   // Blue Theme Colors - Apple-like design
   static const Color primaryBlue = Color(0xFF2563EB);
   static const Color primaryBlueDark = Color(0xFF1D4ED8);
@@ -228,62 +230,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     }
   }
 
-  // Dummy brands shown when API has no data
-  static final List<Map<String, dynamic>> _dummyBrands = [
-    {
-      'id': 'b1',
-      'name': 'Mahindra',
-      'tag': 'Tractors & Machinery',
-      'logo':
-          'https://logodownload.org/wp-content/uploads/2021/05/mahindra-logo-1.png',
-      'accent': 0xFF1E3A8A,
-      'slug': 'mahindra',
-    },
-    {
-      'id': 'b2',
-      'name': 'John Deere',
-      'tag': 'Farm Equipment',
-      'logo':
-          'https://logohistory.net/wp-content/uploads/2023/01/John-Deere-Logo.png',
-      'accent': 0xFF166534,
-      'slug': 'john-deere',
-    },
-    {
-      'id': 'b3',
-      'name': 'IFFCO',
-      'tag': 'Fertilizers & Agri',
-      'logo': 'https://upload.wikimedia.org/wikipedia/en/5/5f/IFFCO_logo.png',
-      'accent': 0xFF065F46,
-      'slug': 'iffco',
-    },
-    {
-      'id': 'b4',
-      'name': 'Syngenta',
-      'tag': 'Seeds & Crop Protection',
-      'logo':
-          'https://1000logos.net/wp-content/uploads/2020/09/Syngenta-Logo.png',
-      'accent': 0xFF92400E,
-      'slug': 'syngenta',
-    },
-    {
-      'id': 'b5',
-      'name': 'Bayer Crop',
-      'tag': 'Pesticides & Seeds',
-      'logo':
-          'https://logos-world.net/wp-content/uploads/2020/09/Bayer-Logo.png',
-      'accent': 0xFF7C3AED,
-      'slug': 'bayer',
-    },
-    {
-      'id': 'b6',
-      'name': 'Godrej Agrovet',
-      'tag': 'Animal Feed & Agri',
-      'logo': '',
-      'accent': 0xFF9F1239,
-      'slug': 'godrej-agrovet',
-    },
-  ];
-
   Future<void> _fetchReviews() async {
     try {
       final response = await _dio.get('/reviews');
@@ -326,219 +272,19 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 },
               )
               .toList();
-          // Use dummy data if API returns nothing
-          _brands = fetched.isEmpty
-              ? List<Map<String, dynamic>>.from(_dummyBrands)
-              : fetched;
+          // Use empty list if API returns nothing (shimmer/empty state will show)
+          _brands = fetched.isEmpty ? [] : fetched;
           _isLoadingBrands = false;
         });
       }
     } catch (e) {
       debugPrint('Error fetching brands: $e');
       setState(() {
-        _brands = List<Map<String, dynamic>>.from(_dummyBrands);
+        _brands = [];
         _isLoadingBrands = false;
       });
     }
   }
-
-  // Dummy products shown when API has no data
-  // image is intentionally empty — ProductImagePlaceholder renders a
-  // beautiful illustrated fallback based on category/name keywords.
-  static final List<Map<String, dynamic>> _dummyProducts = [
-    {
-      'id': 'p1',
-      'name': 'Drip Irrigation Kit',
-      'category': 'Irrigation',
-      'price': 2499,
-      'originalPrice': 3200,
-      'image': '',
-      'isHot': false,
-      'isNew': false,
-      'inStock': true,
-      'discount': 22,
-      'rating': 4.6,
-      'reviewCount': 128,
-      'purchaseCountMin': 30,
-      'purchaseCountMax': 80,
-    },
-    {
-      'id': 'p2',
-      'name': 'Hybrid Tomato Seeds 50g',
-      'category': 'Seeds',
-      'price': 349,
-      'originalPrice': 499,
-      'image': '',
-      'isHot': true,
-      'isNew': false,
-      'inStock': true,
-      'discount': 30,
-      'rating': 4.8,
-      'reviewCount': 245,
-      'purchaseCountMin': 120,
-      'purchaseCountMax': 250,
-    },
-    {
-      'id': 'p3',
-      'name': 'NPK Fertilizer 50kg',
-      'category': 'Fertilizers',
-      'price': 1899,
-      'originalPrice': 2200,
-      'image': '',
-      'isHot': false,
-      'isNew': false,
-      'inStock': true,
-      'discount': 14,
-      'rating': 4.5,
-      'reviewCount': 89,
-      'purchaseCountMin': 40,
-      'purchaseCountMax': 90,
-    },
-    {
-      'id': 'p4',
-      'name': 'Power Sprayer 16L',
-      'category': 'Tools',
-      'price': 3799,
-      'originalPrice': 4500,
-      'image': '',
-      'isHot': true,
-      'isNew': false,
-      'inStock': true,
-      'discount': 16,
-      'rating': 4.7,
-      'reviewCount': 312,
-      'purchaseCountMin': 85,
-      'purchaseCountMax': 180,
-    },
-    {
-      'id': 'p5',
-      'name': 'Paddy Seed Drum Seeder',
-      'category': 'Machinery',
-      'price': 7999,
-      'originalPrice': 9500,
-      'image': '',
-      'isHot': false,
-      'isNew': true,
-      'inStock': true,
-      'discount': 16,
-      'rating': 4.4,
-      'reviewCount': 67,
-      'purchaseCountMin': 15,
-      'purchaseCountMax': 45,
-    },
-    {
-      'id': 'p6',
-      'name': 'Organic Compost 25kg',
-      'category': 'Fertilizers',
-      'price': 799,
-      'originalPrice': 1000,
-      'image': '',
-      'isHot': true,
-      'isNew': false,
-      'inStock': true,
-      'discount': 20,
-      'rating': 4.9,
-      'reviewCount': 534,
-      'purchaseCountMin': 200,
-      'purchaseCountMax': 400,
-    },
-    {
-      'id': 'p7',
-      'name': 'Agriculture Drone Pro',
-      'category': 'Drones',
-      'price': 89999,
-      'originalPrice': 110000,
-      'image': '',
-      'isHot': true,
-      'isNew': true,
-      'inStock': true,
-      'discount': 18,
-      'rating': 4.8,
-      'reviewCount': 43,
-      'purchaseCountMin': 5,
-      'purchaseCountMax': 20,
-    },
-    {
-      'id': 'p8',
-      'name': 'Mini Tractor 20HP',
-      'category': 'Tractors',
-      'price': 245000,
-      'originalPrice': 285000,
-      'image': '',
-      'isHot': false,
-      'isNew': true,
-      'inStock': true,
-      'discount': 14,
-      'rating': 4.7,
-      'reviewCount': 28,
-      'purchaseCountMin': 3,
-      'purchaseCountMax': 12,
-    },
-    {
-      'id': 'p9',
-      'name': 'Soil Testing Kit',
-      'category': 'Tools',
-      'price': 1299,
-      'originalPrice': 1800,
-      'image': '',
-      'isHot': true,
-      'isNew': false,
-      'inStock': true,
-      'discount': 28,
-      'rating': 4.5,
-      'reviewCount': 176,
-      'purchaseCountMin': 60,
-      'purchaseCountMax': 130,
-    },
-    {
-      'id': 'p10',
-      'name': 'Wheat Harvester Blade',
-      'category': 'Harvesters',
-      'price': 5499,
-      'originalPrice': 6500,
-      'image': '',
-      'isHot': true,
-      'isNew': false,
-      'inStock': true,
-      'discount': 15,
-      'rating': 4.6,
-      'reviewCount': 91,
-      'purchaseCountMin': 25,
-      'purchaseCountMax': 70,
-    },
-    {
-      'id': 'p11',
-      'name': 'Rain Gun Sprinkler',
-      'category': 'Irrigation',
-      'price': 3200,
-      'originalPrice': 4000,
-      'image': '',
-      'isHot': false,
-      'isNew': true,
-      'inStock': true,
-      'discount': 20,
-      'rating': 4.3,
-      'reviewCount': 58,
-      'purchaseCountMin': 18,
-      'purchaseCountMax': 55,
-    },
-    {
-      'id': 'p12',
-      'name': 'Bio Pesticide 1L',
-      'category': 'Pesticides',
-      'price': 599,
-      'originalPrice': 750,
-      'image': '',
-      'isHot': false,
-      'isNew': false,
-      'inStock': true,
-      'discount': 20,
-      'rating': 4.2,
-      'reviewCount': 203,
-      'purchaseCountMin': 50,
-      'purchaseCountMax': 110,
-    },
-  ];
 
   /// Returns empty string when no valid URL found — the [ProductImagePlaceholder]
   /// widget will render a beautiful category-specific illustration instead.
@@ -601,17 +347,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               'purchaseCountMax': item['purchaseCountMax'] ?? 0,
             };
           }).toList();
-          // Use dummy data if API returns nothing
-          _products = fetched.isEmpty
-              ? List<Map<String, dynamic>>.from(_dummyProducts)
-              : fetched;
+          // Use empty list if API returns nothing (shimmer/empty state will show)
+          _products = fetched.isEmpty ? [] : fetched;
           _isLoadingProducts = false;
         });
       }
     } catch (e) {
       debugPrint('Error fetching products: $e');
       setState(() {
-        _products = List<Map<String, dynamic>>.from(_dummyProducts);
+        _products = [];
         _isLoadingProducts = false;
       });
     }
@@ -648,7 +392,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 'slug': item['slug']?.toString() ?? '',
               };
             }).toList();
-            _categories = _categoryData.map((c) => c['name'] as String).toList();
+            _categories = _categoryData
+                .map((c) => c['name'] as String)
+                .toList();
             _isLoadingCategories = false;
           });
           return;
@@ -1859,68 +1605,67 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.only(left: 20, bottom: 8),
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: _offers.isEmpty && !_isLoadingOffers
-                ? (ref.read(authProvider).isAuthenticated
-                    ? [
-                        _buildModernOfferCard(
-                          t('Irrigation Kits'),
-                          '20%',
-                          const Color(0xFF3B82F6),
-                          Icons.water_drop_rounded,
-                          couponCode: 'IRR20',
-                          rule: 'Up to 20% off on selected irrigation kits',
-                        ),
-                        _buildModernOfferCard(
-                          t('Premium Seeds'),
-                          '15%',
-                          const Color(0xFF10B981),
-                          Icons.grass_rounded,
-                          couponCode: 'SEED15',
-                          rule: 'Up to 15% off on selected premium seeds',
-                        ),
-                        _buildModernOfferCard(
-                          t('Tractor Parts'),
-                          '10%',
-                          const Color(0xFF8B5CF6),
-                          Icons.settings_rounded,
-                          couponCode: 'TRACT10',
-                          rule: 'Up to 10% off on selected tractor parts',
-                        ),
-                      ]
-                    : [])
-                : _offers.map((offer) {
-                    final index = _offers.indexOf(offer);
-                    final colors = [
-                      const Color(0xFF3B82F6),
-                      const Color(0xFF10B981),
-                      const Color(0xFF8B5CF6),
-                      const Color(0xFFF59E0B),
-                    ];
-                    final icons = [
-                      Icons.water_drop_rounded,
-                      Icons.grass_rounded,
-                      Icons.settings_rounded,
-                      Icons.tag_rounded,
-                    ];
+        // Show shimmer while loading
+        if (_isLoadingOffers)
+          Padding(
+            padding: const EdgeInsets.only(left: 20, bottom: 8),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Row(
+                children: List.generate(
+                  3,
+                  (index) => Container(
+                    width: 160,
+                    height: 100,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        // Show empty state if no offers
+        else if (_offers.isEmpty)
+          const SizedBox.shrink()
+        // Show offers
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: 20, bottom: 8),
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: _offers.map((offer) {
+                final index = _offers.indexOf(offer);
+                final colors = [
+                  const Color(0xFF3B82F6),
+                  const Color(0xFF10B981),
+                  const Color(0xFF8B5CF6),
+                  const Color(0xFFF59E0B),
+                ];
+                final icons = [
+                  Icons.water_drop_rounded,
+                  Icons.grass_rounded,
+                  Icons.settings_rounded,
+                  Icons.tag_rounded,
+                ];
 
-                    return _buildModernOfferCard(
-                      offer['title'] ?? '',
-                      offer['discount'] ?? '',
-                      colors[index % colors.length],
-                      icons[index % icons.length],
-                      couponCode: offer['code']?.toString(),
-                      rule:
-                          offer['rule']?.toString() ??
-                          'Apply during checkout to unlock offer',
-                    );
-                  }).toList(),
+                return _buildModernOfferCard(
+                  offer['title'] ?? '',
+                  offer['discount'] ?? '',
+                  colors[index % colors.length],
+                  icons[index % icons.length],
+                  couponCode: offer['code']?.toString(),
+                  rule:
+                      offer['rule']?.toString() ??
+                      'Apply during checkout to unlock offer',
+                );
+              }).toList(),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -1929,9 +1674,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     String title,
     String discount,
     Color color,
-    IconData icon,
-    {String? couponCode, String? rule}
-  ) {
+    IconData icon, {
+    String? couponCode,
+    String? rule,
+  }) {
     final t = ref.read(localeProvider.notifier).translate;
     const double cardW = 145;
     const double cardH = 205;
@@ -2132,8 +1878,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               ),
                               child: GestureDetector(
                                 onTap: () => _redeemOffer(
-                                  code:
-                                      (couponCode?.trim().isNotEmpty ?? false)
+                                  code: (couponCode?.trim().isNotEmpty ?? false)
                                       ? couponCode!.trim()
                                       : title.replaceAll(' ', '').toUpperCase(),
                                   title: title,
@@ -2262,45 +2007,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  // Fallback dummy categories if API fails
-  List<Map<String, dynamic>> get _fallbackCategories {
-    final t = ref.read(localeProvider.notifier).translate;
-    return [
-      {
-        'name': t('Power Tools'),
-        'image': 'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Processing'),
-        'image': 'https://images.unsplash.com/photo-1581093458791-9f3c3250a8b0?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Tractors'),
-        'image': 'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Seeds'),
-        'image': 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Irrigation'),
-        'image': 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Drones'),
-        'image': 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Fertilizers'),
-        'image': 'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'name': t('Harvesters'),
-        'image': 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=80',
-      },
-    ];
-  }
-
   // Skeleton loader for categories
   Widget _buildCategorySkeleton() {
     return SizedBox(
@@ -2323,7 +2029,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
                     ),
                   ),
                 ),
@@ -2346,10 +2054,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget _buildCategorySection() {
     final t = ref.read(localeProvider.notifier).translate;
 
-    // Use dynamic data if available, otherwise fallback
-    final categories = _categoryData.isNotEmpty
-        ? _categoryData
-        : _fallbackCategories;
+    // Use dynamic data if available, otherwise show empty state
+    final categories = _categoryData.isNotEmpty ? _categoryData : [];
+
+    // Show empty state if no categories
+    if (categories.isEmpty && !_isLoadingCategories) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2585,7 +2296,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             children: [
                               HugeIcon(
                                 icon: HugeIcons.strokeRoundedFilterHorizontal,
-                                color: (_selectedFilterCategory != null ||
+                                color:
+                                    (_selectedFilterCategory != null ||
                                         _selectedFilterBrand != null)
                                     ? primaryBlue
                                     : textMuted,
@@ -3200,10 +2912,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget _buildCartContent() {
     final cart = ref.watch(cartProvider);
     final t = ref.read(localeProvider.notifier).translate;
-                      final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
-                      final isCouponLocked =
-                          _appliedCouponCode != null &&
-                          _normalizedCouponInput == _appliedCouponCode;
+    final hasActiveCoupon = _hasActiveAppliedCoupon(cart);
+    final isCouponLocked =
+        _appliedCouponCode != null &&
+        _normalizedCouponInput == _appliedCouponCode;
     final couponDiscount = hasActiveCoupon ? _appliedCouponDiscount : 0.0;
     final payableTotal = math
         .max(cart.grandTotal - couponDiscount, 0)
@@ -3786,8 +3498,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       SizedBox(
                         height: 44,
                         child: ElevatedButton(
-                          onPressed: _isApplyingCoupon
-                              || isCouponLocked
+                          onPressed: _isApplyingCoupon || isCouponLocked
                               ? null
                               : _applyCouponPreview,
                           style: ElevatedButton.styleFrom(
@@ -4454,8 +4165,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         'color': const Color(0xFF7C3AED),
         'title': t('Notifications'),
         'subtitle': null,
-        'onTap': () =>
-            context.push('/notifications', extra: {'bottomTab': 4}),
+        'onTap': () => context.push('/notifications', extra: {'bottomTab': 4}),
       },
       {
         'type': 'setting',
@@ -4815,8 +4525,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           t('Edit Profile'),
                           '0',
                           color: const Color(0xFFF59E0B), // Amber
-                          onTap: () =>
-                              context.push(isGuest ? '/login' : '/edit-profile'),
+                          onTap: () => context.push(
+                            isGuest ? '/login' : '/edit-profile',
+                          ),
                         ),
                       ],
                     ),
@@ -6662,7 +6373,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       addressLine1: address['addressLine1'] ?? '',
       city: address['city'] ?? '',
       state: address['state'] ?? '',
-      pincode: address['pincode'] ?? '', slot: '',
+      pincode: address['pincode'] ?? '',
+      slot: '',
     );
 
     await ShippingAddressService.upsertAddress(savedAddress);
@@ -6819,8 +6531,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             'Cannot reach server. Check backend is running and API URL in api_config.dart.';
       }
       // If it's a stock issue from the server, refresh cart to show updated stock
-      final code =
-          map?['code']?.toString() ?? errorMap?['code']?.toString();
+      final code = map?['code']?.toString() ?? errorMap?['code']?.toString();
       if (code == 'INSUFFICIENT_STOCK') {
         ref.read(cartProvider.notifier).fetchCart();
         ref.read(cartProvider.notifier).validateStock();
@@ -8044,11 +7755,8 @@ class _PartnershipMarqueeState extends State<_PartnershipMarquee> {
                     width: 20,
                     height: 20,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.handshake_outlined,
-                      size: 16,
-                      color: _blue,
-                    ),
+                    errorBuilder: (_, __, ___) =>
+                        Icon(Icons.handshake_outlined, size: 16, color: _blue),
                   ),
                 )
               else if (icon != null)
