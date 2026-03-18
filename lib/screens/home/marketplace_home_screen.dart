@@ -37,8 +37,8 @@ class MarketplaceHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
-  static const Duration _guestInitialFreeUseDuration = Duration(seconds: 30);
-  static const Duration _guestPromptRepeatDuration = Duration(seconds: 40);
+  static const Duration _guestInitialFreeUseDuration = Duration(minutes: 3);
+  static const Duration _guestPromptRepeatDuration = Duration(minutes: 3);
   late int _selectedNavIndex;
   bool _isCheckingOut = false;
   int _currentCarouselIndex = 0;
@@ -173,18 +173,29 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     });
   }
 
+  bool _isAuthRouteActive() {
+    final currentPath =
+        GoRouter.of(context).routeInformationProvider.value.uri.path;
+    const authPaths = <String>{
+      '/login',
+      '/register',
+      '/signup',
+      '/role-login',
+      '/wholesaler-registration',
+    };
+    return authPaths.any(
+      (path) => currentPath == path || currentPath.startsWith('$path/'),
+    );
+  }
+
   Future<void> _showGuestAuthPrompt() async {
     if (!mounted) return;
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated || _isGuestAuthDialogVisible) return;
 
     // Don't show popup on auth routes
-    final currentPath = GoRouterState.of(context).uri.toString();
-    if (currentPath == '/login' ||
-        currentPath == '/register' ||
-        currentPath == '/signup' ||
-        currentPath == '/role-login' ||
-        currentPath == '/wholesaler-registration') {
+    if (_isAuthRouteActive()) {
+      _scheduleNextGuestPrompt();
       return;
     }
 
