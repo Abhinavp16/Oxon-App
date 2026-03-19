@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1081,7 +1081,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          t('Chat With Dealer'),
+                          t('Bulk Order'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -1158,7 +1158,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
-                  Icons.settings_suggest_rounded,
+                  Icons.auto_awesome_rounded,
                   color: _blue,
                   size: 20,
                 ),
@@ -1204,7 +1204,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
               return Row(
                 children: [
-                  Icon(Icons.arrow_forward_ios_rounded, color: _blue, size: 14),
+                  Icon(Icons.auto_awesome_rounded, color: _blue, size: 14),
                   const SizedBox(width: 16),
                   Expanded(
                     child: RichText(
@@ -1357,7 +1357,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     child: Row(
                       children: [
                         Icon(
-                          Icons.arrow_forward_ios_rounded,
+                          Icons.auto_awesome_rounded,
                           color: _blue,
                           size: 14,
                         ),

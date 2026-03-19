@@ -280,29 +280,40 @@ class WholesaleDetailScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          t('Specifications'),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: slate500,
-                            letterSpacing: 2,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.auto_awesome_rounded,
+                                color: primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              t('Specifications'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: slate500,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         Column(
                           children: [
-                            _buildSpecItem(
-                              Icons.settings_suggest,
-                              '7HP Engine',
-                            ),
+                            _buildSpecItem('7HP Engine'),
                             const SizedBox(height: 12),
-                            _buildSpecItem(
-                              Icons.local_gas_station,
-                              'Petrol Fuel',
-                            ),
+                            _buildSpecItem('Petrol Fuel'),
                             const SizedBox(height: 12),
-                            _buildSpecItem(Icons.verified, '1Y Warranty'),
+                            _buildSpecItem('1Y Warranty'),
                           ],
                         ),
                       ],
@@ -438,7 +449,7 @@ class WholesaleDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSpecItem(IconData icon, String label) {
+  Widget _buildSpecItem(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -448,7 +459,7 @@ class WholesaleDetailScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.arrow_forward_ios_rounded, color: primary, size: 14),
+          Icon(Icons.auto_awesome_rounded, color: primary, size: 14),
           const SizedBox(width: 16),
           Expanded(
             child: Text(

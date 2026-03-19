@@ -287,7 +287,7 @@ class _WholesaleProductDetailScreenState
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
-                                Icons.settings_suggest_rounded,
+                                Icons.auto_awesome_rounded,
                                 color: primary,
                                 size: 20,
                               ),
@@ -307,22 +307,10 @@ class _WholesaleProductDetailScreenState
                         const SizedBox(height: 20),
                         Column(
                           children: [
-                            _buildSpecItem(
-                              Icons.settings_suggest,
-                              'Engine',
-                              '7HP Heavy Duty',
-                            ),
-                            _buildSpecItem(
-                              Icons.local_gas_station,
-                              'Fuel Type',
-                              'Petrol/Gasoline',
-                            ),
-                            _buildSpecItem(
-                              Icons.verified,
-                              'Warranty',
-                              '1 Year Limited',
-                            ),
-                            _buildSpecItem(Icons.speed, 'RPM', '3600 RPM Max'),
+                            _buildSpecItem('Engine', '7HP Heavy Duty'),
+                            _buildSpecItem('Fuel Type', 'Petrol/Gasoline'),
+                            _buildSpecItem('Warranty', '1 Year Limited'),
+                            _buildSpecItem('RPM', '3600 RPM Max'),
                           ],
                         ),
                       ],
@@ -539,7 +527,7 @@ class _WholesaleProductDetailScreenState
     );
   }
 
-  Widget _buildSpecItem(IconData icon, String title, String value) {
+  Widget _buildSpecItem(String title, String value) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -550,7 +538,7 @@ class _WholesaleProductDetailScreenState
       ),
       child: Row(
         children: [
-          Icon(Icons.arrow_forward_ios_rounded, color: primary, size: 14),
+          Icon(Icons.auto_awesome_rounded, color: primary, size: 14),
           const SizedBox(width: 16),
           Expanded(
             child: RichText(

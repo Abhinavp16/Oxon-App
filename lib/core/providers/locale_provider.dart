@@ -40,6 +40,7 @@ class LocaleNotifier extends StateNotifier<String> {
     'Log Out': {'Hindi': 'लॉग आउट'},
     'Negotiate': {'Hindi': 'मोलभाव'},
     'Chat With Dealer': {'Hindi': 'डीलर से चैट करें'},
+    'Bulk Order': {'Hindi': 'थोक ऑर्डर'},
     'Home': {'Hindi': 'होम'},
     'Search': {'Hindi': 'खोजें'},
     'Profile': {'Hindi': 'प्रोफ़ाइल'},
