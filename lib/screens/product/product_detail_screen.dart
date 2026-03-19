@@ -601,7 +601,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   itemBuilder: (_, i) {
                     final img = CachedNetworkImage(
                       imageUrl: _images[i],
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       placeholder: (_, __) => Container(
                         color: _card,
                         child: const Center(
