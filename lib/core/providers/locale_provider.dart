@@ -90,6 +90,8 @@ class LocaleNotifier extends StateNotifier<String> {
     'Points': {'Hindi': 'अंक'},
     'VERIFIED WHOLESALER': {'Hindi': 'सत्यापित थोक विक्रेता'},
     'In Stock': {'Hindi': 'स्टॉक में है'},
+    'Limited Stock': {'Hindi': 'सीमित स्टॉक'},
+    'Low Stock': {'Hindi': 'कम स्टॉक'},
     'Out of Stock': {'Hindi': 'स्टॉक में नहीं है'},
     'Incl. taxes': {'Hindi': 'करों सहित'},
     'Wholesale Price: Negotiable': {'Hindi': 'थोक मूल्य: मोलभाव योग्य'},

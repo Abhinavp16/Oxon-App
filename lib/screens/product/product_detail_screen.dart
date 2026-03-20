@@ -80,6 +80,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   static const Color _txtMuted = Color(0xFF94A3B8);
   static const Color _border = Color(0xFFE2E8F0);
   static const Color _violet = Color(0xFF7C3AED);
+  static const Color _mrpAmount = Color(0xFF94A3B8);
+  static const Color _customerAmount = Color(0xFF6366F1);
+  static const Color _specialAmountWholesale = Color(0xFF15803D);
 
   @override
   void initState() {
@@ -863,7 +866,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: _txtSec,
+                    color: _mrpAmount,
                     decoration: TextDecoration.lineThrough,
                   ),
                 ),
@@ -889,7 +892,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     style: GoogleFonts.montserrat(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _txtSec,
+                      color: _customerAmount,
                       decoration: TextDecoration.lineThrough,
                     ),
                   ),
@@ -913,7 +916,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: _txt,
+                    color: isWholesaler ? _specialAmountWholesale : _blue,
                   ),
                 ),
                 const Spacer(),
@@ -2175,15 +2178,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                         ],
                       ),
                     ),
-                    if (stock is int && stock > 0) ...[
+                    if (stock != null) ...[
                       const SizedBox(width: 12),
-                      Text(
-                        '($stock ${t('available')})',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          color: _txtSec,
-                        ),
-                      ),
+                      _buildStockStatus(stock, t),
                     ],
                   ],
                 ),
@@ -2333,6 +2330,43 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStockStatus(dynamic stock, String Function(String) t) {
+    final stockCount = stock is int ? stock : 99;
+
+    String label;
+    Color color;
+
+    if (stockCount <= 0) {
+      label = t('Out of Stock');
+      color = _red;
+    } else if (stockCount <= 5) {
+      label = t('Low Stock');
+      color = _red;
+    } else if (stockCount <= 15) {
+      label = t('Limited Stock');
+      color = _amber;
+    } else {
+      label = t('In Stock');
+      color = _green;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
