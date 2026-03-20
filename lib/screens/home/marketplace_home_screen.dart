@@ -4939,8 +4939,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   ref.read(localeProvider.notifier).setLanguage(value);
                 },
                 itemBuilder: (context) => [
-                  _buildLanguageItem('English', '🇬🇧', t('English')),
-                  _buildLanguageItem('Hindi', '🇮🇳', t('Hindi')),
+                  _buildLanguageItem('English', '', t('English')),
+                  _buildLanguageItem('Hindi', '', t('Hindi')),
                 ],
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -4962,12 +4962,14 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        ref.watch(localeProvider) == 'English'
-                            ? '🇬🇧'
-                            : '🇮🇳',
-                        style: const TextStyle(fontSize: 18),
+                        ref.watch(localeProvider) == 'English' ? 'EN' : 'HI',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: primaryBlue,
+                        ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       const Icon(
                         Icons.arrow_drop_down_rounded,
                         color: primaryBlue,
@@ -5052,8 +5054,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       value: value,
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
-          const SizedBox(width: 12),
           Text(
             label,
             style: GoogleFonts.plusJakartaSans(
