@@ -15,14 +15,15 @@ class AuthScreen extends ConsumerStatefulWidget {
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStateMixin {
+class _AuthScreenState extends ConsumerState<AuthScreen>
+    with TickerProviderStateMixin {
   // Controllers
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _businessNameController = TextEditingController();
-  
+
   // State
   bool _isLogin = true;
   bool _isWholesaler = false;
@@ -31,7 +32,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
   bool _agreedToOxonCallsAndMessages = false;
   bool _showPolicyDetails = false;
   File? _documentFile;
-  
+
   // Animation Controllers
   late AnimationController _slideController;
   late AnimationController _fadeController;
@@ -59,19 +60,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.05, 0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
-    
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0.05, 0), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
+
     _slideController.forward();
     _fadeController.forward();
   }
@@ -92,6 +91,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
     await _fadeController.reverse();
     setState(() {
       _isLogin = !_isLogin;
+      if (!_isLogin) {
+        _isWholesaler = false;
+      }
       _clearFields();
     });
     _slideController.reset();
@@ -101,7 +103,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
 
   void _toggleRole(bool isWholesaler) {
     if (_isWholesaler == isWholesaler) return;
-    
+
     setState(() {
       _isWholesaler = isWholesaler;
       _documentFile = null;
@@ -143,11 +145,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
     }
 
     if (_isLogin) {
-      final success = await ref.read(authProvider.notifier).loginWithPhone(
-        phone: phone,
-        password: password,
-        expectedRole: _isWholesaler ? 'wholesaler' : 'buyer',
-      );
+      final success = await ref
+          .read(authProvider.notifier)
+          .loginWithPhone(
+            phone: phone,
+            password: password,
+            expectedRole: _isWholesaler ? 'wholesaler' : 'buyer',
+          );
       if (success && mounted) {
         context.go('/home');
       }
@@ -166,13 +170,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
         return;
       }
 
-      final success = await ref.read(authProvider.notifier).registerWithPhone(
-        name: name,
-        phone: phone,
-        password: password,
-        isWholesaler: _isWholesaler,
-        businessName: _isWholesaler ? _businessNameController.text.trim() : null,
-      );
+      final success = await ref
+          .read(authProvider.notifier)
+          .registerWithPhone(
+            name: name,
+            phone: phone,
+            password: password,
+            isWholesaler: _isWholesaler,
+            businessName: _isWholesaler
+                ? _businessNameController.text.trim()
+                : null,
+          );
       if (success && mounted) {
         context.go('/home');
       }
@@ -194,7 +202,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
@@ -212,11 +220,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 40),
-                      
+
                       // Logo
                       _buildLogo(),
                       const SizedBox(height: 32),
-                      
+
                       // Title
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
@@ -229,22 +237,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                       const SizedBox(height: 8),
                       Text(
                         _isLogin
-                          ? 'Sign in to continue to OXON'
-                          : 'Join OXON today',
+                            ? 'Sign in to continue to OXON'
+                            : 'Join OXON today',
                         style: AppFonts.bodyMedium(color: _textMuted),
                       ),
                       const SizedBox(height: 32),
-                      
+
                       // Role Toggle
-                      _buildRoleToggle(),
-                      const SizedBox(height: 28),
-                      
+                      if (_isLogin) ...[
+                        _buildRoleToggle(),
+                        const SizedBox(height: 28),
+                      ],
+
                       // Error Message
                       if (authState.error != null) ...[
                         _buildErrorBanner(authState.error!),
                         const SizedBox(height: 20),
                       ],
-                      
+
                       // Form Fields
                       _buildForm(),
                       const SizedBox(height: 28),
@@ -253,11 +263,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                         _buildOxonConsentCheckbox(),
                         const SizedBox(height: 20),
                       ],
-                      
+
                       // Submit Button
                       _buildSubmitButton(authState.isLoading),
                       const SizedBox(height: 24),
-                      
+
                       // Toggle Auth Mode
                       _buildAuthToggle(),
                       const SizedBox(height: 40),
@@ -291,10 +301,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: Image.asset(
-            'assets/images/oxon logo.jpeg',
-            fit: BoxFit.cover,
-          ),
+          child: Image.asset('assets/images/oxon logo.jpeg', fit: BoxFit.cover),
         ),
       ),
     );
@@ -326,7 +333,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
 
   Widget _buildRoleButton(String label, bool isWholesaler) {
     final isSelected = _isWholesaler == isWholesaler;
-    
+
     return GestureDetector(
       onTap: () => _toggleRole(isWholesaler),
       child: AnimatedContainer(
@@ -359,7 +366,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
       ),
       child: Row(
         children: [
-          const HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Color(0xFFDC2626), size: 20),
+          const HugeIcon(
+            icon: HugeIcons.strokeRoundedAlertCircle,
+            color: Color(0xFFDC2626),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -390,7 +401,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             ),
             const SizedBox(height: 16),
           ],
-          
+
           // Phone field
           _buildTextField(
             controller: _phoneController,
@@ -402,7 +413,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             maxLength: 10,
           ),
           const SizedBox(height: 16),
-          
+
           // Password field
           _buildTextField(
             controller: _passwordController,
@@ -411,9 +422,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             icon: HugeIcons.strokeRoundedLockPassword,
             isPassword: true,
             obscureText: _obscurePassword,
-            onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+            onToggleObscure: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
           ),
-          
+
           // Confirm password (signup only)
           if (!_isLogin) ...[
             const SizedBox(height: 16),
@@ -424,10 +436,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
               icon: HugeIcons.strokeRoundedLockPassword,
               isPassword: true,
               obscureText: _obscureConfirmPassword,
-              onToggleObscure: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              onToggleObscure: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword,
+              ),
             ),
           ],
-          
+
           // Wholesaler fields
           if (!_isLogin && _isWholesaler) ...[
             const SizedBox(height: 16),
@@ -441,7 +455,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             const SizedBox(height: 16),
             _buildDocumentPicker(),
           ],
-          
+
           // Forgot password (login only)
           if (_isLogin) ...[
             const SizedBox(height: 12),
@@ -456,7 +470,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                 ),
                 child: Text(
                   'Forgot Password?',
-                  style: AppFonts.bodySmall(color: _primaryColor, fontWeight: FontWeight.w600),
+                  style: AppFonts.bodySmall(
+                    color: _primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -522,7 +539,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
               suffixIcon: isPassword
                   ? IconButton(
                       icon: HugeIcon(
-                        icon: obscureText ? HugeIcons.strokeRoundedViewOff : HugeIcons.strokeRoundedView,
+                        icon: obscureText
+                            ? HugeIcons.strokeRoundedViewOff
+                            : HugeIcons.strokeRoundedView,
                         color: _textMuted,
                         size: 22,
                       ),
@@ -530,7 +549,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                     )
                   : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
               counterText: '',
             ),
           ),
@@ -545,7 +567,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
       children: [
         Row(
           children: [
-            Text('Business Document', style: AppFonts.labelMedium(color: _textDark)),
+            Text(
+              'Business Document',
+              style: AppFonts.labelMedium(color: _textDark),
+            ),
             const SizedBox(width: 6),
             Text('(Optional)', style: AppFonts.caption(color: _textMuted)),
           ],
@@ -557,7 +582,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             duration: const Duration(milliseconds: 300),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: _documentFile != null ? _primaryColor.withOpacity(0.05) : Colors.white,
+              color: _documentFile != null
+                  ? _primaryColor.withOpacity(0.05)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: _documentFile != null ? _primaryColor : _borderColor,
@@ -569,13 +596,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: _documentFile != null 
-                        ? _primaryColor.withOpacity(0.1) 
+                    color: _documentFile != null
+                        ? _primaryColor.withOpacity(0.1)
                         : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: HugeIcon(
-                    icon: _documentFile != null ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedFileUpload,
+                    icon: _documentFile != null
+                        ? HugeIcons.strokeRoundedCheckmarkCircle01
+                        : HugeIcons.strokeRoundedFileUpload,
                     color: _documentFile != null ? _primaryColor : _textMuted,
                     size: 24,
                   ),
@@ -586,7 +615,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _documentFile != null ? 'Document Selected' : 'Upload Document',
+                        _documentFile != null
+                            ? 'Document Selected'
+                            : 'Upload Document',
                         style: AppFonts.bodyMedium(
                           color: _textDark,
                           fontWeight: FontWeight.w600,
@@ -594,7 +625,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _documentFile != null 
+                        _documentFile != null
                             ? _documentFile!.path.split('/').last
                             : 'GST certificate, trade license, etc.',
                         style: AppFonts.caption(color: _textMuted),
@@ -606,7 +637,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                 ),
                 if (_documentFile != null)
                   IconButton(
-                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: Colors.grey, size: 20),
+                    icon: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
                     onPressed: () => setState(() => _documentFile = null),
                     color: _textMuted,
                   ),
@@ -667,16 +702,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
             children: [
               Checkbox(
                 value: _agreedToOxonCallsAndMessages,
-                onChanged: (value) =>
-                    setState(() => _agreedToOxonCallsAndMessages = value ?? false),
+                onChanged: (value) => setState(
+                  () => _agreedToOxonCallsAndMessages = value ?? false,
+                ),
                 activeColor: _primaryColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
-                side: const BorderSide(
-                  color: Color(0xFFC7C7CC),
-                  width: 1.5,
-                ),
+                side: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -694,7 +727,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                 ),
               ),
               IconButton(
-                onPressed: () => setState(() => _showPolicyDetails = !_showPolicyDetails),
+                onPressed: () =>
+                    setState(() => _showPolicyDetails = !_showPolicyDetails),
                 icon: Icon(
                   _showPolicyDetails
                       ? Icons.keyboard_arrow_up_rounded
@@ -706,8 +740,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
           ),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 220),
-            crossFadeState:
-                _showPolicyDetails ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+            crossFadeState: _showPolicyDetails
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
             firstChild: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               child: Column(

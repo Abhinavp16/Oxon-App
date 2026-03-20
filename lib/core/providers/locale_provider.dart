@@ -34,7 +34,7 @@ class LocaleNotifier extends StateNotifier<String> {
     'Notifications': {'Hindi': 'सूचनाएं'},
     'Help & Support': {'Hindi': 'सहायता और समर्थन'},
     'About': {'Hindi': 'के बारे में'},
-    'Convert to Wholesaler': {'Hindi': 'थोक व्यापारी बनें'},
+    'Apply for wholesaler account': {'Hindi': 'थोक खाते के लिए आवेदन करें'},
     'Unlock bulk pricing & deals': {'Hindi': 'थोक मूल्य और सौदे अनलॉक करें'},
     'Account Settings': {'Hindi': 'खाता सेटिंग'},
     'Log Out': {'Hindi': 'लॉग आउट'},

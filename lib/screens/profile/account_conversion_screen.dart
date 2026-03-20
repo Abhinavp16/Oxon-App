@@ -128,7 +128,7 @@ class _AccountConversionScreenState
           ),
         ),
         title: Text(
-          'Become a Wholesaler',
+          'Apply for wholesaler account',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -166,7 +166,7 @@ class _AccountConversionScreenState
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Expand Your Business',
+                    'Wholesaler Account Application',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
