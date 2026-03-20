@@ -5745,24 +5745,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           ),
                         ),
                       ),
-                    // Heart icon (top-right)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.85),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.favorite_border_rounded,
-                          size: 16,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
