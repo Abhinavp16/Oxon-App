@@ -91,14 +91,19 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                       AnimatedAlign(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOut,
-                        alignment: _isWholesaler ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: _isWholesaler
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Container(
-                          width: (MediaQuery.of(context).size.width - 48 - 8) / 2,
+                          width:
+                              (MediaQuery.of(context).size.width - 48 - 8) / 2,
                           height: 48,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: slate200.withOpacity(0.5)),
+                            border: Border.all(
+                              color: slate200.withOpacity(0.5),
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.05),
@@ -113,7 +118,8 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _isWholesaler = false),
+                              onTap: () =>
+                                  setState(() => _isWholesaler = false),
                               child: Container(
                                 height: 48,
                                 alignment: Alignment.center,
@@ -121,7 +127,9 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                                   'Customer',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
-                                    fontWeight: !_isWholesaler ? FontWeight.w700 : FontWeight.w500,
+                                    fontWeight: !_isWholesaler
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                     color: !_isWholesaler ? primary : slate500,
                                   ),
                                 ),
@@ -138,7 +146,9 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                                   'Wholesaler',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
-                                    fontWeight: _isWholesaler ? FontWeight.w700 : FontWeight.w500,
+                                    fontWeight: _isWholesaler
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                     color: _isWholesaler ? primary : slate500,
                                   ),
                                 ),
@@ -154,7 +164,9 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
 
                 // Subtext
                 Text(
-                  _isWholesaler ? 'BULK DEALS & PRICE NEGOTIATIONS' : 'Direct buying at best prices',
+                  _isWholesaler
+                      ? 'BULK DEALS & PRICE NEGOTIATIONS'
+                      : 'Direct buying at best prices',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -194,7 +206,9 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                             color: slate400,
                           ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
                         ),
                         style: GoogleFonts.plusJakartaSans(fontSize: 14),
                       ),
@@ -234,7 +248,9 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                             color: slate400,
                           ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
                         ),
                         style: GoogleFonts.plusJakartaSans(fontSize: 14),
                       ),
@@ -373,7 +389,6 @@ class _RoleLoginScreenState extends State<RoleLoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Create Account Link
                 RichText(
                   text: TextSpan(
                     style: GoogleFonts.plusJakartaSans(

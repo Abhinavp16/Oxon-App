@@ -174,8 +174,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   }
 
   bool _isAuthRouteActive() {
-    final currentPath =
-        GoRouter.of(context).routeInformationProvider.value.uri.path;
+    final currentPath = GoRouter.of(
+      context,
+    ).routeInformationProvider.value.uri.path;
     const authPaths = <String>{
       '/login',
       '/register',
@@ -4215,7 +4216,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           'type': 'setting',
           'icon': HugeIcons.strokeRoundedStore02,
           'color': primaryBlue,
-          'title': t('Convert to Wholesaler'),
+          'title': t('Apply for wholesaler account'),
           'subtitle': t('Unlock bulk pricing & deals'),
           'onTap': () => context.push('/convert-to-wholesaler'),
         },
