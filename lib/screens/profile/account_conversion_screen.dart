@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/models/user_model.dart';
 
@@ -23,17 +26,21 @@ class _AccountConversionScreenState
   final _businessAddressController = TextEditingController();
   final _contactPersonController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   bool _isLoading = false;
   String? _errorMessage;
+  final List<XFile> _proofImages = [];
 
   @override
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
     if (user != null) {
+      _businessNameController.text = user.businessInfo?.businessName ?? '';
+      _gstNumberController.text = user.businessInfo?.gstNumber ?? '';
+      _businessAddressController.text = user.address ?? '';
       _contactPersonController.text = user.name;
-
       _phoneController.text = user.phone ?? '';
     }
   }
@@ -58,17 +65,25 @@ class _AccountConversionScreenState
 
     try {
       final apiClient = ref.read(apiClientProvider);
+      final gstNumber = _gstNumberController.text.trim();
+      final formData = FormData.fromMap({
+        'businessName': _businessNameController.text.trim(),
+        if (gstNumber.isNotEmpty) 'gstNumber': gstNumber,
+        'businessAddress': _businessAddressController.text.trim(),
+        'contactPerson': _contactPersonController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        if (_proofImages.isNotEmpty)
+          'proofImages': await Future.wait(
+            _proofImages.map(
+              (image) =>
+                  MultipartFile.fromFile(image.path, filename: image.name),
+            ),
+          ),
+      });
 
       final response = await apiClient.post(
         '/auth/convert-to-wholesaler',
-
-        data: {
-          'businessName': _businessNameController.text,
-          'gstNumber': _gstNumberController.text,
-          'businessAddress': _businessAddressController.text,
-          'contactPerson': _contactPersonController.text,
-          'phone': _phoneController.text,
-        },
+        data: formData,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -103,6 +118,39 @@ class _AccountConversionScreenState
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _pickProofImages() async {
+    final remainingSlots = 3 - _proofImages.length;
+    if (remainingSlots <= 0) {
+      _showMessage('You can upload up to 3 proof images only.');
+      return;
+    }
+
+    final pickedImages = await _imagePicker.pickMultiImage(
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+
+    if (pickedImages.isEmpty) return;
+
+    setState(() {
+      _proofImages.addAll(pickedImages.take(remainingSlots));
+    });
+
+    if (pickedImages.length > remainingSlots) {
+      _showMessage('Only the first 3 proof images were added.');
+    }
+  }
+
+  void _removeProofImage(int index) {
+    setState(() => _proofImages.removeAt(index));
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -236,11 +284,13 @@ class _AccountConversionScreenState
                         label: 'GST Number',
                         hint: 'Enter 15-digit GSTIN',
                         icon: HugeIcons.strokeRoundedFile01,
+                        optional: true,
                         validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'GST number is required';
+                          final trimmed = value?.trim() ?? '';
+                          if (trimmed.isEmpty) {
+                            return null;
                           }
-                          if (value!.length != 15) {
+                          if (trimmed.length != 15) {
                             return 'Invalid GST number format';
                           }
                           return null;
@@ -257,6 +307,8 @@ class _AccountConversionScreenState
                             ? 'Address is required'
                             : null,
                       ),
+                      const SizedBox(height: 16),
+                      _buildProofUploadSection(),
                       const SizedBox(height: 24),
                       Text(
                         'CONTACT INFORMATION',
@@ -360,6 +412,7 @@ class _AccountConversionScreenState
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool optional = false,
   }) {
     const textPrimary = Color(0xFF1E293B);
     const textSecondary = Color(0xFF64748B);
@@ -369,13 +422,28 @@ class _AccountConversionScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: textPrimary,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textPrimary,
+              ),
+            ),
+            if (optional) ...[
+              const SizedBox(width: 6),
+              Text(
+                '(Optional)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: textSecondary,
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -419,6 +487,164 @@ class _AccountConversionScreenState
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildProofUploadSection() {
+    const textPrimary = Color(0xFF1E293B);
+    const textSecondary = Color(0xFF64748B);
+    const borderLight = Color(0xFFE2E8F0);
+    const primaryBlue = Color(0xFF2563EB);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Valid Image Proof',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textPrimary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '(Up to 3)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Upload shop photo, GST certificate, trade license, or any valid business proof.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            color: textSecondary,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _pickProofImages,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderLight),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: primaryBlue.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: primaryBlue,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _proofImages.isEmpty
+                            ? 'Upload proof images'
+                            : '${_proofImages.length}/3 images selected',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'JPG, PNG, or similar image files',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  _proofImages.length >= 3 ? 'Full' : 'Add',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: primaryBlue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_proofImages.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 96,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _proofImages.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final image = _proofImages[index];
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: borderLight),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(File(image.path), fit: BoxFit.cover),
+                      ),
+                    ),
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: GestureDetector(
+                        onTap: () => _removeProofImage(index),
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: const BoxDecoration(
+                            color: Colors.black87,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
