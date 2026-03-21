@@ -376,56 +376,43 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Future<void> _fetchCategories() async {
     setState(() => _isLoadingCategories = true);
     try {
-      // Try the dedicated categories endpoint first (with images)
-      var response = await _dio.get('/categories?active=true');
-      debugPrint('Categories API response status: ${response.statusCode}');
-      debugPrint('Categories API response: ${response.data}');
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final List<dynamic> items = response.data['data'] ?? [];
-        debugPrint('Categories items count: ${items.length}');
-        if (items.isNotEmpty) {
-          debugPrint('First category item: ${items.first}');
-          setState(() {
-            _categoryData = items.map<Map<String, dynamic>>((item) {
-              // Backend returns image as object: { url: "...", publicId: "..." }
-              // Also handle case where image might be a string directly
-              String imageUrl = '';
-              if (item['image'] != null) {
-                if (item['image'] is Map) {
-                  imageUrl = item['image']['url']?.toString() ?? '';
-                } else if (item['image'] is String) {
-                  imageUrl = item['image'].toString();
-                }
-              }
-              debugPrint('Category ${item['name']}: imageUrl = $imageUrl');
-              return {
-                'name': item['name']?.toString() ?? '',
-                'image': imageUrl,
-                'slug': item['slug']?.toString() ?? '',
-              };
-            }).toList();
-            _categories = _categoryData
-                .map((c) => c['name'] as String)
-                .toList();
-            _isLoadingCategories = false;
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      debugPrint('Error fetching categories from /categories: $e');
-    }
-
-    // Fallback to products/categories
-    try {
       final response = await _dio.get('/products/categories');
       debugPrint('Products categories API response: ${response.data}');
       if (response.statusCode == 200) {
         final List<dynamic> items = response.data['data'] ?? [];
+        Map<String, Map<String, dynamic>> categoryMetaByName = {};
+
+        try {
+          final metaResponse = await _dio.get('/categories?active=true');
+          if (metaResponse.statusCode == 200 &&
+              metaResponse.data['success'] == true) {
+            final List<dynamic> metaItems = metaResponse.data['data'] ?? [];
+            categoryMetaByName = {
+              for (final item in metaItems) ..._categoryMetadataEntries(item),
+            };
+          }
+        } catch (e) {
+          debugPrint('Error fetching category metadata from /categories: $e');
+        }
+
         setState(() {
-          _categories = items
+          _categoryData = items
+              .map<Map<String, dynamic>>((item) {
+                final name = item['name']?.toString() ?? '';
+                final metadata =
+                    categoryMetaByName[_normalizedCategoryKey(name)] ?? {};
+                return {
+                  'name': name,
+                  'image': metadata['image']?.toString() ?? '',
+                  'slug': metadata['slug']?.toString() ?? '',
+                  'count': item['count'] ?? item['productCount'],
+                };
+              })
+              .where((item) => (item['name'] as String).isNotEmpty)
+              .where(_categoryHasProducts)
+              .toList();
+          _categories = _categoryData
               .map<String>((item) => item['name']?.toString() ?? '')
-              .where((n) => n.isNotEmpty)
               .toList();
           _isLoadingCategories = false;
         });
@@ -434,6 +421,43 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       debugPrint('Error fetching categories: $e');
       setState(() => _isLoadingCategories = false);
     }
+  }
+
+  bool _categoryHasProducts(Map<String, dynamic> category) {
+    final rawCount = category['count'];
+    if (rawCount == null) return true;
+    if (rawCount is num) return rawCount > 0;
+    return int.tryParse(rawCount.toString()) != null
+        ? int.parse(rawCount.toString()) > 0
+        : true;
+  }
+
+  String _normalizedCategoryKey(String value) => value.trim().toLowerCase();
+
+  Map<String, Map<String, dynamic>> _categoryMetadataEntries(dynamic item) {
+    if (item is! Map) return {};
+
+    final slug = item['slug']?.toString() ?? '';
+    final payload = {'slug': slug, 'image': _extractCategoryImageUrl(item)};
+
+    final keys = <String>{
+      _normalizedCategoryKey(item['name']?.toString() ?? ''),
+      _normalizedCategoryKey(slug),
+      _normalizedCategoryKey(
+        (item['name']?.toString() ?? '').replaceAll(RegExp(r'[-_]+'), ' '),
+      ),
+      _normalizedCategoryKey(slug.replaceAll(RegExp(r'[-_]+'), ' ')),
+    }..removeWhere((key) => key.isEmpty);
+
+    return {for (final key in keys) key: payload};
+  }
+
+  String _extractCategoryImageUrl(dynamic item) {
+    if (item is! Map) return '';
+    final image = item['image'];
+    if (image is Map) return image['url']?.toString() ?? '';
+    if (image is String) return image;
+    return '';
   }
 
   Future<void> _fetchPromoBanners() async {
