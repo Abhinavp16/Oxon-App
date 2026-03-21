@@ -102,16 +102,22 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
         final initialTab = extra?['tab'] as int?;
-        return MarketplaceHomeScreen(initialTab: initialTab);
+        final initialSearchQuery = extra?['searchQuery'] as String?;
+        return MarketplaceHomeScreen(
+          initialTab: initialTab,
+          initialSearchQuery: initialSearchQuery,
+        );
       },
     ),
     GoRoute(
       path: '/popular-products',
-      builder: (context, state) => const FeaturedProductsScreen(isHotDeals: false),
+      builder: (context, state) =>
+          const FeaturedProductsScreen(isHotDeals: false),
     ),
     GoRoute(
       path: '/hot-deals',
-      builder: (context, state) => const FeaturedProductsScreen(isHotDeals: true),
+      builder: (context, state) =>
+          const FeaturedProductsScreen(isHotDeals: true),
     ),
     GoRoute(
       path: '/product/:id',

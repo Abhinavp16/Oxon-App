@@ -29,7 +29,12 @@ import '../../core/providers/order_count_provider.dart';
 
 class MarketplaceHomeScreen extends ConsumerStatefulWidget {
   final int? initialTab;
-  const MarketplaceHomeScreen({super.key, this.initialTab});
+  final String? initialSearchQuery;
+  const MarketplaceHomeScreen({
+    super.key,
+    this.initialTab,
+    this.initialSearchQuery,
+  });
 
   @override
   ConsumerState<MarketplaceHomeScreen> createState() =>
@@ -44,6 +49,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   int _currentCarouselIndex = 0;
   final PageController _carouselController = PageController();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   // Use ApiConfig.baseUrl - update the IP in lib/core/config/api_config.dart
   late final Dio _dio =
       Dio(
@@ -142,9 +148,49 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
     // Fetch cart from server so it persists across app restarts
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applyInitialSearchRouteState();
       ref.read(cartProvider.notifier).fetchCart();
       _startAutoRotate();
       _initGuestAuthPromptFlow();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant MarketplaceHomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab ||
+        oldWidget.initialSearchQuery != widget.initialSearchQuery) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _applyInitialSearchRouteState();
+        }
+      });
+    }
+  }
+
+  void _applyInitialSearchRouteState() {
+    final requestedQuery = widget.initialSearchQuery?.trim() ?? '';
+    final targetTab = requestedQuery.isNotEmpty ? 1 : (widget.initialTab ?? 0);
+
+    if (_selectedNavIndex != targetTab) {
+      setState(() => _selectedNavIndex = targetTab);
+    }
+
+    if (targetTab != 1) {
+      return;
+    }
+
+    if (requestedQuery.isNotEmpty && _searchController.text != requestedQuery) {
+      _searchController
+        ..text = requestedQuery
+        ..selection = TextSelection.collapsed(offset: requestedQuery.length);
+      _searchProducts(requestedQuery);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
     });
   }
 
@@ -383,7 +429,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         Map<String, Map<String, dynamic>> categoryMetaByName = {};
 
         try {
-          final metaResponse = await _dio.get('/categories?active=true');
+          final metaResponse = await _dio.get(
+            '/categories',
+            queryParameters: {'active': true, 'limit': 200},
+          );
           if (metaResponse.statusCode == 200 &&
               metaResponse.data['success'] == true) {
             final List<dynamic> metaItems = metaResponse.data['data'] ?? [];
@@ -455,8 +504,20 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   String _extractCategoryImageUrl(dynamic item) {
     if (item is! Map) return '';
     final image = item['image'];
-    if (image is Map) return image['url']?.toString() ?? '';
-    if (image is String) return image;
+    final rawUrl = image is Map ? image['url']?.toString() ?? '' : image;
+    return _resolveCategoryImageUrl(rawUrl?.toString() ?? '');
+  }
+
+  String _resolveCategoryImageUrl(String imageUrl) {
+    final trimmed = imageUrl.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      final serverBase = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
+      return '$serverBase$trimmed';
+    }
     return '';
   }
 
@@ -1376,6 +1437,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _guestAuthPromptTimer?.cancel();
     _carouselController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _searchDebounce?.cancel();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
@@ -1458,7 +1520,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       return [
         _buildHomeContent(),
         _buildSearchContent(),
-        const CategoriesScreen(),
+        CategoriesScreen(
+          onSearchTap: () => setState(() => _selectedNavIndex = 1),
+        ),
         _buildCartContent(),
         _buildNegotiationsContent(),
         _buildProfileContent(),
@@ -1467,7 +1531,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     return [
       _buildHomeContent(),
       _buildSearchContent(),
-      const CategoriesScreen(),
+      CategoriesScreen(
+        onSearchTap: () => setState(() => _selectedNavIndex = 1),
+      ),
       _buildCartContent(),
       _buildProfileContent(),
     ];
@@ -2284,6 +2350,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    focusNode: _searchFocusNode,
                     onChanged: (value) {
                       _searchDebounce?.cancel();
                       if (value.trim().isEmpty) {

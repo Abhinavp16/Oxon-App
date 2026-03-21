@@ -4,8 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import 'package:intl/intl.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/locale_provider.dart';
 
@@ -13,7 +11,9 @@ import '../../core/config/api_config.dart';
 import '../../core/services/storage_service.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
-  const CategoriesScreen({super.key});
+  final VoidCallback? onSearchTap;
+
+  const CategoriesScreen({super.key, this.onSearchTap});
 
   @override
   ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -68,7 +68,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         Map<String, Map<String, dynamic>> categoryMetaByName = {};
 
         try {
-          final metaResponse = await _dio.get('/categories?active=true');
+          final metaResponse = await _dio.get(
+            '/categories',
+            queryParameters: {'active': true, 'limit': 200},
+          );
           if (metaResponse.statusCode == 200 &&
               metaResponse.data['success'] == true) {
             final List<dynamic> metaItems = metaResponse.data['data'] ?? [];
@@ -151,8 +154,20 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   String _extractCategoryImageUrl(dynamic item) {
     if (item is! Map) return '';
     final image = item['image'];
-    if (image is Map) return image['url']?.toString() ?? '';
-    if (image is String) return image;
+    final rawUrl = image is Map ? image['url']?.toString() ?? '' : image;
+    return _resolveImageUrl(rawUrl?.toString() ?? '');
+  }
+
+  String _resolveImageUrl(String imageUrl) {
+    final trimmed = imageUrl.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      final serverBase = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
+      return '$serverBase$trimmed';
+    }
     return '';
   }
 
@@ -267,6 +282,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.read(localeProvider.notifier).translate;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -282,7 +298,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 child: Row(
                   children: [
                     Text(
-                      'Categories',
+                      t('Categories'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
@@ -291,14 +307,32 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       ),
                     ),
                     const Spacer(),
-                    if (_categories.isNotEmpty)
-                      Text(
-                        '${_categories.length} categories',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          color: textMuted,
+                    GestureDetector(
+                      onTap:
+                          widget.onSearchTap ??
+                          () => context.go('/home', extra: {'tab': 1}),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: surfaceWhite,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: borderLight),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.search_rounded,
+                          color: primaryBlue,
+                          size: 22,
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
