@@ -146,8 +146,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     try {
       final r = await _dio.get('/products/${widget.productId}');
       if (r.statusCode == 200) {
+        final rawData = r.data['data'] ?? r.data;
+        final productData = rawData is Map<String, dynamic>
+            ? Map<String, dynamic>.from(rawData)
+            : Map<String, dynamic>.from(rawData as Map);
+        if (_needsLabelFallback(productData)) {
+          productData['labels'] = await _fetchFallbackLabels(
+            productData['labelIds'] as List<dynamic>,
+          );
+        }
         setState(() {
-          _product = r.data['data'] ?? r.data;
+          _product = productData;
           _isLoading = false;
         });
         _trackView();
@@ -181,6 +190,60 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       });
     }
   }
+
+  bool _needsLabelFallback(Map<String, dynamic> productData) {
+    final labels = productData['labels'];
+    final labelIds = productData['labelIds'];
+    final hasResolvedLabels = labels is List && labels.isNotEmpty;
+    final hasLabelIds = labelIds is List && labelIds.isNotEmpty;
+    return !hasResolvedLabels && hasLabelIds;
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchFallbackLabels(
+    List<dynamic> labelIds,
+  ) async {
+    try {
+      final response = await _dio.get('/');
+      if (response.statusCode != 200) {
+        return const [];
+      }
+
+      final payload = response.data['data'];
+      if (payload is! Map) return const [];
+      final rawLabels = payload['labels'];
+      if (rawLabels is! List) return const [];
+
+      final lookup = <String, Map<String, dynamic>>{};
+      for (final item in rawLabels.whereType<Map>()) {
+        final label = Map<String, dynamic>.from(item);
+        final labelId = _normalizedLabelLookup(label['id']);
+        final labelTitle = _normalizedLabelLookup(label['title']);
+        if (labelId.isNotEmpty) {
+          lookup[labelId] = label;
+        }
+        if (labelTitle.isNotEmpty) {
+          lookup.putIfAbsent(labelTitle, () => label);
+        }
+      }
+
+      final resolved = labelIds
+          .map((id) => lookup[_normalizedLabelLookup(id)])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      resolved.sort((a, b) {
+        final aOrder = (a['order'] as num?)?.toInt() ?? 0;
+        final bOrder = (b['order'] as num?)?.toInt() ?? 0;
+        return aOrder.compareTo(bOrder);
+      });
+      return resolved;
+    } catch (e) {
+      debugPrint('Error resolving fallback product labels: $e');
+      return const [];
+    }
+  }
+
+  String _normalizedLabelLookup(dynamic value) =>
+      value?.toString().trim().toLowerCase() ?? '';
 
   Future<void> _trackView() async {
     try {
