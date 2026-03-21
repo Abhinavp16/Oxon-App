@@ -407,6 +407,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   if (_specs.isNotEmpty)
                     SliverToBoxAdapter(child: _specsSection(t)),
                   SliverToBoxAdapter(child: _trustBadgesStrip()),
+                  if (_productLabels.isNotEmpty)
+                    SliverToBoxAdapter(child: _productLabelsSection()),
                   if (negEnabled)
                     SliverToBoxAdapter(
                       child: _negotiateCard(name, price, wsPrice, minWsQty, t),
@@ -1130,6 +1132,192 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   // ── SPECIFICATIONS ──
+  List<Map<String, dynamic>> get _productLabels {
+    final raw = _product?['labels'];
+    if (raw is! List) return const [];
+    final labels = raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    labels.sort((a, b) {
+      final aOrder = (a['order'] as num?)?.toInt() ?? 0;
+      final bOrder = (b['order'] as num?)?.toInt() ?? 0;
+      return aOrder.compareTo(bOrder);
+    });
+    return labels;
+  }
+
+  Widget _productLabelsSection() {
+    final labels = _productLabels;
+    if (labels.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _border.withOpacity(0.55)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: 122,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: labels.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, index) =>
+              _buildProductLabelCard(labels[index]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductLabelCard(Map<String, dynamic> label) {
+    final title = label['title']?.toString().trim() ?? '';
+    final sourceType = label['sourceType']?.toString() == 'image'
+        ? 'image'
+        : 'icon';
+    final imageUrl = _resolveLabelAssetUrl(label['image']?.toString() ?? '');
+    final iconName = label['icon']?.toString() ?? '';
+
+    return Container(
+      width: 106,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1FBFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD9EEF3)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 38,
+            height: 38,
+            child: sourceType == 'image' && imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (_, __) => _labelVisualSkeleton(),
+                    errorWidget: (_, __, ___) => Icon(
+                      _productLabelIcon(iconName, title),
+                      size: 34,
+                      color: const Color(0xFF2B6F73),
+                    ),
+                  )
+                : Icon(
+                    _productLabelIcon(iconName, title),
+                    size: 34,
+                    color: const Color(0xFF2B6F73),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11.5,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF21545A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _labelVisualSkeleton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _blue.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+
+  String _resolveLabelAssetUrl(String imageUrl) {
+    final trimmed = imageUrl.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      final serverBase = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
+      return '$serverBase$trimmed';
+    }
+    return '';
+  }
+
+  IconData _productLabelIcon(String rawIconName, String title) {
+    final iconName = rawIconName.trim().toLowerCase();
+    const iconMap = <String, IconData>{
+      'autorenew': Icons.autorenew_rounded,
+      'autorenew_rounded': Icons.autorenew_rounded,
+      'assignment_return': Icons.assignment_return_rounded,
+      'assignment_return_rounded': Icons.assignment_return_rounded,
+      'published_with_changes': Icons.published_with_changes_rounded,
+      'published_with_changes_rounded': Icons.published_with_changes_rounded,
+      'verified': Icons.verified_rounded,
+      'verified_rounded': Icons.verified_rounded,
+      'workspace_premium': Icons.workspace_premium_rounded,
+      'workspace_premium_rounded': Icons.workspace_premium_rounded,
+      'inventory_2': Icons.inventory_2_rounded,
+      'inventory_2_rounded': Icons.inventory_2_rounded,
+      'local_shipping': Icons.local_shipping_rounded,
+      'local_shipping_rounded': Icons.local_shipping_rounded,
+      'support_agent': Icons.support_agent_rounded,
+      'support_agent_rounded': Icons.support_agent_rounded,
+      'headset_mic': Icons.headset_mic_rounded,
+      'headset_mic_rounded': Icons.headset_mic_rounded,
+      'shield': Icons.shield_rounded,
+      'shield_rounded': Icons.shield_rounded,
+      'security': Icons.security_rounded,
+      'security_rounded': Icons.security_rounded,
+      'payments': Icons.payments_rounded,
+      'payments_rounded': Icons.payments_rounded,
+      'currency_rupee': Icons.currency_rupee_rounded,
+      'currency_rupee_rounded': Icons.currency_rupee_rounded,
+      'check_circle': Icons.check_circle_rounded,
+      'check_circle_rounded': Icons.check_circle_rounded,
+    };
+
+    if (iconMap.containsKey(iconName)) {
+      return iconMap[iconName]!;
+    }
+
+    final probe = '$iconName ${title.toLowerCase()}';
+    if (probe.contains('return') || probe.contains('refund')) {
+      return Icons.autorenew_rounded;
+    }
+    if (probe.contains('quality') || probe.contains('assurance')) {
+      return Icons.verified_rounded;
+    }
+    if (probe.contains('delivery') || probe.contains('dispatch')) {
+      return Icons.inventory_2_rounded;
+    }
+    if (probe.contains('support') || probe.contains('assist')) {
+      return Icons.headset_mic_rounded;
+    }
+    if (probe.contains('protect') || probe.contains('secure')) {
+      return Icons.shield_rounded;
+    }
+    if (probe.contains('trust') || probe.contains('safe')) {
+      return Icons.check_circle_rounded;
+    }
+    return Icons.verified_user_rounded;
+  }
+
   Widget _specsSection(String Function(String) t) {
     final displayCount = _specs.length > 4 ? 4 : _specs.length;
     final hasMore = _specs.length > 4;
