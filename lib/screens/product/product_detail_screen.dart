@@ -1214,31 +1214,39 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final labels = _productLabels;
     if (labels.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _border.withOpacity(0.55)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: SizedBox(
-        height: 122,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          itemCount: labels.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
-          itemBuilder: (context, index) =>
-              _buildProductLabelCard(labels[index]),
-        ),
+    // Show max 5 labels
+    final displayLabels = labels.take(5).toList();
+    final labelCount = displayLabels.length;
+
+    // Gap adapts based on label count (smaller gap for more labels)
+    final gap = labelCount >= 4 ? 6.0 : (labelCount >= 3 ? 8.0 : 10.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalGaps = (labelCount - 1) * gap;
+          final availableWidth = constraints.maxWidth - totalGaps;
+          final labelWidth = availableWidth / labelCount;
+          // Fixed height for all labels
+          const labelHeight = 80.0;
+
+          return Row(
+            children: displayLabels.asMap().entries.map((entry) {
+              final isLast = entry.key == labelCount - 1;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: isLast ? 0 : gap),
+                  child: SizedBox(
+                    width: labelWidth,
+                    height: labelHeight,
+                    child: _buildProductLabelCard(entry.value),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
@@ -1251,20 +1259,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final imageUrl = _resolveLabelAssetUrl(label['image']?.toString() ?? '');
     final iconName = label['icon']?.toString() ?? '';
 
+    // Light blue background matching trust badges strip
     return Container(
-      width: 106,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1FBFF),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD9EEF3)),
+        color: const Color(0xFFE8F5F8),
+        borderRadius: BorderRadius.circular(0),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 38,
-            height: 38,
+            width: 32,
+            height: 32,
             child: sourceType == 'image' && imageUrl.isNotEmpty
                 ? CachedNetworkImage(
                     imageUrl: imageUrl,
@@ -1272,27 +1280,30 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     placeholder: (_, __) => _labelVisualSkeleton(),
                     errorWidget: (_, __, ___) => Icon(
                       _productLabelIcon(iconName, title),
-                      size: 34,
+                      size: 28,
                       color: const Color(0xFF2B6F73),
                     ),
                   )
                 : Icon(
                     _productLabelIcon(iconName, title),
-                    size: 34,
+                    size: 28,
                     color: const Color(0xFF2B6F73),
                   ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11.5,
-              height: 1.25,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF21545A),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1E293B),
+              ),
             ),
           ),
         ],
