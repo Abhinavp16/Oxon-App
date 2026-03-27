@@ -1,9 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
 import '../providers/auth_provider.dart';
+import '../../main.dart';
 
 /// Handles background messages (must be top-level function)
 @pragma('vm:entry-point')
@@ -61,6 +62,32 @@ class NotificationService {
   void _setupForegroundMessageHandler() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('[FCM] Foreground message: ${message.notification?.title}');
+      
+      if (message.notification != null) {
+        final title = message.notification?.title ?? 'Notification';
+        final body = message.notification?.body ?? '';
+        
+        scafoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                if (body.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(body, style: const TextStyle(fontSize: 14)),
+                ],
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 20),
+            backgroundColor: title.contains('Approved') || title.contains('Upgraded') ? Colors.green.shade700 : Colors.blue.shade700,
+            duration: const Duration(seconds: 5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
       
       if (message.data['type'] == 'ROLE_UPDATED') {
         _ref.read(authProvider.notifier).fetchCurrentUser();

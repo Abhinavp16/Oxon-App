@@ -803,13 +803,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final ratingCount = ratingCountRaw is num
         ? ratingCountRaw.toInt()
         : int.tryParse(ratingCountRaw?.toString() ?? '') ?? 0;
-    final brandDetails =
-        (_product?['brandName'] ??
-                _product?['brand'] ??
-                _product?['companyName'] ??
-                _product?['manufacturer'] ??
-                'OXON')
-            .toString();
+    String getBrand() {
+      final keys = ['brandName', 'brand', 'companyName', 'manufacturer'];
+      for (final key in keys) {
+        final val = _product?[key]?.toString().trim();
+        if (val != null && val.isNotEmpty) return val;
+      }
+      return 'OXON';
+    }
+    final brandDetails = getBrand();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),

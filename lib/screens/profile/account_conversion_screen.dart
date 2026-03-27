@@ -162,6 +162,67 @@ class _AccountConversionScreenState
     const textSecondary = Color(0xFF64748B);
     const borderLight = Color(0xFFE2E8F0);
 
+    final user = ref.watch(authProvider).user;
+    final isPending = user?.isBuyer == true && 
+                      user?.businessInfo?.businessName != null && 
+                      user?.businessInfo?.businessName?.isNotEmpty == true;
+
+    if (isPending) {
+      return Scaffold(
+        backgroundColor: backgroundWhite,
+        appBar: AppBar(
+          backgroundColor: surfaceWhite,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: textPrimary, size: 24),
+          ),
+          title: Text('Application Status', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: textPrimary)),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(color: primaryBlue.withOpacity(0.1), shape: BoxShape.circle),
+                  child: const HugeIcon(icon: HugeIcons.strokeRoundedTime02, color: primaryBlue, size: 64),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Already Applied',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: textPrimary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Your wholesaler application is currently under review by our team. We will notify you shortly once it has been processed.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 16, color: textSecondary, height: 1.5),
+                ),
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => context.pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: Text('Go Back', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: backgroundWhite,
       appBar: AppBar(

@@ -8,6 +8,8 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 
+final GlobalKey<ScaffoldMessengerState> scafoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -27,6 +29,7 @@ class AgriMartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
+      scaffoldMessengerKey: scafoldMessengerKey,
       title: 'OXON',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
