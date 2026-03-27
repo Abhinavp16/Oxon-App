@@ -61,13 +61,18 @@ class NotificationService {
   void _setupForegroundMessageHandler() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('[FCM] Foreground message: ${message.notification?.title}');
-      // The notification will auto-display on Android via the system tray
-      // For foreground, we can show a local snackbar or in-app banner if needed
+      
+      if (message.data['type'] == 'ROLE_UPDATED') {
+        _ref.read(authProvider.notifier).fetchCurrentUser();
+      }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('[FCM] Message opened app: ${message.data}');
-      // Handle navigation based on message data if needed
+      
+      if (message.data['type'] == 'ROLE_UPDATED') {
+        _ref.read(authProvider.notifier).fetchCurrentUser();
+      }
     });
   }
 

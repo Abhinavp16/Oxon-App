@@ -388,6 +388,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     StorageService.saveUserData(user.toJson());
   }
 
+  Future<void> fetchCurrentUser() async {
+    try {
+      final response = await _apiClient.get('/auth/me');
+      if (response.data['success'] == true) {
+        final user = UserModel.fromJson(response.data['data']['user'] ?? response.data['data']);
+        state = state.copyWith(user: user);
+        await StorageService.saveUserData(response.data['data']['user'] ?? response.data['data']);
+      }
+    } catch (e) {
+      debugPrint('[Auth] fetchCurrentUser error: \$e');
+    }
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }
