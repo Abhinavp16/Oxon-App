@@ -1544,6 +1544,20 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Widget build(BuildContext context) {
     // Watch auth to rebuild when role changes
     ref.watch(authProvider);
+
+    // Listen for role changes (e.g., from buyer to wholesaler after approval)
+    // to refresh the offers and other role-dependent data without manual refresh.
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      final oldRole = previous?.user?.role;
+      final newRole = next.user?.role;
+
+      if (oldRole != null && oldRole != newRole) {
+        debugPrint('[Auth] Role changed from $oldRole to $newRole, auto-refreshing data...');
+        // Use Future.microtask to avoid calling setState during build cycle
+        Future.microtask(() => _handleRefresh());
+      }
+    });
+
     final pages = _bodyPages;
     // Clamp nav index to valid range
     if (_selectedNavIndex >= pages.length) {
