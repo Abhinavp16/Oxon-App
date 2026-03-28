@@ -7109,130 +7109,151 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
     IconData iconData;
     switch (effectiveIcon) {
-      case 'ArrowRight':
-      case 'MoveRight':
-      case 'ChevronRight':
+      case 'arrowright':
+      case 'moveright':
+      case 'chevronright':
         iconData = HugeIcons.strokeRoundedArrowRight01;
         break;
-      case 'ArrowUpRight':
+      case 'arrowupright':
         iconData = HugeIcons.strokeRoundedArrowUpRight01;
         break;
-      case 'ShoppingCart':
+      case 'shoppingcart':
+      case 'shoppingcart01icon':
         iconData = HugeIcons.strokeRoundedShoppingCart01;
         break;
-      case 'ExternalLink':
+      case 'externallink':
         iconData = HugeIcons.strokeRoundedLink01;
         break;
-      case 'Play':
-      case 'PlayCircle':
+      case 'play':
+      case 'playcircle':
         iconData = HugeIcons.strokeRoundedPlay;
         break;
-      case 'Eye':
+      case 'eye':
         iconData = HugeIcons.strokeRoundedView;
         break;
-      case 'Sparkles':
-        iconData = HugeIcons.strokeRoundedSparkles;
-        break;
-      case 'Search':
-        iconData = HugeIcons.strokeRoundedSearch01;
-        break;
-      case 'Info':
+      case 'info':
         iconData = HugeIcons.strokeRoundedInformationCircle;
         break;
-      case 'Package':
+      case 'package':
         iconData = HugeIcons.strokeRoundedPackage;
         break;
-      case 'ArrowRightCircle':
+      case 'arrowrightcircle':
         iconData = HugeIcons.strokeRoundedArrowRight01; 
         break;
-      case 'Heart':
+      case 'heart':
         iconData = HugeIcons.strokeRoundedFavourite;
         break;
-      case 'Star':
+      case 'star':
         iconData = HugeIcons.strokeRoundedStar;
         break;
-      case 'Home':
+      case 'home':
         iconData = HugeIcons.strokeRoundedHome01;
         break;
-      case 'User':
+      case 'user':
         iconData = HugeIcons.strokeRoundedUser;
         break;
-      case 'Settings':
+      case 'settings':
         iconData = HugeIcons.strokeRoundedSettings01;
         break;
-      case 'Bell':
+      case 'bell':
         iconData = HugeIcons.strokeRoundedNotification01;
         break;
-      case 'Calendar':
-        iconData = HugeIcons.strokeRoundedCalendar01;
-        break;
-      case 'Camera':
-        iconData = HugeIcons.strokeRoundedCamera01;
-        break;
-      case 'Check':
-      case 'CheckCircle':
+      case 'check':
+      case 'checkcircle':
         iconData = HugeIcons.strokeRoundedCheckmarkCircle01;
         break;
-      case 'X':
-      case 'XCircle':
+      case 'x':
+      case 'xcircle':
         iconData = HugeIcons.strokeRoundedCancel01;
         break;
-      case 'Phone':
+      case 'phone':
         iconData = HugeIcons.strokeRoundedCall;
         break;
-      case 'Mail':
+      case 'mail':
         iconData = HugeIcons.strokeRoundedMail01;
         break;
-      case 'Plus':
+      case 'plus':
         iconData = HugeIcons.strokeRoundedPlusSign;
         break;
-      case 'Minus':
+      case 'minus':
         iconData = HugeIcons.strokeRoundedMinusSign;
         break;
-      case 'Lock':
-      case 'Unlock':
+      case 'lock':
+      case 'unlock':
         iconData = HugeIcons.strokeRoundedSettings01; // Closer safe mapping
         break;
-      case 'Trash':
+      case 'trash':
         iconData = HugeIcons.strokeRoundedDelete01;
         break;
-      case 'Share':
+      case 'search':
+      case 'search01icon':
+        iconData = HugeIcons.strokeRoundedSearch01;
+        break;
+      case 'calendar':
+      case 'calendar01icon':
+        iconData = HugeIcons.strokeRoundedCalendar01;
+        break;
+      case 'camera':
+      case 'camera01icon':
+        iconData = HugeIcons.strokeRoundedCamera01;
+        break;
+      case 'share':
+      case 'share01icon':
         iconData = HugeIcons.strokeRoundedShare01;
         break;
-      case 'Download':
+      case 'download':
+      case 'download01icon':
         iconData = HugeIcons.strokeRoundedDownload01;
         break;
-      case 'Upload':
+      case 'upload':
+      case 'upload01icon':
         iconData = HugeIcons.strokeRoundedUpload01;
         break;
-      case 'Tag':
+      case 'tag':
+      case 'tag01icon':
         iconData = HugeIcons.strokeRoundedTag01;
         break;
-      case 'Ticket':
+      case 'ticket':
+      case 'ticket01icon':
         iconData = HugeIcons.strokeRoundedTicket01;
         break;
-      case 'Store':
+      case 'store':
+      case 'store01icon':
         iconData = HugeIcons.strokeRoundedStore01;
         break;
-      case 'Gift':
+      case 'gift':
+      case 'gifticon':
         iconData = HugeIcons.strokeRoundedGift;
         break;
-      case 'Flash':
-      case 'Zap':
+      case 'flash':
+      case 'zap':
+      case 'flashicon':
         iconData = HugeIcons.strokeRoundedFlash;
         break;
-      case 'BadgePercent':
-      case 'Percent':
-        iconData = HugeIcons.strokeRoundedCoins01; // Using confirmed Coins as Percent alternative
+      case 'badgepercent':
+      case 'percent':
+      case 'percent01icon':
+        iconData = HugeIcons.strokeRoundedCoins01; // Fallback for percent-like icon
         break;
-      case 'ShoppingBag':
+      case 'shoppingbag':
+      case 'shoppingbag01icon':
         iconData = HugeIcons.strokeRoundedShoppingBag01;
         break;
-      case 'Truck':
+      case 'truck':
+      case 'deliverybox01icon':
         iconData = HugeIcons.strokeRoundedDeliveryBox01;
         break;
-      case 'CreditCard':
+      case 'creditcard':
+      case 'creditcardicon':
         iconData = HugeIcons.strokeRoundedCreditCard;
+        break;
+      case 'arrowright':
+      case 'arrowright01icon':
+        iconData = HugeIcons.strokeRoundedArrowRight01;
+        break;
+      case 'sparkles':
+      case 'sparklesicon':
+        iconData = HugeIcons.strokeRoundedSparkles;
         break;
       default:
         iconData = HugeIcons.strokeRoundedArrowRight01;
