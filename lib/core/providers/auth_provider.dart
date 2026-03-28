@@ -60,6 +60,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isAuthenticated: true,
           isLoading: false,
         );
+        // Sync with server in background to get latest role/info
+        fetchCurrentUser();
       } else {
         state = state.copyWith(isLoading: false, isAuthenticated: false);
       }

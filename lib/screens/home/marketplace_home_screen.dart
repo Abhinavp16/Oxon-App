@@ -689,6 +689,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       _fetchOffers(),
       _fetchNotificationCount(),
       _fetchNegotiations(),
+      ref.read(authProvider.notifier).fetchCurrentUser(),
     ]);
   }
 
