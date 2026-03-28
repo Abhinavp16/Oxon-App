@@ -5312,18 +5312,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      t('Shop Now'),
+                                      item['buttonText'] ?? t('Shop Now'),
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w800,
                                         color: primaryBlue,
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    const Icon(
-                                      Icons.arrow_forward_rounded,
-                                      size: 16,
-                                      color: primaryBlue,
+                                    _getBannerIcon(
+                                      item['buttonIcon'],
+                                      primaryBlue,
+                                      16,
                                     ),
                                   ],
                                 ),
@@ -6905,6 +6904,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       );
     }
     if (_promoBanners.isEmpty) return const SizedBox.shrink();
+    final t = ref.read(localeProvider.notifier).translate;
     return Column(
       children: [
         SizedBox(
@@ -6934,31 +6934,135 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
-                      child: CachedNetworkImage(
-                        imageUrl: banner['imageUrl'] ?? '',
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
-                          color: primaryBlue.withOpacity(0.05),
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                        errorWidget: (_, __, ___) => Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                primaryBlue.withOpacity(0.1),
-                                primaryBlue.withOpacity(0.2),
-                              ],
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: banner['imageUrl'] ?? '',
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(
+                              color: primaryBlue.withOpacity(0.05),
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                            errorWidget: (_, __, ___) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    primaryBlue.withOpacity(0.1),
+                                    primaryBlue.withOpacity(0.2),
+                                  ],
+                                ),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: textMuted,
+                                ),
+                              ),
                             ),
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_not_supported_outlined,
-                              color: textMuted,
+                          // Text Content Overlay
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  Colors.black.withOpacity(0.7),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (banner['tag'] != null && banner['tag'].isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white24,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        banner['tag'],
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                    ),
+                                  if (banner['title'] != null && banner['title'].isNotEmpty)
+                                    Text(
+                                      banner['title'],
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        height: 1.1,
+                                        letterSpacing: -0.5,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  if (banner['subtitle'] != null && banner['subtitle'].isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        banner['subtitle'],
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          banner['buttonText'] ?? t('Shop Now'),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: primaryBlue,
+                                          ),
+                                        ),
+                                        _getBannerIcon(
+                                          banner['buttonIcon'],
+                                          primaryBlue,
+                                          14,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
@@ -6989,6 +7093,154 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _getBannerIcon(String? iconName, Color color, double size) {
+    if (iconName == 'none') {
+      return const SizedBox.shrink();
+    }
+
+    String effectiveIcon = (iconName == null || iconName.trim().isEmpty) ? 'ArrowRight' : iconName;
+
+    IconData iconData;
+    switch (effectiveIcon) {
+      case 'ArrowRight':
+      case 'MoveRight':
+      case 'ChevronRight':
+        iconData = HugeIcons.strokeRoundedArrowRight01;
+        break;
+      case 'ArrowUpRight':
+        iconData = HugeIcons.strokeRoundedArrowUpRight01;
+        break;
+      case 'ShoppingCart':
+        iconData = HugeIcons.strokeRoundedShoppingCart01;
+        break;
+      case 'ExternalLink':
+        iconData = HugeIcons.strokeRoundedLink01;
+        break;
+      case 'Play':
+      case 'PlayCircle':
+        iconData = HugeIcons.strokeRoundedPlay;
+        break;
+      case 'Eye':
+        iconData = HugeIcons.strokeRoundedView;
+        break;
+      case 'Sparkles':
+        iconData = HugeIcons.strokeRoundedSparkles;
+        break;
+      case 'Search':
+        iconData = HugeIcons.strokeRoundedSearch01;
+        break;
+      case 'Info':
+        iconData = HugeIcons.strokeRoundedInformationCircle;
+        break;
+      case 'Package':
+        iconData = HugeIcons.strokeRoundedPackage;
+        break;
+      case 'ArrowRightCircle':
+        iconData = HugeIcons.strokeRoundedArrowRight01; 
+        break;
+      case 'Heart':
+        iconData = HugeIcons.strokeRoundedFavourite;
+        break;
+      case 'Star':
+        iconData = HugeIcons.strokeRoundedStar;
+        break;
+      case 'Home':
+        iconData = HugeIcons.strokeRoundedHome01;
+        break;
+      case 'User':
+        iconData = HugeIcons.strokeRoundedUser;
+        break;
+      case 'Settings':
+        iconData = HugeIcons.strokeRoundedSettings01;
+        break;
+      case 'Bell':
+        iconData = HugeIcons.strokeRoundedNotification01;
+        break;
+      case 'Calendar':
+        iconData = HugeIcons.strokeRoundedCalendar01;
+        break;
+      case 'Camera':
+        iconData = HugeIcons.strokeRoundedCamera01;
+        break;
+      case 'Check':
+      case 'CheckCircle':
+        iconData = HugeIcons.strokeRoundedCheckmarkCircle01;
+        break;
+      case 'X':
+      case 'XCircle':
+        iconData = HugeIcons.strokeRoundedCancel01;
+        break;
+      case 'Phone':
+        iconData = HugeIcons.strokeRoundedCall;
+        break;
+      case 'Mail':
+        iconData = HugeIcons.strokeRoundedMail01;
+        break;
+      case 'Plus':
+        iconData = HugeIcons.strokeRoundedPlusSign;
+        break;
+      case 'Minus':
+        iconData = HugeIcons.strokeRoundedMinusSign;
+        break;
+      case 'Lock':
+      case 'Unlock':
+        iconData = HugeIcons.strokeRoundedSettings01; // Closer safe mapping
+        break;
+      case 'Trash':
+        iconData = HugeIcons.strokeRoundedDelete01;
+        break;
+      case 'Share':
+        iconData = HugeIcons.strokeRoundedShare01;
+        break;
+      case 'Download':
+        iconData = HugeIcons.strokeRoundedDownload01;
+        break;
+      case 'Upload':
+        iconData = HugeIcons.strokeRoundedUpload01;
+        break;
+      case 'Tag':
+        iconData = HugeIcons.strokeRoundedTag01;
+        break;
+      case 'Ticket':
+        iconData = HugeIcons.strokeRoundedTicket01;
+        break;
+      case 'Store':
+        iconData = HugeIcons.strokeRoundedStore01;
+        break;
+      case 'Gift':
+        iconData = HugeIcons.strokeRoundedGift;
+        break;
+      case 'Flash':
+      case 'Zap':
+        iconData = HugeIcons.strokeRoundedFlash;
+        break;
+      case 'BadgePercent':
+      case 'Percent':
+        iconData = HugeIcons.strokeRoundedCoins01; // Using confirmed Coins as Percent alternative
+        break;
+      case 'ShoppingBag':
+        iconData = HugeIcons.strokeRoundedShoppingBag01;
+        break;
+      case 'Truck':
+        iconData = HugeIcons.strokeRoundedDeliveryBox01;
+        break;
+      case 'CreditCard':
+        iconData = HugeIcons.strokeRoundedCreditCard;
+        break;
+      default:
+        iconData = HugeIcons.strokeRoundedArrowRight01;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Icon(
+        iconData,
+        color: color,
+        size: size,
+      ),
     );
   }
 
