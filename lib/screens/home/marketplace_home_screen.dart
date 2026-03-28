@@ -7105,7 +7105,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       return const SizedBox.shrink();
     }
 
-    String effectiveIcon = (iconName == null || iconName.trim().isEmpty) ? 'ArrowRight' : iconName;
+    String effectiveIcon = (iconName == null || iconName.trim().isEmpty) ? 'arrowright' : iconName.toLowerCase().trim();
 
     IconData iconData;
     switch (effectiveIcon) {
