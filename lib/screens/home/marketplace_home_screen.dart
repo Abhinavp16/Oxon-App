@@ -539,6 +539,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     'tag': item['tag']?.toString() ?? '',
                     'imageUrl': item['imageUrl']?.toString() ?? '',
                     'linkUrl': item['linkUrl']?.toString() ?? '',
+                    'buttonText': item['buttonText']?.toString() ?? '',
+                    'buttonIcon': item['buttonIcon']?.toString() ?? '',
                   },
                 )
                 .toList();
@@ -552,6 +554,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     'tag': item['tag']?.toString() ?? '',
                     'imageUrl': item['imageUrl']?.toString() ?? '',
                     'linkUrl': item['linkUrl']?.toString() ?? '',
+                    'buttonText': item['buttonText']?.toString() ?? '',
+                    'buttonIcon': item['buttonIcon']?.toString() ?? '',
                   },
                 )
                 .toList();
