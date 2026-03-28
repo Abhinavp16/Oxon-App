@@ -163,9 +163,8 @@ class _AccountConversionScreenState
     const borderLight = Color(0xFFE2E8F0);
 
     final user = ref.watch(authProvider).user;
-    final isPending = user?.isBuyer == true && 
-                      user?.businessInfo?.businessName != null && 
-                      user?.businessInfo?.businessName?.isNotEmpty == true;
+    final isPending = user?.isBuyer == true && user?.businessInfo?.status == 'pending';
+    final isRejected = user?.isBuyer == true && user?.businessInfo?.status == 'rejected';
 
     if (isPending) {
       return Scaffold(
@@ -320,6 +319,33 @@ class _AccountConversionScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (isRejected) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.red.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline, color: Colors.red, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Your previous application was not approved. You can review your details and submit again.',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.red[700],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                       Text(
                         'BUSINESS INFORMATION',
                         style: GoogleFonts.plusJakartaSans(

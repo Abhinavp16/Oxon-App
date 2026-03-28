@@ -70,14 +70,21 @@ class BusinessInfo {
   final String? businessName;
   final String? gstNumber;
   final bool verified;
+  final String? status;
 
-  BusinessInfo({this.businessName, this.gstNumber, this.verified = false});
+  BusinessInfo({
+    this.businessName,
+    this.gstNumber,
+    this.verified = false,
+    this.status,
+  });
 
   factory BusinessInfo.fromJson(Map<String, dynamic> json) {
     return BusinessInfo(
       businessName: json['businessName'],
       gstNumber: json['gstNumber'],
       verified: json['verified'] ?? false,
+      status: json['status'] ?? 'none',
     );
   }
 
@@ -86,6 +93,7 @@ class BusinessInfo {
       'businessName': businessName,
       'gstNumber': gstNumber,
       'verified': verified,
+      'status': status,
     };
   }
 }
