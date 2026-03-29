@@ -74,7 +74,17 @@ class _FeaturedProductsScreenState extends ConsumerState<FeaturedProductsScreen>
           final name = item['name']?.toString() ?? '';
           final cat = (item['category'] ?? item['categoryName'] ?? '').toString();
 
-          String apiImage = (item['primaryImage'] ?? item['image'] ?? item['imageUrl'] ?? '').toString();
+          // Try every possible image field the backend might use (robust version from home screen)
+          String apiImage = (item['primaryImage'] ??
+                  item['image'] ??
+                  item['imageUrl'] ??
+                  item['photo'] ??
+                  item['thumbnail'] ??
+                  item['img'] ??
+                  '')
+              .toString()
+              .trim();
+
           if (apiImage.isNotEmpty && apiImage.startsWith('/')) {
             final serverBase = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
             apiImage = '$serverBase$apiImage';
