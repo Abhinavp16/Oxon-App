@@ -20,13 +20,13 @@ class CategoriesScreen extends ConsumerStatefulWidget {
 }
 
 class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
-  static const Color primaryBlue = Color(0xFF2563EB);
+  static const Color primaryBlue = Color(0xFF1E40AF);
   static const Color backgroundWhite = Color(0xFFF8FAFC);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
-  static const Color textPrimary = Color(0xFF1E293B);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color textMuted = Color(0xFF94A3B8);
-  static const Color borderLight = Color(0xFFE2E8F0);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
+  static const Color textMuted = Color(0xFF64748B);
+  static const Color borderLight = Color(0xFFF1F5F9);
 
   late final Dio _dio =
       Dio(
@@ -299,7 +299,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   children: [
                     Text(
                       t('Categories'),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.outfit(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
                         color: textPrimary,
@@ -361,7 +361,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                   const SizedBox(height: 12),
                                   Text(
                                     'No categories found',
-                                    style: GoogleFonts.plusJakartaSans(
+                                    style: GoogleFonts.outfit(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       color: textMuted,
@@ -464,7 +464,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   const SizedBox(height: 6),
                   Text(
                     cat['name'] ?? '',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.outfit(
                       fontSize: 10,
                       fontWeight: isSelected
                           ? FontWeight.w700
@@ -504,7 +504,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             const SizedBox(height: 12),
             Text(
               'No products in this category',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.outfit(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: textMuted,
@@ -526,7 +526,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               Expanded(
                 child: Text(
                   _categories[_selectedCategoryIndex]['name'] ?? '',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: textPrimary,
@@ -544,7 +544,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 ),
                 child: Text(
                   '${_products.length} items',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.outfit(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: primaryBlue,
@@ -593,13 +593,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: surfaceWhite,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderLight.withOpacity(0.7)),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: borderLight, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -611,7 +611,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               flex: 3,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(14),
+                  top: Radius.circular(4),
                 ),
                 child: Stack(
                   fit: StackFit.expand,
@@ -620,7 +620,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             product['image'].toString().isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: product['image'],
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                             placeholder: (_, __) =>
                                 Container(color: const Color(0xFFF1F5F9)),
                             errorWidget: (_, __, ___) => Container(
@@ -647,14 +647,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF16A34A).withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                           child: Text(
                             '$discount% OFF',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.outfit(
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
@@ -671,11 +672,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black87,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                             child: Text(
                               'Out of Stock',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.outfit(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -698,7 +699,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   children: [
                     Text(
                       _getDisplayName(product),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.outfit(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: textPrimary,
@@ -712,7 +713,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       children: [
                         Text(
                           '₹${_formatPrice(product['price'])}',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.outfit(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: textPrimary,
@@ -722,9 +723,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                           const SizedBox(width: 4),
                           Text(
                             '₹${_formatPrice(product['mrp'])}',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.outfit(
                               fontSize: 10,
-                              color: textMuted,
+                              color: const Color(0xFFEF4444),
                               decoration: TextDecoration.lineThrough,
                             ),
                           ),

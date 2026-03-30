@@ -323,7 +323,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF94a3b8),
+                          color: const Color(0xFFEF4444),
                           decoration: TextDecoration.lineThrough,
                         ),
                       ),

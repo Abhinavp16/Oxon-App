@@ -71,14 +71,14 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           ),
         );
   // Blue Theme Colors - Apple-like design
-  static const Color primaryBlue = Color(0xFF2563EB);
+  static const Color primaryBlue = Color(0xFF1E40AF);
   static const Color primaryBlueDark = Color(0xFF1D4ED8);
   static const Color backgroundWhite = Color(0xFFF8FAFC);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
-  static const Color textPrimary = Color(0xFF1E293B);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color textMuted = Color(0xFF94A3B8);
-  static const Color borderLight = Color(0xFFE2E8F0);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
+  static const Color textMuted = Color(0xFF64748B);
+  static const Color borderLight = Color(0xFFF1F5F9);
 
   // State for dynamic data
   List<Map<String, dynamic>> _brands = [];
@@ -1556,7 +1556,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       final newRole = next.user?.role;
 
       if (oldRole != null && oldRole != newRole) {
-        debugPrint('[Auth] Role changed from $oldRole to $newRole, auto-refreshing data...');
+        debugPrint(
+          '[Auth] Role changed from $oldRole to $newRole, auto-refreshing data...',
+        );
         // Use Future.microtask to avoid calling setState during build cycle
         Future.microtask(() => _handleRefresh());
       }
@@ -2813,7 +2815,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: surfaceWhite,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(color: borderLight.withOpacity(0.7)),
           boxShadow: [
             BoxShadow(
@@ -2831,10 +2833,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(4),
                   child:
                       product['image'] != null &&
                           product['image'].toString().isNotEmpty
@@ -2842,7 +2844,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           imageUrl: product['image'],
                           width: 100,
                           height: 100,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           placeholder: (_, __) =>
                               Container(color: const Color(0xFFF8F9FA)),
                           errorWidget: (_, __, ___) => Container(
@@ -2872,7 +2874,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       Expanded(
                         child: Text(
                           _getDisplayName(product, currentLang),
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.outfit(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: textPrimary,
@@ -2995,7 +2997,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               style: GoogleFonts.montserrat(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w400,
-                                color: textMuted,
+                                color: const Color(0xFFEF4444),
                                 decoration: TextDecoration.lineThrough,
                               ),
                             ),
@@ -3344,7 +3346,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                           '₹${_formatPrice(item.mrp!)}',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
-                                            color: textMuted,
+                                            color: const Color(0xFFEF4444),
                                             decoration:
                                                 TextDecoration.lineThrough,
                                           ),
@@ -5672,7 +5674,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   itemBuilder: (context, index) => Container(
                     decoration: BoxDecoration(
                       color: borderLight,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 )
@@ -5758,7 +5760,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: surfaceWhite,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: borderLight, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -5775,7 +5778,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+                  top: Radius.circular(4),
                 ),
                 child: Stack(
                   fit: StackFit.expand,
@@ -5788,7 +5791,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               product['image'].toString().isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: product['image'],
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
                               placeholder: (_, __) => ProductImagePlaceholder(
                                 category: product['category']?.toString() ?? '',
                                 name: product['name']?.toString() ?? '',
@@ -5821,7 +5824,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           ),
                           child: Text(
                             t('Out of Stock'),
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.outfit(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -5841,11 +5844,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: badgeColor,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                           child: Text(
                             badgeLabel,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.outfit(
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -5868,7 +5871,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   if (category.isNotEmpty)
                     Text(
                       category,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.outfit(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w700,
                         color: textMuted,
@@ -5880,7 +5883,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   const SizedBox(height: 2),
                   Text(
                     _getDisplayName(product, currentLang),
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.outfit(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: textPrimary,
@@ -5902,7 +5905,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         const SizedBox(width: 3),
                         Text(
                           '$rating',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.outfit(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: textPrimary,
@@ -5913,7 +5916,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           const SizedBox(width: 3),
                           Text(
                             '($reviewCount)',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.outfit(
                               fontSize: 10,
                               color: textMuted,
                             ),
@@ -5969,7 +5972,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               Expanded(
                                 child: Text(
                                   '🔥 $count sold in 24hrs',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.outfit(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFFEF4444),
@@ -5994,7 +5997,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         children: [
                           Text(
                             '₹${_formatPrice(product['price'] ?? 0)}',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.outfit(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
                               color: textPrimary,
@@ -6003,9 +6006,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           if (hasOriginalPrice)
                             Text(
                               '₹${_formatPrice(product['originalPrice'])}',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.outfit(
                                 fontSize: 10,
-                                color: textMuted,
+                                color: const Color(0xFFEF4444),
                                 decoration: TextDecoration.lineThrough,
                               ),
                             ),
@@ -6031,7 +6034,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             SnackBar(
                               content: Text(
                                 t('Added to cart'),
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.outfit(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -6039,7 +6042,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                               backgroundColor: primaryBlue,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               margin: const EdgeInsets.all(16),
                             ),
@@ -6947,7 +6950,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                             placeholder: (_, __) => Container(
                               color: primaryBlue.withOpacity(0.05),
                               child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                             errorWidget: (_, __, ___) => Container(
@@ -6985,7 +6990,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  if (banner['tag'] != null && banner['tag'].isNotEmpty)
+                                  if (banner['tag'] != null &&
+                                      banner['tag'].isNotEmpty)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
@@ -7006,7 +7012,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                         ),
                                       ),
                                     ),
-                                  if (banner['title'] != null && banner['title'].isNotEmpty)
+                                  if (banner['title'] != null &&
+                                      banner['title'].isNotEmpty)
                                     Text(
                                       banner['title'],
                                       style: GoogleFonts.plusJakartaSans(
@@ -7019,7 +7026,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                  if (banner['subtitle'] != null && banner['subtitle'].isNotEmpty)
+                                  if (banner['subtitle'] != null &&
+                                      banner['subtitle'].isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
@@ -7105,7 +7113,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       return const SizedBox.shrink();
     }
 
-    String effectiveIcon = (iconName == null || iconName.trim().isEmpty) ? 'arrowright' : iconName.toLowerCase().trim();
+    String effectiveIcon = (iconName == null || iconName.trim().isEmpty)
+        ? 'arrowright'
+        : iconName.toLowerCase().trim();
 
     IconData iconData;
     switch (effectiveIcon) {
@@ -7138,7 +7148,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         iconData = HugeIcons.strokeRoundedPackage;
         break;
       case 'arrowrightcircle':
-        iconData = HugeIcons.strokeRoundedArrowRight01; 
+        iconData = HugeIcons.strokeRoundedArrowRight01;
         break;
       case 'heart':
         iconData = HugeIcons.strokeRoundedFavourite;
@@ -7233,7 +7243,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       case 'badgepercent':
       case 'percent':
       case 'percent01icon':
-        iconData = HugeIcons.strokeRoundedCoins01; // Fallback for percent-like icon
+        iconData =
+            HugeIcons.strokeRoundedCoins01; // Fallback for percent-like icon
         break;
       case 'shoppingbag':
       case 'shoppingbag01icon':
@@ -7261,11 +7272,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(left: 4),
-      child: Icon(
-        iconData,
-        color: color,
-        size: size,
-      ),
+      child: Icon(iconData, color: color, size: size),
     );
   }
 

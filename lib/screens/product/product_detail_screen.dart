@@ -45,7 +45,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   YoutubePlayerController? _ytCtrl;
   bool _videoReady = false;
   Map<String, dynamic>? _product;
+  List<dynamic> _relatedProducts = [];
   bool _isLoading = true;
+  bool _isRelatedLoading = false;
   String _whatsappNumber = '';
   String? _error;
   late final Dio _dio =
@@ -160,6 +162,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           _isLoading = false;
         });
         _trackView();
+        _fetchRelatedProducts();
       }
     } on DioException catch (e) {
       final data = e.response?.data;
@@ -477,8 +480,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       child: _negotiateCard(name, price, wsPrice, minWsQty, t),
                     ),
                   SliverToBoxAdapter(child: _descSection(desc, t)),
+                  SliverToBoxAdapter(child: _allImagesSection(t)),
                   SliverToBoxAdapter(child: _videoSection(t)),
                   SliverToBoxAdapter(child: _shippingSection(t)),
+                  SliverToBoxAdapter(child: _relatedProductsSection(t)),
                   SliverToBoxAdapter(
                     child: SizedBox(height: bottomContentInset + bp),
                   ),
@@ -1794,6 +1799,72 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
+  // ── ALL IMAGES ──
+  Widget _allImagesSection(String Function(String) t) {
+    if (_images.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t('Product Gallery'),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _txt,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            itemCount: _images.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            itemBuilder: (context, i) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CachedNetworkImage(
+                  imageUrl: _images[i],
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  placeholder: (_, __) => Container(
+                    height: 200,
+                    color: _bg,
+                    child: const Center(
+                      child: CircularProgressIndicator(color: _blue),
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    height: 200,
+                    color: _bg,
+                    child: const Center(
+                      child: Icon(Icons.broken_image, size: 48, color: _txtMuted),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── DESCRIPTION ──
   Widget _descSection(String description, String Function(String) t) {
     return Container(
@@ -2040,6 +2111,124 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   // -- SHIPPING --
+  // ── RELATED PRODUCTS ──
+  Widget _relatedProductsSection(String Function(String) t) {
+    if (_isRelatedLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator(color: _blue)),
+      );
+    }
+    if (_relatedProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+          child: Text(
+            t('Related Products'),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _txt,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 280,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: _relatedProducts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final item = _relatedProducts[index];
+              final img = item['primaryImage'] ?? (item['images'] != null && (item['images'] as List).isNotEmpty ? item['images'][0]['url'] : '');
+              return GestureDetector(
+                onTap: () {
+                  context.push('/product/${item['id'] ?? item['_id']}');
+                },
+                child: Container(
+                  width: 160,
+                  decoration: BoxDecoration(
+                    color: _card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _border.withOpacity(0.5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: CachedNetworkImage(
+                          imageUrl: img,
+                          height: 140,
+                          width: 160,
+                          fit: BoxFit.contain,
+                          placeholder: (_, __) => Container(color: _bg),
+                          errorWidget: (_, __, ___) => Container(color: _bg, child: const Icon(Icons.image, color: _txtMuted)),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['name']?.toString() ?? '',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: _txt,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '₹${_fmt(item['price'])}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: _blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Future<void> _fetchRelatedProducts() async {
+    try {
+      debugPrint('Fetching related products for: ${widget.productId}');
+      setState(() => _isRelatedLoading = true);
+      final r = await _dio.get('/products/${widget.productId}/related');
+      debugPrint('Related products response: ${r.data}');
+      if (mounted) {
+        setState(() {
+          _relatedProducts = r.data['data'] ?? [];
+          _isRelatedLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching related products: $e');
+      if (mounted) {
+        setState(() => _isRelatedLoading = false);
+      }
+    }
+  }
+
   Widget _shippingSection(String Function(String) t) {
     final terms =
         _product?['shippingTerms']?.toString() ??
