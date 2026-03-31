@@ -211,7 +211,7 @@ class _FeaturedProductsScreenState
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.7,
+                childAspectRatio: 0.65,
               ),
               itemCount: _products.length,
               itemBuilder: (context, index) {
@@ -356,6 +356,7 @@ class _FeaturedProductsScreenState
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       product['name'] ?? '',
@@ -367,23 +368,27 @@ class _FeaturedProductsScreenState
                         color: textPrimary,
                       ),
                     ),
-                    const Spacer(),
-                    if (hasDiscount)
-                      Text(
-                        '₹${_formatPrice(originalPrice)}',
-                        style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          color: const Color(0xFFEF4444),
-                          decoration: TextDecoration.lineThrough,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasDiscount)
+                          Text(
+                            '₹${_formatPrice(originalPrice)}',
+                            style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              color: const Color(0xFFEF4444),
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        Text(
+                          '₹${_formatPrice(price)}',
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: primaryBlue,
+                          ),
                         ),
-                      ),
-                    Text(
-                      '₹${_formatPrice(price)}',
-                      style: GoogleFonts.outfit(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: primaryBlue,
-                      ),
+                      ],
                     ),
                   ],
                 ),

@@ -331,6 +331,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 },
               )
               .toList();
+          
+          // Sort brands to bring OXON to the front
+          fetched.sort((a, b) {
+            final nameA = a['name']?.toString().toUpperCase() ?? '';
+            final nameB = b['name']?.toString().toUpperCase() ?? '';
+            if (nameA == 'OXON') return -1;
+            if (nameB == 'OXON') return 1;
+            return 0;
+          });
+          
           // Use empty list if API returns nothing (shimmer/empty state will show)
           _brands = fetched.isEmpty ? [] : fetched;
           _isLoadingBrands = false;
@@ -5454,7 +5464,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   itemBuilder: (context, index) => Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: Container(
-                      width: 160,
+                      width: 168,
                       decoration: BoxDecoration(
                         color: borderLight,
                         borderRadius: BorderRadius.circular(16),
