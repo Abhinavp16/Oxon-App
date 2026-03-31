@@ -46,7 +46,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   bool _videoReady = false;
   Map<String, dynamic>? _product;
   List<dynamic> _relatedProducts = [];
-  Map<String, int> _relatedQuantities = {};
   bool _isLoading = true;
   bool _isRelatedLoading = false;
   String _whatsappNumber = '';
@@ -2137,7 +2136,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           ),
         ),
         SizedBox(
-          height: 370,
+          height: 210,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -2147,204 +2146,230 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               final item = _relatedProducts[index];
               final pid = item['id']?.toString() ?? item['_id']?.toString() ?? '';
               final img = item['primaryImage'] ?? (item['images'] != null && (item['images'] as List).isNotEmpty ? item['images'][0]['url'] : '');
-              final qty = _relatedQuantities[pid] ?? 1;
+              
+              final currentLang = ref.watch(localeProvider);
+              final nameHindi = item['nameHindi']?.toString() ?? '';
+              final nameEnglish = item['name']?.toString() ?? '';
+              final displayName = currentLang == 'Hindi' && nameHindi.isNotEmpty ? nameHindi : nameEnglish;
+
+              final price = item['price'] ?? 0;
+              final mrp = item['mrp'] ?? 0;
+              final hasMrp = mrp != null && mrp != price && (mrp as num) > 0;
+              final discount = hasMrp
+                  ? (((mrp - price) / mrp) * 100).round()
+                  : 0;
               final inStock = (item['stock'] ?? 0) > 0;
               final stock = item['stock'] ?? 0;
 
               return GestureDetector(
                 onTap: () => context.push('/product/$pid'),
                 child: Container(
-                  width: 190,
+                  width: 155,
                   decoration: BoxDecoration(
                     color: _card,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: _border.withOpacity(0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Image Area
                       ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: CachedNetworkImage(
-                          imageUrl: img,
-                          height: 140,
-                          width: 190,
-                          fit: BoxFit.contain,
-                          placeholder: (_, __) => Container(color: _bg),
-                          errorWidget: (_, __, ___) => Container(color: _bg, child: const Icon(Icons.image, color: _txtMuted)),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        child: Stack(
+                          children: [
+                            Container(
+                              height: 110,
+                              width: double.infinity,
+                              color: Colors.white,
+                              child: Center(
+                                child: CachedNetworkImage(
+                                  imageUrl: img,
+                                  fit: BoxFit.contain,
+                                  placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _blue)),
+                                  errorWidget: (_, __, ___) => const Icon(Icons.image, color: _txtMuted),
+                                ),
+                              ),
+                            ),
+                            if (discount > 0)
+                              Positioned(
+                                top: 6,
+                                left: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _green,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                  child: Text(
+                                    '$discount% OFF',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (!inStock)
+                              Positioned.fill(
+                                child: Container(
+                                  color: Colors.white.withOpacity(0.6),
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.8),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                      child: Text(
+                                        'Out of Stock',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
+                      // Info Area
                       Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              item['name']?.toString() ?? '',
+                              displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
                                 color: _txt,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              item['description']?.toString() ?? item['about']?.toString() ?? item['category']?.toString() ?? 'Premium tool for professional results.',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                color: _txtMuted,
-                                height: 1.3,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  '₹${_fmt(price)}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: _txt,
+                                  ),
+                                ),
+                                if (hasMrp) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '₹${_fmt(mrp)}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 9,
+                                      color: _red,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 10),
-                            Text(
-                              '₹${_fmt(item['price'])}',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: _blue,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            // ACTION AREA
+                            // ACTION BUTTONS
                             if (inStock)
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
+                              Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      // Quantity Selector
-                                      Container(
+                                  // BUY NOW
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        _trackEvent('related_buy_now_$pid');
+                                        context.push(
+                                          '/buy-now',
+                                          extra: {
+                                            'productId': pid,
+                                            'productName': displayName,
+                                            'productImage': img,
+                                            'price': (price is num) ? price.toDouble() : 0.0,
+                                            'mrp': (mrp is num) ? mrp.toDouble() : null,
+                                            'quantity': 1,
+                                            'stock': stock,
+                                          },
+                                        );
+                                      },
+                                      child: Container(
                                         height: 30,
                                         decoration: BoxDecoration(
-                                          color: _bg,
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: _border),
+                                          color: _blue,
+                                          borderRadius: BorderRadius.circular(4),
                                         ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            _smallQtyBtn(Icons.remove, () {
-                                              if (qty > 1) {
-                                                setState(() => _relatedQuantities[pid] = qty - 1);
-                                              }
-                                            }),
-                                            SizedBox(
-                                              width: 22,
-                                              child: Center(
-                                                child: Text(
-                                                  '$qty',
-                                                  style: GoogleFonts.plusJakartaSans(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            _smallQtyBtn(Icons.add, () {
-                                              if (qty < stock) {
-                                                setState(() => _relatedQuantities[pid] = qty + 1);
-                                              }
-                                            }),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // Add to Cart Icon Button
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            final pPrice = (item['price'] is int) ? item['price'].toDouble() : (item['price'] as num?)?.toDouble() ?? 0;
-                                            _trackEvent('related_add_to_cart_$pid');
-                                            ref.read(cartProvider.notifier).addItem(
-                                              productId: pid,
-                                              name: item['name']?.toString() ?? '',
-                                              price: pPrice,
-                                              image: img,
-                                              quantity: qty,
-                                            );
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(t('Added to cart')),
-                                                duration: const Duration(seconds: 1),
-                                                behavior: SnackBarBehavior.floating,
-                                              ),
-                                            );
-                                          },
-                                          child: Container(
-                                            height: 30,
-                                            decoration: BoxDecoration(
-                                              color: _blue.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: _blue.withOpacity(0.3)),
-                                            ),
-                                            child: const Icon(Icons.add_shopping_cart_rounded, size: 14, color: _blue),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          t('Buy Now'),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: Colors.white,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
                                           ),
                                         ),
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  // BUY NOW BUTTON
+                                  const SizedBox(width: 6),
+                                  // ADD TO CART ICON
                                   GestureDetector(
                                     onTap: () {
-                                      final pid = item['id']?.toString() ?? item['_id']?.toString() ?? '';
-                                      _trackEvent('related_buy_now_$pid');
-                                      final pPrice = (item['price'] is int) ? item['price'].toDouble() : (item['price'] as num?)?.toDouble() ?? 0;
-                                      final pMrp = (item['mrp'] is int) ? item['mrp'].toDouble() : (item['mrp'] as num?)?.toDouble();
-                                      context.push(
-                                        '/buy-now',
-                                        extra: {
-                                          'productId': pid,
-                                          'productName': item['name']?.toString() ?? '',
-                                          'productImage': img,
-                                          'price': pPrice,
-                                          'mrp': pMrp,
-                                          'quantity': qty,
-                                          'stock': stock,
-                                        },
+                                      final pPrice = (price is num) ? price.toDouble() : 0.0;
+                                      _trackEvent('related_add_to_cart_$pid');
+                                      ref.read(cartProvider.notifier).addItem(
+                                        productId: pid,
+                                        name: displayName,
+                                        price: pPrice,
+                                        image: img,
+                                        quantity: 1,
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(t('Added to cart')),
+                                          duration: const Duration(seconds: 1),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
                                       );
                                     },
                                     child: Container(
-                                      height: 34,
-                                      width: double.infinity,
+                                      width: 30,
+                                      height: 30,
                                       decoration: BoxDecoration(
-                                        color: _blue,
-                                        borderRadius: BorderRadius.circular(6),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: _blue.withOpacity(0.15),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
+                                        color: _blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: _blue.withOpacity(0.2)),
                                       ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        t('Buy Now'),
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                      child: const Icon(Icons.add_shopping_cart_rounded, size: 14, color: _blue),
                                     ),
                                   ),
                                 ],
                               )
                             else
                               Container(
-                                padding: const EdgeInsets.symmetric(vertical: 24),
+                                height: 30,
+                                width: double.infinity,
                                 alignment: Alignment.center,
                                 child: Text(
                                   t('Out of Stock'),
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: _red,
                                   ),
@@ -2362,18 +2387,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         ),
         const SizedBox(height: 20),
       ],
-    );
-  }
-
-  Widget _smallQtyBtn(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        height: double.infinity,
-        child: Icon(icon, size: 16, color: _blue),
-      ),
     );
   }
 

@@ -11,8 +11,13 @@ import '../../core/providers/locale_provider.dart';
 
 class FeaturedProductsScreen extends ConsumerStatefulWidget {
   final bool isHotDeals;
+  final String? brandName;
 
-  const FeaturedProductsScreen({super.key, this.isHotDeals = false});
+  const FeaturedProductsScreen({
+    super.key,
+    this.isHotDeals = false,
+    this.brandName,
+  });
 
   @override
   ConsumerState<FeaturedProductsScreen> createState() =>
@@ -62,6 +67,12 @@ class _FeaturedProductsScreenState
         final List<dynamic> items = data['data'] ?? data ?? [];
 
         final filtered = items.where((item) {
+          if (widget.brandName != null) {
+            final brand = (item['brand'] ?? item['brandName'] ?? '').toString();
+            final name = (item['name'] ?? '').toString();
+            debugPrint('Filtering by brand: ${widget.brandName} | Item brand: $brand | Item name: $name');
+            return brand.toLowerCase() == widget.brandName!.toLowerCase();
+          }
           if (widget.isHotDeals) {
             return item['isHot'] == true;
           } else {
@@ -132,7 +143,9 @@ class _FeaturedProductsScreenState
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(localeProvider.notifier).translate;
-    final title = widget.isHotDeals ? t('Hot Deals') : t('Popular Products');
+    final title = widget.brandName != null
+        ? widget.brandName!
+        : (widget.isHotDeals ? t('Hot Deals') : t('Popular Products'));
 
     return Scaffold(
       backgroundColor: backgroundWhite,

@@ -12,8 +12,13 @@ import '../../core/services/storage_service.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
   final VoidCallback? onSearchTap;
+  final String? initialCategoryName;
 
-  const CategoriesScreen({super.key, this.onSearchTap});
+  const CategoriesScreen({
+    super.key,
+    this.onSearchTap,
+    this.initialCategoryName,
+  });
 
   @override
   ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -60,6 +65,22 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     _fetchCategories();
   }
 
+  @override
+  void didUpdateWidget(covariant CategoriesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialCategoryName != null && 
+        widget.initialCategoryName != oldWidget.initialCategoryName) {
+      final idx = _categories.indexWhere((c) => 
+        c['name']?.toString().toLowerCase() == widget.initialCategoryName!.toLowerCase());
+      if (idx != -1 && idx != _selectedCategoryIndex) {
+        setState(() {
+          _selectedCategoryIndex = idx;
+          _fetchProductsForCategory(_categories[idx]);
+        });
+      }
+    }
+  }
+
   Future<void> _fetchCategories() async {
     try {
       final response = await _dio.get('/products/categories');
@@ -102,6 +123,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
         setState(() {
           _categories = cats;
+          
+          if (widget.initialCategoryName != null) {
+            final idx = cats.indexWhere((c) => 
+              c['name']?.toString().toLowerCase() == widget.initialCategoryName!.toLowerCase());
+            if (idx != -1) {
+              _selectedCategoryIndex = idx;
+            }
+          }
+
           if (_selectedCategoryIndex >= _categories.length) {
             _selectedCategoryIndex = 0;
           }
@@ -109,7 +139,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         });
 
         if (cats.isNotEmpty) {
-          _fetchProductsForCategory(cats[0]);
+          _fetchProductsForCategory(cats[_selectedCategoryIndex]);
         }
       }
     } catch (e) {

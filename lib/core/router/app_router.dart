@@ -120,6 +120,12 @@ final appRouter = GoRouter(
           const FeaturedProductsScreen(isHotDeals: true),
     ),
     GoRoute(
+      path: '/brand/:name',
+      builder: (context, state) => FeaturedProductsScreen(
+        brandName: state.pathParameters['name'],
+      ),
+    ),
+    GoRoute(
       path: '/product/:id',
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;

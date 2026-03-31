@@ -99,6 +99,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   List<String> _categories = [];
   List<Map<String, dynamic>> _categoryData = [];
   bool _isLoadingCategories = true;
+  String? _requestedCategoryName;
 
   // Hero banners from API (top carousel)
   List<Map<String, dynamic>> _heroBanners = [];
@@ -1527,6 +1528,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         _buildSearchContent(),
         CategoriesScreen(
           onSearchTap: () => setState(() => _selectedNavIndex = 1),
+          initialCategoryName: _requestedCategoryName,
         ),
         _buildCartContent(),
         _buildNegotiationsContent(),
@@ -1538,6 +1540,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       _buildSearchContent(),
       CategoriesScreen(
         onSearchTap: () => setState(() => _selectedNavIndex = 1),
+        initialCategoryName: _requestedCategoryName,
       ),
       _buildCartContent(),
       _buildProfileContent(),
@@ -2130,17 +2133,27 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
+  String _fmtCatName(String name) {
+    if (name.isEmpty) return '';
+    // Replace hyphens with spaces and capitalize words
+    final parts = name.replaceAll('-', ' ').split(' ');
+    return parts.map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
   // Skeleton loader for categories
   Widget _buildCategorySkeleton() {
     return SizedBox(
-      height: 130,
+      height: 145,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(left: 16, right: 8),
         itemCount: 5,
         itemBuilder: (context, index) {
           return Container(
-            width: 90,
+            width: 100,
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -2161,6 +2174,15 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 Container(
                   height: 12,
                   margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                Container(
+                  height: 12,
+                  width: 60,
+                  margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE2E8F0),
                     borderRadius: BorderRadius.circular(4),
@@ -2222,85 +2244,98 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           _buildCategorySkeleton()
         else
           SizedBox(
-            height: 130,
+            height: 145,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(left: 16, right: 8, bottom: 4),
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: categories.map((cat) {
-                  return Container(
-                    width: 90,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.07),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(20),
-                              bottom: Radius.circular(20),
-                            ),
-                            child: (cat['image']?.toString() ?? '').isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: cat['image']!.toString(),
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                      color: const Color(0xFFF1F5F9),
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: primaryBlue,
+                  return GestureDetector(
+                    onTap: () {
+                      final name = cat['name']?.toString() ?? '';
+                      setState(() {
+                        _requestedCategoryName = name;
+                        _selectedNavIndex = 2;
+                      });
+                    },
+                    child: Container(
+                      width: 100,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.07),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
+                              child: (cat['image']?.toString() ?? '').isNotEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: CachedNetworkImage(
+                                        imageUrl: cat['image']!.toString(),
+                                        fit: BoxFit.contain,
+                                        placeholder: (_, __) => const Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: primaryBlue,
+                                          ),
+                                        ),
+                                        errorWidget: (_, __, ___) => const Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: textMuted,
                                         ),
                                       ),
-                                    ),
-                                    errorWidget: (_, __, ___) => Container(
+                                    )
+                                  : Container(
                                       color: const Color(0xFFF1F5F9),
                                       child: const Icon(
-                                        Icons.image_not_supported_outlined,
+                                        Icons.category_outlined,
                                         color: textMuted,
                                       ),
                                     ),
-                                  )
-                                : Container(
-                                    color: const Color(0xFFF1F5F9),
-                                    child: const Icon(
-                                      Icons.category_outlined,
-                                      color: textMuted,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 6,
-                            horizontal: 4,
-                          ),
-                          child: Text(
-                            cat['name']?.toString() ?? '',
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: textPrimary,
                             ),
                           ),
-                        ),
-                      ],
+                          Container(
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[700],
+                              borderRadius: const BorderRadius.vertical(
+                                bottom: Radius.circular(20),
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                            ),
+                            child: Text(
+                              _fmtCatName(cat['name']?.toString() ?? ''),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }).toList(),
@@ -5450,12 +5485,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
 
                     return Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: Container(
-                        width: 168,
-                        decoration: BoxDecoration(
-                          color: surfaceWhite,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: borderLight, width: 1),
+                      child: GestureDetector(
+                        onTap: () {
+                          final name = brand['name']?.toString() ?? '';
+                          context.push('/brand/$name');
+                        },
+                        child: Container(
+                          width: 168,
+                          decoration: BoxDecoration(
+                            color: surfaceWhite,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: borderLight, width: 1),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.05),
@@ -5577,7 +5617,8 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           ],
                         ),
                       ),
-                    );
+                    ),
+                  );
                   },
                 ),
         ),
