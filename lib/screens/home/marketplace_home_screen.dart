@@ -1480,7 +1480,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     if (currentLang == 'Hindi') {
       if (nameHindi.isNotEmpty) return nameHindi;
 
-      // Queue at most one sync per product/name to avoid request storms during rebuilds.
       if (nameEnglish.isNotEmpty && productId.isNotEmpty) {
         final syncKey = '$productId|$nameEnglish';
         if (!_pendingHindiSync.contains(syncKey) &&
@@ -1496,6 +1495,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
         }
       }
       return nameEnglish;
+    }
+
+    if (nameEnglish.isNotEmpty) {
+      return nameEnglish.split(' ').map((word) {
+        if (word.isEmpty) return word;
+        return word[0].toUpperCase() + word.substring(1).toLowerCase();
+      }).join(' ');
     }
     return nameEnglish;
   }
@@ -5917,7 +5923,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.65,
+                      childAspectRatio: 0.52,
                     ),
                     itemCount: 4,
                     itemBuilder: (context, index) => Container(
@@ -5950,7 +5956,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.65,
+                      childAspectRatio: 0.52,
                     ),
                     itemCount: filteredProducts.length > 6
                         ? 6
@@ -6137,16 +6143,19 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   const SizedBox(height: 2),
-                  Text(
-                    _getDisplayName(product, currentLang),
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: textPrimary,
-                      height: 1.2,
+                  SizedBox(
+                    height: 52,
+                    child: Text(
+                      _getDisplayName(product, currentLang),
+                      style: GoogleFonts.outfit(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w400,
+                        color: textPrimary,
+                        height: 1.25,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   // Star rating visualization
@@ -6201,57 +6210,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         ],
                       ],
                     ),
-                  // Live Purchase Counter
-                  Builder(
-                    builder: (context) {
-                      final min =
-                          (product['purchaseCountMin'] as num?)?.toInt() ?? 0;
-                      final max =
-                          (product['purchaseCountMax'] as num?)?.toInt() ?? 0;
-                      if (min <= 0 && max <= 0) return const SizedBox.shrink();
-                      final effectiveMax = max > min ? max : min;
-                      final dayOfYear = DateTime.now()
-                          .difference(DateTime(DateTime.now().year))
-                          .inDays;
-                      final productIdHash = product['id']
-                          .toString()
-                          .hashCode
-                          .abs();
-                      final seed = productIdHash + dayOfYear;
-                      final range = effectiveMax - min;
-                      final count = range > 0
-                          ? min + (seed % (range + 1))
-                          : min;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: const Color(0xFFEF4444).withOpacity(0.15),
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Text(
-                            '🔥 $count sold in 24hrs', // Second flame kept here
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFFEF4444),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  const SizedBox.shrink(),
                   const SizedBox(height: 6),
                   // Price + Cart button
                   Row(

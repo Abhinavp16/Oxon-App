@@ -227,6 +227,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   'inStock': item['inStock'] != false,
                   'shortDescription':
                       item['shortDescription']?.toString() ?? '',
+                  'rating': item['averageRating'] ?? item['rating'] ?? 4.5,
+                  'reviewCount': item['ratingCount'] ?? item['reviewCount'] ?? item['reviews'] ?? '',
                 },
               )
               .toList();
@@ -303,11 +305,20 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final nameHindi = product['nameHindi']?.toString() ?? '';
     final nameEnglish = product['name']?.toString() ?? '';
 
+    String name;
     if (currentLang == 'Hindi') {
-      if (nameHindi.isNotEmpty) return nameHindi;
-      return nameEnglish;
+      name = nameHindi.isNotEmpty ? nameHindi : nameEnglish;
+    } else {
+      name = nameEnglish;
     }
-    return nameEnglish;
+
+    if (currentLang != 'Hindi' && name.isNotEmpty) {
+      return name.split(' ').map((word) {
+        if (word.isEmpty) return word;
+        return word[0].toUpperCase() + word.substring(1).toLowerCase();
+      }).join(' ');
+    }
+    return name;
   }
 
   @override
@@ -595,7 +606,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              childAspectRatio: 0.68,
+              childAspectRatio: 0.48,
             ),
             itemCount: _products.length,
             itemBuilder: (context, index) =>
@@ -611,6 +622,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         product['mrp'] != null &&
         product['mrp'] != product['price'] &&
         (product['mrp'] as num) > 0;
+    final rating = product['rating'];
     final discount = hasMrp
         ? (((product['mrp'] as num) - (product['price'] as num)) /
                   (product['mrp'] as num) *
@@ -624,7 +636,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         decoration: BoxDecoration(
           color: surfaceWhite,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: borderLight, width: 1),
+          // border: Border.all(color: borderLight, width: 1), // Removed outer border
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -638,7 +650,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           children: [
             // Image
             Expanded(
-              flex: 3,
+              flex: 22, // Reduced from 3 to 2.2 (Integer multiplied by 10 for safety)
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(4),
@@ -719,50 +731,130 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 ),
               ),
             ),
-            // Info
             Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getDisplayName(product),
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: textPrimary,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Text(
-                          '₹${_formatPrice(product['price'])}',
+              flex: 20, // Re-scaled to match 2.2:2.0 as 22:20
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(4),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 44, // More compact but still fits 3 lines tightly
+                        child: Text(
+                          _getDisplayName(product),
                           style: GoogleFonts.outfit(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600, // Make it a bit more readable
                             color: textPrimary,
+                            height: 1.2,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (hasMrp) ...[
-                          const SizedBox(width: 4),
+                      ),
+                      const SizedBox(height: 1), // Reduced gap
+                      // Star rating visualization (Showing always as requested)
+                      Row(
+                        children: [
                           Text(
-                            '₹${_formatPrice(product['mrp'])}',
-                            style: GoogleFonts.outfit(
-                              fontSize: 10,
-                              color: const Color(0xFFEF4444),
-                              decoration: TextDecoration.lineThrough,
+                            rating is num ? rating.toDouble().toStringAsFixed(1) : (double.tryParse(rating?.toString() ?? '')?.toStringAsFixed(1) ?? '4.5'),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: textPrimary,
                             ),
                           ),
+                          const SizedBox(width: 4),
+                          Row(
+                            children: List.generate(5, (index) {
+                              final rv = (rating != null) 
+                                  ? ((rating is num) ? rating.toDouble() : double.tryParse(rating.toString()) ?? 0.0)
+                                  : 0.0;
+                              final starIndex = index + 1;
+                              if (rv >= starIndex) {
+                                return const Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: Color(0xFFF59E0B),
+                                );
+                              } else if (rv >= starIndex - 0.5) {
+                                return const Icon(
+                                  Icons.star_half_rounded,
+                                  size: 14,
+                                  color: Color(0xFFF59E0B),
+                                );
+                              } else {
+                                return const Icon(
+                                  Icons.star_outline_rounded,
+                                  size: 14,
+                                  color: Color(0xFFCBD5E1),
+                                );
+                              }
+                            }),
+                          ),
+
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 2), // Significantly reduced gap to move price up
+                      Row(
+                        children: [
+                          Text(
+                            '₹${_formatPrice(product['price'])}',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: textPrimary,
+                            ),
+                          ),
+                          if (hasMrp) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '₹${_formatPrice(product['mrp'])}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                color: const Color(0xFFEF4444),
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6), // Replaces Spacer for predictable height
+                      SizedBox(
+                        width: double.infinity,
+                        height: 26, // Reduced button height
+                        child: ElevatedButton(
+                          onPressed: () => context.push('/product/${product['id']}'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          child: Text(
+                            'View Product',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

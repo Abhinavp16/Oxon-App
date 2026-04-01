@@ -211,7 +211,7 @@ class _FeaturedProductsScreenState
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.65,
+                childAspectRatio: 0.52,
               ),
               itemCount: _products.length,
               itemBuilder: (context, index) {
@@ -358,14 +358,21 @@ class _FeaturedProductsScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      product['name'] ?? '',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textPrimary,
+                    SizedBox(
+                      height: 52,
+                      child: Text(
+                        (product['name'] ?? '').toString().split(' ').map((word) {
+                          if (word.isEmpty) return word;
+                          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+                        }).join(' '),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
+                          color: textPrimary,
+                          height: 1.25,
+                        ),
                       ),
                     ),
                     Column(

@@ -981,7 +981,7 @@ class _AppLandingScreenState extends ConsumerState<AppLandingScreen> {
         crossAxisCount: 2,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.55,
       ),
       itemCount: _landingProducts.length,
       itemBuilder: (context, index) {
@@ -1061,14 +1061,21 @@ class _AppLandingScreenState extends ConsumerState<AppLandingScreen> {
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            product['name']!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: textDark,
+          SizedBox(
+            height: 52,
+            child: Text(
+              (product['name'] ?? '').split(' ').map((word) {
+                if (word.isEmpty) return word;
+                return word[0].toUpperCase() + word.substring(1).toLowerCase();
+              }).join(' '),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w400,
+                fontSize: 12.5,
+                color: textDark,
+                height: 1.25,
+              ),
             ),
           ),
           const SizedBox(height: 4),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -48,6 +49,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   List<dynamic> _relatedProducts = [];
   bool _isLoading = true;
   bool _isRelatedLoading = false;
+  int _bgKey = 0;
   String _whatsappNumber = '';
   String? _error;
   late final Dio _dio =
@@ -921,7 +923,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
+
           RichText(
             text: TextSpan(
               style: GoogleFonts.plusJakartaSans(
@@ -2121,25 +2124,44 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     }
     if (_relatedProducts.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-          child: Text(
-            t('Related Products'),
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: _txt,
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(_bgKey),
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(seconds: 10), // Slow drift
+      builder: (context, value, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(math.sin(value * 2 * math.pi), -1),
+              end: Alignment(-math.sin(value * 2 * math.pi), 1),
+              colors: const [
+                Color(0xFFEFF6FF), // Sky Blue 50
+                Color(0xFFDBEAFE), // Sky Blue 100
+                Color(0xFFEFF6FF), 
+              ],
             ),
           ),
-        ),
-        SizedBox(
-          height: 210,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Text(
+                  t('Related Products'),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 255, // Increased from 210 to accommodate action buttons and avoid overflow
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+
             itemCount: _relatedProducts.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
@@ -2252,17 +2274,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: _txt,
+                            SizedBox(
+                              height: 44, // Reduced from 48 for compactness
+                              child: Text(
+                                displayName.split(' ').map((word) {
+                                  if (word.isEmpty) return word;
+                                  return word[0].toUpperCase() + word.substring(1).toLowerCase();
+                                }).join(' '),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _txt,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2), // Reduced gap from 4 to 2
                             Row(
                               children: [
                                 Text(
@@ -2286,7 +2314,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                                 ],
                               ],
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             // ACTION BUTTONS
                             if (inStock)
                               Row(
@@ -2385,10 +2413,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
             },
           ),
         ),
-        const SizedBox(height: 20),
-      ],
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+      onEnd: () {
+        if (mounted) {
+          setState(() {
+            _bgKey++;
+          });
+        }
+      },
     );
   }
+
 
   Future<void> _fetchRelatedProducts() async {
     try {
