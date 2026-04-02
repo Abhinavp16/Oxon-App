@@ -1113,10 +1113,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  inStock
-                      ? (stock is int && stock <= 10
-                            ? '${t('Only')} $stock ${t('left')}'
-                            : t('In Stock'))
+                  inStock ? t('In Stock')
                       : t('Out of Stock'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
@@ -3015,12 +3012,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     if (stockCount <= 0) {
       label = t('Out of Stock');
       color = _red;
-    } else if (stockCount <= 5) {
-      label = t('Low Stock');
-      color = _red;
-    } else if (stockCount <= 15) {
-      label = t('Limited Stock');
-      color = _amber;
     } else {
       label = t('In Stock');
       color = _green;
