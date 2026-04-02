@@ -11,6 +11,8 @@ class WishlistItem {
   final String? category;
   final String? nameHindi;
 
+  final String? blurHash;
+
   WishlistItem({
     required this.productId,
     required this.name,
@@ -19,6 +21,7 @@ class WishlistItem {
     this.mrp,
     this.category,
     this.nameHindi,
+    this.blurHash,
   });
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +32,7 @@ class WishlistItem {
     'mrp': mrp,
     'category': category,
     'nameHindi': nameHindi,
+    'blurHash': blurHash,
   };
 
   factory WishlistItem.fromJson(Map<String, dynamic> json) => WishlistItem(
@@ -39,6 +43,7 @@ class WishlistItem {
     mrp: json['mrp'] != null ? (json['mrp']).toDouble() : null,
     category: json['category'],
     nameHindi: json['nameHindi'],
+    blurHash: json['blurHash'],
   );
 }
 

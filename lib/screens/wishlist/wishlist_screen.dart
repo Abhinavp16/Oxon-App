@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../widgets/app_image.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers/wishlist_provider.dart';
@@ -253,27 +253,13 @@ class WishlistScreen extends ConsumerWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: item.image != null && item.image!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: item.image!,
-                          width: 90,
-                          height: 90,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) =>
-                              Container(color: const Color(0xFFF1F5F9)),
-                          errorWidget: (_, __, ___) => Container(
-                            color: const Color(0xFFF1F5F9),
-                            child: const Center(
-                              child: Icon(Icons.image, color: textMuted),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: const Color(0xFFF1F5F9),
-                          child: const Center(
-                            child: Icon(Icons.image, color: textMuted),
-                          ),
-                        ),
+                  child: AppImage(
+                    imageUrl: item.image ?? '',
+                    blurHash: item.blurHash,
+                    category: item.category ?? '',
+                    name: item.name,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),

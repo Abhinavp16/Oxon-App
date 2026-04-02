@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/app_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -276,6 +277,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     } catch (_) {}
   }
 
+  List<Map<String, String>> get _imagesData {
+    if (_product == null) return [];
+    final imgs = _product!['images'] as List<dynamic>?;
+    if (imgs == null || imgs.isEmpty) return [];
+    return imgs
+        .map((e) {
+          final m = e as Map<String, dynamic>;
+          return {
+            'url': m['url']?.toString() ?? '',
+            'blurHash': m['blurHash']?.toString() ?? '',
+          };
+        })
+        .where((m) => m['url']!.isNotEmpty)
+        .toList();
+  }
+
   List<String> get _images {
     if (_product == null) return [];
     final imgs = _product!['images'] as List<dynamic>?;
@@ -456,7 +473,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 ),
                 slivers: [
                   SliverToBoxAdapter(child: SizedBox(height: tp + 64)),
-                  SliverToBoxAdapter(child: _imageCarousel()),
+                  SliverToBoxAdapter(child: _imageCarousel(name)),
                   SliverToBoxAdapter(
                     child: _infoSection(
                       name,
@@ -482,7 +499,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       child: _negotiateCard(name, price, wsPrice, minWsQty, t),
                     ),
                   SliverToBoxAdapter(child: _descSection(desc, t)),
-                  SliverToBoxAdapter(child: _allImagesSection(t)),
+                  SliverToBoxAdapter(child: _allImagesSection(name, t)),
                   SliverToBoxAdapter(child: _videoSection(t)),
                   SliverToBoxAdapter(child: _shippingSection(t)),
                   SliverToBoxAdapter(child: _relatedProductsSection(t)),
@@ -625,7 +642,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   // ── IMAGE CAROUSEL ──
-  Widget _imageCarousel() {
+  Widget _imageCarousel(String name) {
     if (_images.isEmpty) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
@@ -671,35 +688,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 aspectRatio: 4 / 3,
                 child: PageView.builder(
                   controller: _imgCtrl,
-                  itemCount: _images.length,
+                  itemCount: _imagesData.length,
                   onPageChanged: (i) => setState(() => _imgIndex = i),
                   itemBuilder: (_, i) {
-                    final img = CachedNetworkImage(
-                      imageUrl: _images[i],
+                    final data = _imagesData[i];
+                    final img = AppImage(
+                      imageUrl: data['url']!,
+                      blurHash: data['blurHash'],
+                      category: _product?['category']?.toString() ?? '',
+                      name: name, // assuming name is available in scope
                       fit: BoxFit.contain,
-                      placeholder: (_, __) => Container(
-                        color: _card,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: _blue,
-                            ),
-                          ),
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: _card,
-                        child: const Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            size: 48,
-                            color: _txtMuted,
-                          ),
-                        ),
-                      ),
                     );
                     if (i == 0 && widget.heroTag != null) {
                       return Hero(
@@ -1800,8 +1798,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   }
 
   // ── ALL IMAGES ──
-  Widget _allImagesSection(String Function(String) t) {
-    if (_images.isEmpty) return const SizedBox.shrink();
+  Widget _allImagesSection(String name, String Function(String) t) {
+    if (_imagesData.isEmpty) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(20),
@@ -1830,32 +1828,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           ),
           const SizedBox(height: 16),
           ListView.separated(
-            physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            itemCount: _images.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (context, i) {
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _imagesData.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, i) {
+              final data = _imagesData[i];
               return ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: CachedNetworkImage(
-                  imageUrl: _images[i],
-                  width: double.infinity,
-                  fit: BoxFit.contain,
-                  placeholder: (_, __) => Container(
-                    height: 200,
-                    color: _bg,
-                    child: const Center(
-                      child: CircularProgressIndicator(color: _blue),
-                    ),
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    height: 200,
-                    color: _bg,
-                    child: const Center(
-                      child: Icon(Icons.broken_image, size: 48, color: _txtMuted),
-                    ),
-                  ),
+                child: AppImage(
+                  imageUrl: data['url']!,
+                  blurHash: data['blurHash'],
+                  category: _product?['category']?.toString() ?? '',
+                  name: name,
+                  fit: BoxFit.cover,
                 ),
               );
             },

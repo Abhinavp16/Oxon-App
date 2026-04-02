@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../widgets/app_image.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers/auth_provider.dart';
@@ -295,14 +295,12 @@ class _NegotiationsScreenState extends ConsumerState<NegotiationsScreen>
               if (imageUrl.isNotEmpty)
                 AspectRatio(
                   aspectRatio: 2.4,
-                  child: CachedNetworkImage(
+                  child: AppImage(
                     imageUrl: imageUrl,
+                    blurHash: product['blurHash'] as String?,
+                    category: product['category'] as String? ?? '',
+                    name: productName,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: const Color(0xFFF1F5F9)),
-                    errorWidget: (_, __, ___) => Container(
-                      color: const Color(0xFFF1F5F9),
-                      child: const Center(child: Icon(Icons.image_outlined, color: textMuted, size: 40)),
-                    ),
                   ),
                 ),
               // Card Body

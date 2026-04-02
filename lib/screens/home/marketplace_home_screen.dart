@@ -24,6 +24,7 @@ import '../../core/services/transliteration_service.dart';
 import '../categories/categories_screen.dart';
 import '../profile/legal_policy_screen.dart';
 import '../../widgets/product_image_placeholder.dart';
+import '../../widgets/app_image.dart';
 import '../../core/providers/wishlist_provider.dart';
 import '../../core/providers/order_count_provider.dart';
 
@@ -405,6 +406,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               'price': item['price'] ?? item['retailPrice'] ?? 0,
               'originalPrice': item['mrp'] ?? item['originalPrice'] ?? 0,
               'image': image,
+              'blurHash': item['primaryBlurHash'] ?? item['blurHash'] ?? '',
               'isFeatured': item['isFeatured'] == true,
               'isHot': item['isHot'] == true,
               'isNew': item['isNew'] == true,
@@ -464,6 +466,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 return {
                   'name': name,
                   'image': metadata['image']?.toString() ?? '',
+                  'blurHash': metadata['blurHash']?.toString(),
                   'slug': metadata['slug']?.toString() ?? '',
                   'count': item['count'] ?? item['productCount'],
                 };
@@ -498,7 +501,11 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     if (item is! Map) return {};
 
     final slug = item['slug']?.toString() ?? '';
-    final payload = {'slug': slug, 'image': _extractCategoryImageUrl(item)};
+    final payload = {
+      'slug': slug,
+      'image': _extractCategoryImageUrl(item),
+      'blurHash': item['image'] is Map ? item['image']['blurHash']?.toString() : null,
+    };
 
     final keys = <String>{
       _normalizedCategoryKey(item['name']?.toString() ?? ''),
@@ -746,8 +753,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   'nameHindi': item['nameHindi']?.toString() ?? '',
                   'brand': item['category']?.toString() ?? '',
                   'price': item['price'] ?? item['retailPrice'] ?? 0,
-                  'originalPrice': item['mrp'] ?? 0,
+                   'originalPrice': item['mrp'] ?? 0,
                   'image': item['primaryImage']?.toString() ?? '',
+                  'blurHash': item['primaryBlurHash']?.toString() ?? item['blurHash']?.toString() ?? '',
                   'inStock': item['inStock'] == true,
                   'shortDescription':
                       item['shortDescription']?.toString() ?? '',
@@ -2367,23 +2375,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                     (cat['image']?.toString() ?? '').isNotEmpty
                                         ? Padding(
                                           padding: const EdgeInsets.all(8.0),
-                                          child: CachedNetworkImage(
+                                          child: AppImage(
                                             imageUrl: cat['image']!.toString(),
+                                            blurHash: cat['blurHash']?.toString(),
+                                            category: cat['name']?.toString() ?? '',
+                                            name: cat['name']?.toString() ?? '',
                                             fit: BoxFit.contain,
-                                            placeholder:
-                                                (_, __) => const Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: primaryBlue,
-                                                      ),
-                                                ),
-                                            errorWidget:
-                                                (_, __, ___) => const Icon(
-                                                  Icons
-                                                      .image_not_supported_outlined,
-                                                  color: textMuted,
-                                                ),
                                           ),
                                         )
                                         : Container(
@@ -2960,27 +2957,19 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child:
-                      product['image'] != null &&
-                          product['image'].toString().isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: product['image'],
+                      (product['image']?.toString() ?? '').isNotEmpty
+                      ? AppImage(
+                          imageUrl: product['image'].toString(),
+                          blurHash: product['blurHash']?.toString(),
+                          category: product['category']?.toString() ?? '',
+                          name: product['name']?.toString() ?? '',
                           width: 100,
                           height: 100,
                           fit: BoxFit.contain,
-                          placeholder: (_, __) =>
-                              Container(color: const Color(0xFFF8F9FA)),
-                          errorWidget: (_, __, ___) => Container(
-                            color: const Color(0xFFF8F9FA),
-                            child: Center(
-                              child: Icon(Icons.image, color: textMuted),
-                            ),
-                          ),
                         )
-                      : Container(
-                          color: const Color(0xFFF8F9FA),
-                          child: Center(
-                            child: Icon(Icons.image, color: textMuted),
-                          ),
+                      : ProductImagePlaceholder(
+                          category: product['category']?.toString() ?? '',
+                          name: product['name']?.toString() ?? '',
                         ),
                 ),
               ),
