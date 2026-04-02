@@ -35,6 +35,13 @@ class AppImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
+      // Memory management: Lazy load appropriate resolutions
+      memCacheWidth: width != null ? (width! * 2).toInt() : null,
+      memCacheHeight: height != null ? (height! * 2).toInt() : null,
+      // Smooth transitions
+      fadeInDuration: const Duration(milliseconds: 500),
+      fadeOutDuration: const Duration(milliseconds: 300),
+      placeholderFadeInDuration: const Duration(milliseconds: 200),
       placeholder: (context, url) => _buildPlaceholder(),
       errorWidget: (context, url, error) =>
           ProductImagePlaceholder(category: category, name: name),
@@ -42,15 +49,25 @@ class AppImage extends StatelessWidget {
   }
 
   Widget _buildPlaceholder() {
-    if (blurHash != null && blurHash!.isNotEmpty) {
-      return BlurHash(hash: blurHash!);
-    }
-
-    // Fallback to Shimmer if no blurHash exists
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Container(width: width, height: height, color: Colors.white),
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (blurHash != null && blurHash!.isNotEmpty)
+            BlurHash(
+              hash: blurHash!,
+              imageFit: fit,
+            )
+          else
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(color: Colors.white),
+            ),
+        ],
+      ),
     );
   }
 }
