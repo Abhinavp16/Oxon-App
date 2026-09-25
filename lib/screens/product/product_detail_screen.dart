@@ -15,6 +15,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/config/public_product_link.dart';
+import '../../core/models/catalog_data.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -275,6 +277,30 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
             : null,
       );
     } catch (_) {}
+  }
+
+  String _publicProductUrl() {
+    final product = _product;
+    return PublicProductLink.build(
+      productId: widget.productId,
+      productSlug: product?['slug']?.toString(),
+      categorySlug:
+          product?['categorySlug']?.toString() ??
+          product?['category']?.toString(),
+    );
+  }
+
+  Future<void> _shareProduct() async {
+    final product = _product;
+    if (product == null) return;
+    final productName = product['name']?.toString() ?? 'Product';
+    final productPrice = product['price'] ?? product['retailPrice'];
+    final shareText =
+        'Check out $productName'
+        '${productPrice != null ? ' - ₹${_fmt(productPrice)}' : ''}'
+        ' on OXON by Veepee.\n\n${_publicProductUrl()}';
+    await SharePlus.instance.share(ShareParams(text: shareText));
+    _trackEvent('share');
   }
 
   List<Map<String, String>> get _imagesData {
@@ -580,16 +606,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   ),
                 ),
                 const SizedBox(width: 4),
-                _circleBtn(Icons.share_outlined, () {
-                  final p = _product;
-                  if (p == null) return;
-                  final pName = p['name']?.toString() ?? 'Product';
-                  final pPrice = p['price'] ?? p['retailPrice'];
-                  final shareText =
-                      'Check out $pName'
-                      '${pPrice != null ? ' - ₹${_fmt(pPrice)}' : ''}'
-                      ' on AgriMart!\n\nhttps://agrimart.app/product/${widget.productId}';
-                  SharePlus.instance.share(ShareParams(text: shareText));
+                _circleBtn(Icons.share_outlined, () async {
+                  await _shareProduct();
                 }),
                 Builder(
                   builder: (ctx) {
@@ -601,6 +619,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       () {
                         final p = _product;
                         if (p == null) return;
+                        final categoryData = ProductCategoryData.fromProduct(p);
                         final item = WishlistItem(
                           productId: widget.productId,
                           name: p['name']?.toString() ?? '',
@@ -609,7 +628,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                           mrp: p['mrp'] != null
                               ? (p['mrp'] as num).toDouble()
                               : null,
-                          category: p['category']?.toString(),
+                          category: categoryData.displayName,
+                          categories: categoryData.categories
+                              .map((category) => category.toJson())
+                              .toList(),
+                          primaryCategory: categoryData.primary?.toJson(),
                           nameHindi: p['nameHindi']?.toString(),
                         );
                         ref.read(wishlistProvider.notifier).toggle(item);
@@ -816,6 +839,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       }
       return 'OXON';
     }
+
     final brandDetails = getBrand();
 
     return Container(
@@ -1111,8 +1135,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  inStock ? t('In Stock')
-                      : t('Out of Stock'),
+                  inStock ? t('In Stock') : t('Out of Stock'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -2121,7 +2144,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
               colors: const [
                 Color(0xFFEFF6FF), // Sky Blue 50
                 Color(0xFFDBEAFE), // Sky Blue 100
-                Color(0xFFEFF6FF), 
+                Color(0xFFEFF6FF),
               ],
             ),
           ),
@@ -2140,262 +2163,332 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 ),
               ),
               SizedBox(
-                height: 255, // Increased from 210 to accommodate action buttons and avoid overflow
+                height:
+                    255, // Increased from 210 to accommodate action buttons and avoid overflow
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
 
-            itemCount: _relatedProducts.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final item = _relatedProducts[index];
-              final pid = item['id']?.toString() ?? item['_id']?.toString() ?? '';
-              final img = item['primaryImage'] ?? (item['images'] != null && (item['images'] as List).isNotEmpty ? item['images'][0]['url'] : '');
-              
-              final currentLang = ref.watch(localeProvider);
-              final nameHindi = item['nameHindi']?.toString() ?? '';
-              final nameEnglish = item['name']?.toString() ?? '';
-              final displayName = currentLang == 'Hindi' && nameHindi.isNotEmpty ? nameHindi : nameEnglish;
+                  itemCount: _relatedProducts.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final item = _relatedProducts[index];
+                    final pid =
+                        item['id']?.toString() ?? item['_id']?.toString() ?? '';
+                    final img =
+                        item['primaryImage'] ??
+                        (item['images'] != null &&
+                                (item['images'] as List).isNotEmpty
+                            ? item['images'][0]['url']
+                            : '');
 
-              final price = item['price'] ?? 0;
-              final mrp = item['mrp'] ?? 0;
-              final hasMrp = mrp != null && mrp != price && (mrp as num) > 0;
-              final discount = hasMrp
-                  ? (((mrp - price) / mrp) * 100).round()
-                  : 0;
-              final inStock = (item['stock'] ?? 0) > 0;
-              final stock = item['stock'] ?? 0;
+                    final currentLang = ref.watch(localeProvider);
+                    final nameHindi = item['nameHindi']?.toString() ?? '';
+                    final nameEnglish = item['name']?.toString() ?? '';
+                    final displayName =
+                        currentLang == 'Hindi' && nameHindi.isNotEmpty
+                        ? nameHindi
+                        : nameEnglish;
 
-              return GestureDetector(
-                onTap: () => context.push('/product/$pid'),
-                child: Container(
-                  width: 155,
-                  decoration: BoxDecoration(
-                    color: _card,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: _border.withOpacity(0.5)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Image Area
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        child: Stack(
-                          children: [
-                            Container(
-                              height: 110,
-                              width: double.infinity,
-                              color: Colors.white,
-                              child: Center(
-                                child: CachedNetworkImage(
-                                  imageUrl: img,
-                                  fit: BoxFit.contain,
-                                  placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _blue)),
-                                  errorWidget: (_, __, ___) => const Icon(Icons.image, color: _txtMuted),
-                                ),
-                              ),
+                    final price = item['price'] ?? 0;
+                    final mrp = item['mrp'] ?? 0;
+                    final hasMrp =
+                        mrp != null && mrp != price && (mrp as num) > 0;
+                    final discount = hasMrp
+                        ? (((mrp - price) / mrp) * 100).round()
+                        : 0;
+                    final inStock = (item['stock'] ?? 0) > 0;
+                    final stock = item['stock'] ?? 0;
+
+                    return GestureDetector(
+                      onTap: () => context.push('/product/$pid'),
+                      child: Container(
+                        width: 155,
+                        decoration: BoxDecoration(
+                          color: _card,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: _border.withOpacity(0.5)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
                             ),
-                            if (discount > 0)
-                              Positioned(
-                                top: 6,
-                                left: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _green,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                  child: Text(
-                                    '$discount% OFF',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (!inStock)
-                              Positioned.fill(
-                                child: Container(
-                                  color: Colors.white.withOpacity(0.6),
-                                  child: Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.8),
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                      child: Text(
-                                        'Out of Stock',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
-                      ),
-                      // Info Area
-                      Padding(
-                        padding: const EdgeInsets.all(8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
-                              height: 44, // Reduced from 48 for compactness
-                              child: Text(
-                                displayName.split(' ').map((word) {
-                                  if (word.isEmpty) return word;
-                                  return word[0].toUpperCase() + word.substring(1).toLowerCase();
-                                }).join(' '),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: _txt,
-                                ),
+                            // Image Area
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
                               ),
-                            ),
-                            const SizedBox(height: 2), // Reduced gap from 4 to 2
-                            Row(
-                              children: [
-                                Text(
-                                  '₹${_fmt(price)}',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: _txt,
-                                  ),
-                                ),
-                                if (hasMrp) ...[
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '₹${_fmt(mrp)}',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 9,
-                                      color: _red,
-                                      decoration: TextDecoration.lineThrough,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 110,
+                                    width: double.infinity,
+                                    color: Colors.white,
+                                    child: Center(
+                                      child: CachedNetworkImage(
+                                        imageUrl: img,
+                                        fit: BoxFit.contain,
+                                        placeholder: (_, __) => const Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: _blue,
+                                          ),
+                                        ),
+                                        errorWidget: (_, __, ___) => const Icon(
+                                          Icons.image,
+                                          color: _txtMuted,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // ACTION BUTTONS
-                            if (inStock)
-                              Row(
-                                children: [
-                                  // BUY NOW
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        _trackEvent('related_buy_now_$pid');
-                                        context.push(
-                                          '/buy-now',
-                                          extra: {
-                                            'productId': pid,
-                                            'productName': displayName,
-                                            'productImage': img,
-                                            'price': (price is num) ? price.toDouble() : 0.0,
-                                            'mrp': (mrp is num) ? mrp.toDouble() : null,
-                                            'quantity': 1,
-                                            'stock': stock,
-                                          },
-                                        );
-                                      },
+                                  if (discount > 0)
+                                    Positioned(
+                                      top: 6,
+                                      left: 6,
                                       child: Container(
-                                        height: 30,
-                                        decoration: BoxDecoration(
-                                          color: _blue,
-                                          borderRadius: BorderRadius.circular(4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                          vertical: 2,
                                         ),
-                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: _green,
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
                                         child: Text(
-                                          t('Buy Now'),
+                                          '$discount% OFF',
                                           style: GoogleFonts.plusJakartaSans(
-                                            color: Colors.white,
-                                            fontSize: 9,
+                                            fontSize: 8,
                                             fontWeight: FontWeight.w800,
+                                            color: Colors.white,
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  // ADD TO CART ICON
-                                  GestureDetector(
-                                    onTap: () {
-                                      final pPrice = (price is num) ? price.toDouble() : 0.0;
-                                      _trackEvent('related_add_to_cart_$pid');
-                                      ref.read(cartProvider.notifier).addItem(
-                                        productId: pid,
-                                        name: displayName,
-                                        price: pPrice,
-                                        image: img,
-                                        quantity: 1,
-                                      );
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(t('Added to cart')),
-                                          duration: const Duration(seconds: 1),
-                                          behavior: SnackBarBehavior.floating,
+                                  if (!inStock)
+                                    Positioned.fill(
+                                      child: Container(
+                                        color: Colors.white.withOpacity(0.6),
+                                        child: Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(
+                                                0.8,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
+                                            ),
+                                            child: Text(
+                                              'Out of Stock',
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    color: Colors.white,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ),
                                         ),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: 30,
-                                      height: 30,
-                                      decoration: BoxDecoration(
-                                        color: _blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: _blue.withOpacity(0.2)),
                                       ),
-                                      child: const Icon(Icons.add_shopping_cart_rounded, size: 14, color: _blue),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Info Area
+                            Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    height:
+                                        44, // Reduced from 48 for compactness
+                                    child: Text(
+                                      displayName
+                                          .split(' ')
+                                          .map((word) {
+                                            if (word.isEmpty) return word;
+                                            return word[0].toUpperCase() +
+                                                word.substring(1).toLowerCase();
+                                          })
+                                          .join(' '),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: _txt,
+                                      ),
                                     ),
                                   ),
-                                ],
-                              )
-                            else
-                              Container(
-                                height: 30,
-                                width: double.infinity,
-                                alignment: Alignment.center,
-                                child: Text(
-                                  t('Out of Stock'),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: _red,
+                                  const SizedBox(
+                                    height: 2,
+                                  ), // Reduced gap from 4 to 2
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '₹${_fmt(price)}',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: _txt,
+                                        ),
+                                      ),
+                                      if (hasMrp) ...[
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '₹${_fmt(mrp)}',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 9,
+                                            color: _red,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ),
+                                  const SizedBox(height: 8),
+                                  // ACTION BUTTONS
+                                  if (inStock)
+                                    Row(
+                                      children: [
+                                        // BUY NOW
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              _trackEvent(
+                                                'related_buy_now_$pid',
+                                              );
+                                              context.push(
+                                                '/buy-now',
+                                                extra: {
+                                                  'productId': pid,
+                                                  'productName': displayName,
+                                                  'productImage': img,
+                                                  'price': (price is num)
+                                                      ? price.toDouble()
+                                                      : 0.0,
+                                                  'mrp': (mrp is num)
+                                                      ? mrp.toDouble()
+                                                      : null,
+                                                  'quantity': 1,
+                                                  'stock': stock,
+                                                },
+                                              );
+                                            },
+                                            child: Container(
+                                              height: 30,
+                                              decoration: BoxDecoration(
+                                                color: _blue,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                t('Buy Now'),
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      color: Colors.white,
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // ADD TO CART ICON
+                                        GestureDetector(
+                                          onTap: () {
+                                            final pPrice = (price is num)
+                                                ? price.toDouble()
+                                                : 0.0;
+                                            _trackEvent(
+                                              'related_add_to_cart_$pid',
+                                            );
+                                            ref
+                                                .read(cartProvider.notifier)
+                                                .addItem(
+                                                  productId: pid,
+                                                  name: displayName,
+                                                  price: pPrice,
+                                                  image: img,
+                                                  quantity: 1,
+                                                );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  t('Added to cart'),
+                                                ),
+                                                duration: const Duration(
+                                                  seconds: 1,
+                                                ),
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                          },
+                                          child: Container(
+                                            width: 30,
+                                            height: 30,
+                                            decoration: BoxDecoration(
+                                              color: _blue.withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              border: Border.all(
+                                                color: _blue.withOpacity(0.2),
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_shopping_cart_rounded,
+                                              size: 14,
+                                              color: _blue,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Container(
+                                      height: 30,
+                                      width: double.infinity,
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        t('Out of Stock'),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: _red,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ),
+              ),
               const SizedBox(height: 20),
             ],
           ),
@@ -2410,7 +2503,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       },
     );
   }
-
 
   Future<void> _fetchRelatedProducts() async {
     try {
@@ -2530,7 +2622,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final msg =
         'Hi, I need help with this product:\n\n'
         '*$name*${pPrice.isNotEmpty ? ' - $pPrice' : ''}\n\n'
-        'https://agrimart.app/product/${widget.productId}\n\n'
+        '${_publicProductUrl()}\n\n'
         'Please share more details.';
     final encoded = Uri.encodeComponent(msg);
     final phone = _whatsappNumber.replaceAll(RegExp(r'[^0-9+]'), '');
@@ -2749,7 +2841,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         '*Retail Price:* $pPrice\n'
         '*Desired Quantity:* $qty\n'
         '*Requirement Details:* ${details.isEmpty ? 'N/A' : details}\n\n'
-        'View Product: https://agrimart.app/product/${widget.productId}';
+        'View Product: ${_publicProductUrl()}';
 
     final encoded = Uri.encodeComponent(msg);
     final phone = _whatsappNumber.replaceAll(RegExp(r'[^0-9+]'), '');

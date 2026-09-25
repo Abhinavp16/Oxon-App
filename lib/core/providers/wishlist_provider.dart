@@ -9,6 +9,8 @@ class WishlistItem {
   final double price;
   final double? mrp;
   final String? category;
+  final List<Map<String, String>> categories;
+  final Map<String, String>? primaryCategory;
   final String? nameHindi;
 
   final String? blurHash;
@@ -20,6 +22,8 @@ class WishlistItem {
     required this.price,
     this.mrp,
     this.category,
+    this.categories = const [],
+    this.primaryCategory,
     this.nameHindi,
     this.blurHash,
   });
@@ -31,6 +35,8 @@ class WishlistItem {
     'price': price,
     'mrp': mrp,
     'category': category,
+    'categories': categories,
+    'primaryCategory': primaryCategory,
     'nameHindi': nameHindi,
     'blurHash': blurHash,
   };
@@ -42,6 +48,19 @@ class WishlistItem {
     price: (json['price'] ?? 0).toDouble(),
     mrp: json['mrp'] != null ? (json['mrp']).toDouble() : null,
     category: json['category'],
+    categories: (json['categories'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map(
+          (value) => value.map(
+            (key, item) => MapEntry(key.toString(), item?.toString() ?? ''),
+          ),
+        )
+        .toList(),
+    primaryCategory: json['primaryCategory'] is Map
+        ? (json['primaryCategory'] as Map).map(
+            (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+          )
+        : null,
     nameHindi: json['nameHindi'],
     blurHash: json['blurHash'],
   );

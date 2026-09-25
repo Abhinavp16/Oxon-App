@@ -14,12 +14,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers/locale_provider.dart';
 import '../../core/config/api_config.dart';
+import '../../core/models/catalog_data.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/services/notification_service.dart';
 import '../../core/services/redeemed_coupon_service.dart';
 import '../../core/services/shipping_address_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/services/category_catalog_service.dart';
 import '../../core/services/transliteration_service.dart';
 import '../categories/categories_screen.dart';
 import '../profile/legal_policy_screen.dart';
@@ -90,6 +91,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   // Search state
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
+  bool _isLoadingMoreSearch = false;
+  bool _searchHasNext = false;
+  int _searchPage = 1;
+  int _searchGeneration = 0;
   String _searchQuery = '';
   Timer? _searchDebounce;
   final List<String> _recentSearches = ['Seed Drill', 'Tractor parts'];
@@ -145,7 +150,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _fetchOffers();
     _fetchReviews();
     _loadSavedShippingAddresses();
-    _initNotifications();
     _fetchNotificationCount();
 
     // Fetch cart from server so it persists across app restarts
@@ -282,14 +286,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     _scheduleNextGuestPrompt();
   }
 
-  Future<void> _initNotifications() async {
-    try {
-      await ref.read(notificationServiceProvider).initialize();
-    } catch (e) {
-      debugPrint('Notification init error: $e');
-    }
-  }
-
   Future<void> _fetchReviews() async {
     try {
       final response = await _dio.get('/reviews');
@@ -332,7 +328,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 },
               )
               .toList();
-          
+
           // Sort brands to bring OXON to the front
           fetched.sort((a, b) {
             final nameA = a['name']?.toString().toUpperCase() ?? '';
@@ -341,7 +337,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             if (nameB == 'OXON') return 1;
             return 0;
           });
-          
+
           // Use empty list if API returns nothing (shimmer/empty state will show)
           _brands = fetched.isEmpty ? [] : fetched;
           _isLoadingBrands = false;
@@ -362,64 +358,83 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     return ''; // ProductImagePlaceholder handles the display
   }
 
+  Map<String, dynamic> _mapCatalogProduct(Map item) {
+    final name = item['name']?.toString() ?? '';
+    final categoryData = ProductCategoryData.fromProduct(item);
+    String apiImage =
+        (item['primaryImage'] ??
+                item['image'] ??
+                item['imageUrl'] ??
+                item['photo'] ??
+                item['thumbnail'] ??
+                item['img'] ??
+                '')
+            .toString()
+            .trim();
+    if (apiImage.startsWith('/')) {
+      apiImage = '${ApiConfig.baseUrl.replaceFirst('/api/v1', '')}$apiImage';
+    }
+    final image =
+        apiImage.startsWith('http://') || apiImage.startsWith('https://')
+        ? apiImage
+        : _fallbackImageFor(name, categoryData.displayName);
+    return <String, dynamic>{
+      'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
+      'name': name,
+      'nameHindi': item['nameHindi']?.toString() ?? '',
+      'category': categoryData.displayName,
+      'categorySlug': categoryData.displaySlug,
+      'categories': categoryData.categories
+          .map((category) => category.toJson())
+          .toList(),
+      'primaryCategory': categoryData.primary?.toJson(),
+      'categoryIds': item['categoryIds'],
+      'primaryCategoryId': item['primaryCategoryId'],
+      'brand': (item['brand'] ?? item['brandName'] ?? categoryData.displayName)
+          .toString(),
+      'price': item['price'] ?? item['retailPrice'] ?? 0,
+      'originalPrice': item['mrp'] ?? item['originalPrice'] ?? 0,
+      'image': image,
+      'blurHash': item['primaryBlurHash'] ?? item['blurHash'] ?? '',
+      'isFeatured': item['isFeatured'] == true,
+      'isHot': item['isHot'] == true,
+      'isNew': item['isNew'] == true,
+      'inStock': item['inStock'] != false,
+      'discount': 0,
+      'rating': item['rating'] ?? 4.5,
+      'reviewCount': item['reviewCount'] ?? item['reviews'] ?? '',
+      'purchaseCountMin': item['purchaseCountMin'] ?? 0,
+      'purchaseCountMax': item['purchaseCountMax'] ?? 0,
+      'shortDescription': item['shortDescription']?.toString() ?? '',
+    };
+  }
+
   Future<void> _fetchProducts() async {
     try {
       debugPrint('Fetching products...');
-      final response = await _dio.get('/products');
-      debugPrint('Products response: ${response.statusCode}');
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final List<dynamic> items = data['data'] ?? data ?? [];
-        debugPrint('Found ${items.length} products');
+      final responses = await Future.wait([
+        _dio.get('/products', queryParameters: {'page': 1, 'limit': 20}),
+        _dio.get(
+          '/products',
+          queryParameters: {'page': 1, 'limit': 6, 'featured': true},
+        ),
+        _dio.get(
+          '/products',
+          queryParameters: {'page': 1, 'limit': 6, 'isHot': true},
+        ),
+      ]);
+      if (responses.every((response) => response.statusCode == 200)) {
+        final fetched = <Map<String, dynamic>>[];
+        for (final response in responses) {
+          final payload = response.data as Map;
+          fetched.addAll(
+            catalogItems(
+              payload,
+            ).whereType<Map>().map<Map<String, dynamic>>(_mapCatalogProduct),
+          );
+        }
         setState(() {
-          final fetched = items.map<Map<String, dynamic>>((item) {
-            final name = item['name']?.toString() ?? '';
-            final cat = (item['category'] ?? item['categoryName'] ?? '')
-                .toString();
-            // Try every possible image field the backend might use
-            String apiImage =
-                (item['primaryImage'] ??
-                        item['image'] ??
-                        item['imageUrl'] ??
-                        item['photo'] ??
-                        item['thumbnail'] ??
-                        item['img'] ??
-                        '')
-                    .toString()
-                    .trim();
-            // If the URL is relative (starts with /), prepend the server base
-            if (apiImage.isNotEmpty && apiImage.startsWith('/')) {
-              final serverBase = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
-              apiImage = '$serverBase$apiImage';
-            }
-            final isValidUrl =
-                apiImage.startsWith('http://') ||
-                apiImage.startsWith('https://');
-            final image = isValidUrl ? apiImage : _fallbackImageFor(name, cat);
-            debugPrint('Product: $name | apiImage: $apiImage | final: $image');
-            return <String, dynamic>{
-              'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
-              'name': name,
-              'nameHindi': item['nameHindi']?.toString() ?? '',
-              'category': cat,
-              'brand': cat,
-              'price': item['price'] ?? item['retailPrice'] ?? 0,
-              'originalPrice': item['mrp'] ?? item['originalPrice'] ?? 0,
-              'image': image,
-              'blurHash': item['primaryBlurHash'] ?? item['blurHash'] ?? '',
-              'isFeatured': item['isFeatured'] == true,
-              'isHot': item['isHot'] == true,
-              'isNew': item['isNew'] == true,
-              'inStock': item['inStock'] != false,
-              'discount': 0,
-              'rating': item['rating'] ?? 4.5,
-              'reviewCount': item['reviewCount'] ?? item['reviews'] ?? '',
-              'purchaseCountMin': item['purchaseCountMin'] ?? 0,
-              'purchaseCountMax': item['purchaseCountMax'] ?? 0,
-            };
-          }).toList();
-          // Use empty list if API returns nothing (shimmer/empty state will show)
-          _products = fetched.isEmpty ? [] : fetched;
+          _products = dedupeProducts(const [], fetched);
           _isLoadingProducts = false;
         });
       }
@@ -435,43 +450,44 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   Future<void> _fetchCategories() async {
     setState(() => _isLoadingCategories = true);
     try {
-      final response = await _dio.get('/products/categories');
-      debugPrint('Products categories API response: ${response.data}');
-      if (response.statusCode == 200) {
-        final List<dynamic> items = response.data['data'] ?? [];
-        Map<String, Map<String, dynamic>> categoryMetaByName = {};
-
-        try {
-          final metaResponse = await _dio.get(
-            '/categories',
-            queryParameters: {'active': true, 'limit': 200},
-          );
-          if (metaResponse.statusCode == 200 &&
-              metaResponse.data['success'] == true) {
-            final List<dynamic> metaItems = metaResponse.data['data'] ?? [];
-            categoryMetaByName = {
-              for (final item in metaItems) ..._categoryMetadataEntries(item),
-            };
-          }
-        } catch (e) {
-          debugPrint('Error fetching category metadata from /categories: $e');
-        }
-
+      final items = await fetchAllCategoryPages((page, limit) async {
+        final response = await _dio.get(
+          '/categories',
+          queryParameters: {
+            'active': true,
+            'parent': 'root',
+            'page': page,
+            'limit': limit,
+          },
+        );
+        return response.data as Map;
+      });
+      if (mounted) {
         setState(() {
           _categoryData = items
+              .whereType<Map>()
               .map<Map<String, dynamic>>((item) {
-                final name = item['name']?.toString() ?? '';
-                final metadata =
-                    categoryMetaByName[_normalizedCategoryKey(name)] ?? {};
+                final image = item['image'];
+                final rawImage = image is Map
+                    ? image['url']?.toString() ?? ''
+                    : image?.toString() ?? '';
                 return {
-                  'name': name,
-                  'image': metadata['image']?.toString() ?? '',
-                  'blurHash': metadata['blurHash']?.toString(),
-                  'slug': metadata['slug']?.toString() ?? '',
-                  'count': item['count'] ?? item['productCount'],
+                  'name': item['name']?.toString() ?? '',
+                  'image': _resolveCategoryImageUrl(rawImage),
+                  'blurHash': image is Map
+                      ? image['blurHash']?.toString()
+                      : null,
+                  'slug': item['slug']?.toString() ?? '',
+                  'count':
+                      item['productCount'] ??
+                      item['recursiveProductCount'] ??
+                      item['activeRecursiveProductCount'] ??
+                      item['count'] ??
+                      0,
                 };
               })
               .where((item) => (item['name'] as String).isNotEmpty)
+              .where((item) => (item['slug'] as String).isNotEmpty)
               .where(_categoryHasProducts)
               .toList();
           _categories = _categoryData
@@ -482,48 +498,14 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       }
     } catch (e) {
       debugPrint('Error fetching categories: $e');
-      setState(() => _isLoadingCategories = false);
+      if (mounted) setState(() => _isLoadingCategories = false);
     }
   }
 
   bool _categoryHasProducts(Map<String, dynamic> category) {
     final rawCount = category['count'];
-    if (rawCount == null) return true;
     if (rawCount is num) return rawCount > 0;
-    return int.tryParse(rawCount.toString()) != null
-        ? int.parse(rawCount.toString()) > 0
-        : true;
-  }
-
-  String _normalizedCategoryKey(String value) => value.trim().toLowerCase();
-
-  Map<String, Map<String, dynamic>> _categoryMetadataEntries(dynamic item) {
-    if (item is! Map) return {};
-
-    final slug = item['slug']?.toString() ?? '';
-    final payload = {
-      'slug': slug,
-      'image': _extractCategoryImageUrl(item),
-      'blurHash': item['image'] is Map ? item['image']['blurHash']?.toString() : null,
-    };
-
-    final keys = <String>{
-      _normalizedCategoryKey(item['name']?.toString() ?? ''),
-      _normalizedCategoryKey(slug),
-      _normalizedCategoryKey(
-        (item['name']?.toString() ?? '').replaceAll(RegExp(r'[-_]+'), ' '),
-      ),
-      _normalizedCategoryKey(slug.replaceAll(RegExp(r'[-_]+'), ' ')),
-    }..removeWhere((key) => key.isEmpty);
-
-    return {for (final key in keys) key: payload};
-  }
-
-  String _extractCategoryImageUrl(dynamic item) {
-    if (item is! Map) return '';
-    final image = item['image'];
-    final rawUrl = image is Map ? image['url']?.toString() ?? '' : image;
-    return _resolveCategoryImageUrl(rawUrl?.toString() ?? '');
+    return (int.tryParse(rawCount?.toString() ?? '') ?? 0) > 0;
   }
 
   String _resolveCategoryImageUrl(String imageUrl) {
@@ -715,23 +697,42 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     ]);
   }
 
-  Future<void> _searchProducts(String query) async {
+  bool get _hasActiveSearch =>
+      _searchQuery.trim().isNotEmpty ||
+      _selectedFilterCategory != null ||
+      _selectedFilterBrand != null;
+
+  Future<void> _searchProducts(String query, {bool loadMore = false}) async {
+    if (loadMore && (_isSearching || _isLoadingMoreSearch || !_searchHasNext)) {
+      return;
+    }
     if (query.trim().isEmpty &&
         _selectedFilterCategory == null &&
         _selectedFilterBrand == null) {
       setState(() {
         _searchResults = [];
         _isSearching = false;
+        _isLoadingMoreSearch = false;
+        _searchHasNext = false;
+        _searchPage = 1;
         _searchQuery = '';
       });
       return;
     }
+    final generation = loadMore ? _searchGeneration : ++_searchGeneration;
+    final requestedPage = loadMore ? _searchPage + 1 : 1;
     setState(() {
-      _isSearching = true;
+      if (loadMore) {
+        _isLoadingMoreSearch = true;
+      } else {
+        _isSearching = true;
+        _searchResults = [];
+        _searchHasNext = false;
+      }
       _searchQuery = query;
     });
     try {
-      final params = <String, dynamic>{};
+      final params = <String, dynamic>{'page': requestedPage, 'limit': 20};
       if (query.trim().isNotEmpty) params['q'] = query;
       if (_selectedFilterCategory != null) {
         params['category'] = _selectedFilterCategory;
@@ -742,32 +743,38 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           ? '/products/search'
           : '/products';
       final response = await _dio.get(endpoint, queryParameters: params);
+      if (!mounted || generation != _searchGeneration) return;
       if (response.statusCode == 200) {
-        final List<dynamic> items = response.data['data'] ?? [];
+        final payload = response.data as Map;
+        final items = catalogItems(payload);
+        final incoming = items
+            .whereType<Map>()
+            .map<Map<String, dynamic>>(_mapCatalogProduct)
+            .toList();
+        final pagination = CatalogPageInfo.fromPayload(
+          payload,
+          requestedPage: requestedPage,
+          requestedLimit: 20,
+          itemCount: items.length,
+          loadedCount: loadMore ? _searchResults.length : 0,
+        );
         setState(() {
-          _searchResults = items
-              .map<Map<String, dynamic>>(
-                (item) => <String, dynamic>{
-                  'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
-                  'name': item['name']?.toString() ?? '',
-                  'nameHindi': item['nameHindi']?.toString() ?? '',
-                  'brand': item['category']?.toString() ?? '',
-                  'price': item['price'] ?? item['retailPrice'] ?? 0,
-                   'originalPrice': item['mrp'] ?? 0,
-                  'image': item['primaryImage']?.toString() ?? '',
-                  'blurHash': item['primaryBlurHash']?.toString() ?? item['blurHash']?.toString() ?? '',
-                  'inStock': item['inStock'] == true,
-                  'shortDescription':
-                      item['shortDescription']?.toString() ?? '',
-                },
-              )
-              .toList();
+          _searchResults = loadMore
+              ? dedupeProducts(_searchResults, incoming)
+              : dedupeProducts(const [], incoming);
+          _searchPage = pagination.page;
+          _searchHasNext = pagination.hasNext;
           _isSearching = false;
+          _isLoadingMoreSearch = false;
         });
       }
     } catch (e) {
       debugPrint('Search error: $e');
-      setState(() => _isSearching = false);
+      if (!mounted || generation != _searchGeneration) return;
+      setState(() {
+        _isSearching = false;
+        _isLoadingMoreSearch = false;
+      });
     }
   }
 
@@ -1506,10 +1513,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     }
 
     if (nameEnglish.isNotEmpty) {
-      return nameEnglish.split(' ').map((word) {
-        if (word.isEmpty) return word;
-        return word[0].toUpperCase() + word.substring(1).toLowerCase();
-      }).join(' ');
+      return nameEnglish
+          .split(' ')
+          .map((word) {
+            if (word.isEmpty) return word;
+            return word[0].toUpperCase() + word.substring(1).toLowerCase();
+          })
+          .join(' ');
     }
     return nameEnglish;
   }
@@ -1600,7 +1610,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        
+
         // If not on Home tab, go back to Home tab
         if (_selectedNavIndex > 0) {
           setState(() {
@@ -1608,7 +1618,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           });
           return;
         }
-        
+
         // If already on Home tab, allow the app to exit
         SystemNavigator.pop();
       },
@@ -2178,10 +2188,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     if (name.isEmpty) return '';
     // Replace hyphens with spaces and capitalize words
     final parts = name.replaceAll('-', ' ').split(' ');
-    return parts.map((word) {
-      if (word.isEmpty) return '';
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
+    return parts
+        .map((word) {
+          if (word.isEmpty) return '';
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 
   // Skeleton loader for categories
@@ -2297,7 +2309,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 GestureDetector(
                   onTap: () => setState(() => _selectedNavIndex = 2),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -2342,11 +2357,12 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                   children: categories.map((cat) {
                     return GestureDetector(
                       onTap: () {
-                        final name = cat['name']?.toString() ?? '';
-                        setState(() {
-                          _requestedCategoryName = name;
-                          _selectedNavIndex = 2;
-                        });
+                        final slug = cat['slug']?.toString().trim() ?? '';
+                        if (slug.isNotEmpty) {
+                          context.push(
+                            '/categories/${Uri.encodeComponent(slug)}',
+                          );
+                        }
                       },
                       child: Container(
                         width: 100,
@@ -2373,23 +2389,24 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                                 ),
                                 child:
                                     (cat['image']?.toString() ?? '').isNotEmpty
-                                        ? Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: AppImage(
-                                            imageUrl: cat['image']!.toString(),
-                                            blurHash: cat['blurHash']?.toString(),
-                                            category: cat['name']?.toString() ?? '',
-                                            name: cat['name']?.toString() ?? '',
-                                            fit: BoxFit.contain,
-                                          ),
-                                        )
-                                        : Container(
-                                          color: const Color(0xFFF1F5F9),
-                                          child: const Icon(
-                                            Icons.category_outlined,
-                                            color: textMuted,
-                                          ),
+                                    ? Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: AppImage(
+                                          imageUrl: cat['image']!.toString(),
+                                          blurHash: cat['blurHash']?.toString(),
+                                          category:
+                                              cat['name']?.toString() ?? '',
+                                          name: cat['name']?.toString() ?? '',
+                                          fit: BoxFit.contain,
                                         ),
+                                      )
+                                    : Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.category_outlined,
+                                          color: textMuted,
+                                        ),
+                                      ),
                               ),
                             ),
                             Container(
@@ -2494,11 +2511,16 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     onChanged: (value) {
                       _searchDebounce?.cancel();
                       if (value.trim().isEmpty) {
-                        setState(() {
-                          _searchResults = [];
-                          _isSearching = false;
-                          _searchQuery = '';
-                        });
+                        if (_selectedFilterCategory != null ||
+                            _selectedFilterBrand != null) {
+                          _searchProducts('');
+                        } else {
+                          setState(() {
+                            _searchResults = [];
+                            _isSearching = false;
+                            _searchQuery = '';
+                          });
+                        }
                         return;
                       }
                       _searchDebounce = Timer(
@@ -2636,7 +2658,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               ? const Center(
                   child: CircularProgressIndicator(color: primaryBlue),
                 )
-              : _searchQuery.isNotEmpty
+              : _hasActiveSearch
               ? _searchResults.isEmpty
                     ? Center(
                         child: Column(
@@ -2667,11 +2689,33 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                        itemCount: _searchResults.length,
-                        itemBuilder: (context, index) =>
-                            _buildSuggestionCard(_searchResults[index]),
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (notification) {
+                          if (notification.metrics.extentAfter < 300) {
+                            _searchProducts(_searchQuery, loadMore: true);
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                          itemCount:
+                              _searchResults.length +
+                              (_isLoadingMoreSearch ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _searchResults.length) {
+                              return const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: primaryBlue,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            }
+                            return _buildSuggestionCard(_searchResults[index]);
+                          },
+                        ),
                       )
               : SingleChildScrollView(
                   child: Column(
@@ -2956,8 +3000,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child:
-                      (product['image']?.toString() ?? '').isNotEmpty
+                  child: (product['image']?.toString() ?? '').isNotEmpty
                       ? AppImage(
                           imageUrl: product['image'].toString(),
                           blurHash: product['blurHash']?.toString(),
@@ -5547,7 +5590,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 GestureDetector(
                   onTap: () => context.push('/brands'),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -5582,185 +5628,185 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             height: 100,
             child: _isLoadingBrands
                 ? ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: 5,
-                  itemBuilder:
-                      (context, index) => Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Container(
-                          width: 168,
-                          decoration: BoxDecoration(
-                            color: borderLight,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: 5,
+                    itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Container(
+                        width: 168,
+                        decoration: BoxDecoration(
+                          color: borderLight,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                )
+                    ),
+                  )
                 : _brands.isEmpty
                 ? Center(
-                  child: Text(
-                    t('No brands available'),
-                    style: GoogleFonts.plusJakartaSans(color: textMuted),
-                  ),
-                )
+                    child: Text(
+                      t('No brands available'),
+                      style: GoogleFonts.plusJakartaSans(color: textMuted),
+                    ),
+                  )
                 : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _brands.length,
-                  itemBuilder: (context, index) {
-                    final brand = _brands[index];
-                    final accentColor = Color(
-                      (brand['accent'] as int?) ?? 0xFF2563EB,
-                    );
-                    final hasLogo =
-                        brand['logo'] != null &&
-                        brand['logo'].toString().isNotEmpty;
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _brands.length,
+                    itemBuilder: (context, index) {
+                      final brand = _brands[index];
+                      final accentColor = Color(
+                        (brand['accent'] as int?) ?? 0xFF2563EB,
+                      );
+                      final hasLogo =
+                          brand['logo'] != null &&
+                          brand['logo'].toString().isNotEmpty;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: GestureDetector(
-                        onTap: () {
-                          final name = brand['name']?.toString() ?? '';
-                          context.push('/brand/$name');
-                        },
-                        child: Container(
-                          width: 168,
-                          decoration: BoxDecoration(
-                            color: surfaceWhite,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: borderLight, width: 1),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              // Logo area
-                              Container(
-                                width: 68,
-                                height: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.07),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(17),
-                                    bottomLeft: Radius.circular(17),
-                                  ),
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: GestureDetector(
+                          onTap: () {
+                            final name = brand['name']?.toString() ?? '';
+                            context.push('/brand/$name');
+                          },
+                          child: Container(
+                            width: 168,
+                            decoration: BoxDecoration(
+                              color: surfaceWhite,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: borderLight, width: 1),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
                                 ),
-                                child:
-                                    hasLogo
-                                        ? Padding(
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                // Logo area
+                                Container(
+                                  width: 68,
+                                  height: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withOpacity(0.07),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(17),
+                                      bottomLeft: Radius.circular(17),
+                                    ),
+                                  ),
+                                  child: hasLogo
+                                      ? Padding(
                                           padding: const EdgeInsets.all(10),
                                           child: CachedNetworkImage(
                                             imageUrl: brand['logo'],
                                             fit: BoxFit.contain,
-                                            placeholder:
-                                                (_, __) => Center(
-                                                  child: SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: accentColor,
-                                                        ),
-                                                  ),
-                                                ),
-                                            errorWidget:
-                                                (_, __, ___) =>
-                                                    _buildBrandInitial(
-                                                      brand['name'] ?? '',
-                                                      accentColor,
+                                            placeholder: (_, __) => Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: accentColor,
                                                     ),
+                                              ),
+                                            ),
+                                            errorWidget: (_, __, ___) =>
+                                                _buildBrandInitial(
+                                                  brand['name'] ?? '',
+                                                  accentColor,
+                                                ),
                                           ),
                                         )
-                                        : _buildBrandInitial(
+                                      : _buildBrandInitial(
                                           brand['name'] ?? '',
                                           accentColor,
                                         ),
-                              ),
-                              // Info area
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 10,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        brand['name'] ?? '',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w800,
-                                          color: textPrimary,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      if (brand['tag'] != null) ...[
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
+                                ),
+                                // Info area
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 10,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          brand['name'] ?? '',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            color: textPrimary,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: accentColor.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        if (brand['tag'] != null) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: accentColor.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              brand['tag'],
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: accentColor,
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          child: Text(
-                                            brand['tag'],
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w700,
+                                          const SizedBox(height: 6),
+                                        ],
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.verified_rounded,
+                                              size: 10,
                                               color: accentColor,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                      ],
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.verified_rounded,
-                                            size: 10,
-                                            color: accentColor,
-                                          ),
-                                          const SizedBox(width: 3),
-                                          Text(
-                                            t('Verified'),
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w600,
-                                              color: textMuted,
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              t('Verified'),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: textMuted,
+                                                  ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -5801,7 +5847,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     final currentLang = ref.read(localeProvider);
 
     // Section colors based on requirement
-    final Color gradientBase = isFeatured 
+    final Color gradientBase = isFeatured
         ? const Color(0xFF1E3A8A) // Medium/Dark Blue
         : const Color(0xFFEF4444); // Reddish
 
@@ -5813,7 +5859,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            isFeatured 
+            isFeatured
                 ? const Color(0xFF1E3A8A).withOpacity(0.15) // Deep Blue
                 : const Color(0xFFFECACA).withOpacity(0.25), // Lighter Reddish
             isFeatured
@@ -5864,7 +5910,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -5908,12 +5957,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 ? GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.52,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.52,
+                        ),
                     itemCount: 4,
                     itemBuilder: (context, index) => Container(
                       decoration: BoxDecoration(
@@ -5928,11 +5978,17 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                       padding: const EdgeInsets.all(40),
                       child: Column(
                         children: [
-                          Icon(Icons.inventory_2_outlined, color: textMuted.withOpacity(0.5), size: 48),
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            color: textMuted.withOpacity(0.5),
+                            size: 48,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             t('No products available'),
-                            style: GoogleFonts.plusJakartaSans(color: textMuted),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -5941,12 +5997,13 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 : GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.52,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.52,
+                        ),
                     itemCount: filteredProducts.length > 6
                         ? 6
                         : filteredProducts.length,
@@ -5988,7 +6045,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     // Pick badge: HOT (only when showHotBadge=true) > SALE (discount) > NEW
     String? badgeLabel;
     Color? badgeColor;
-    if (showHotBadge && (product['isHot'] == true || product['badge']?.toString().contains('HOT') == true)) {
+    if (showHotBadge &&
+        (product['isHot'] == true ||
+            product['badge']?.toString().contains('HOT') == true)) {
       badgeLabel = 'HOT'; // Force clean label without flames
       badgeColor = const Color(0xFFEF4444);
     } else if (discount > 0) {
@@ -6162,7 +6221,9 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                         const SizedBox(width: 4),
                         Row(
                           children: List.generate(5, (index) {
-                            final rv = (rating is num) ? rating.toDouble() : double.tryParse(rating.toString()) ?? 0.0;
+                            final rv = (rating is num)
+                                ? rating.toDouble()
+                                : double.tryParse(rating.toString()) ?? 0.0;
                             final starIndex = index + 1;
                             if (rv >= starIndex) {
                               return const Icon(

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/models/catalog_data.dart';
 import '../../core/providers/locale_provider.dart';
 
 class FeaturedProductsScreen extends ConsumerStatefulWidget {
@@ -30,7 +31,6 @@ class _FeaturedProductsScreenState
   static const Color backgroundWhite = Color(0xFFF8FAFC);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF475569);
   static const Color textMuted = Color(0xFF64748B);
   static const Color borderLight = Color(0xFFF1F5F9);
 
@@ -44,46 +44,68 @@ class _FeaturedProductsScreenState
 
   List<Map<String, dynamic>> _products = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasNext = false;
+  int _page = 1;
   String? _error;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _fetchProducts();
   }
 
-  Future<void> _fetchProducts() async {
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.extentAfter < 400) {
+      _fetchProducts(loadMore: true);
+    }
+  }
+
+  Future<void> _fetchProducts({bool loadMore = false}) async {
+    if (loadMore && (_isLoading || _isLoadingMore || !_hasNext)) return;
+    final requestedPage = loadMore ? _page + 1 : 1;
     try {
       setState(() {
-        _isLoading = true;
+        if (loadMore) {
+          _isLoadingMore = true;
+        } else {
+          _isLoading = true;
+          _products = [];
+          _page = 1;
+          _hasNext = false;
+        }
         _error = null;
       });
 
-      // Fetch all products and filter on client side
-      final response = await _dio.get('/products');
+      final params = <String, dynamic>{'page': requestedPage, 'limit': 20};
+      if (widget.brandName != null) {
+        params['brand'] = widget.brandName;
+      } else if (widget.isHotDeals) {
+        params['isHot'] = true;
+      } else {
+        params['featured'] = true;
+      }
+      final response = await _dio.get('/products', queryParameters: params);
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        final List<dynamic> items = data['data'] ?? data ?? [];
-
-        final filtered = items.where((item) {
-          if (widget.brandName != null) {
-            final brand = (item['brand'] ?? item['brandName'] ?? '').toString();
-            final name = (item['name'] ?? '').toString();
-            debugPrint('Filtering by brand: ${widget.brandName} | Item brand: $brand | Item name: $name');
-            return brand.toLowerCase() == widget.brandName!.toLowerCase();
-          }
-          if (widget.isHotDeals) {
-            return item['isHot'] == true;
-          } else {
-            return item['isFeatured'] == true;
-          }
-        }).toList();
-
-        final products = filtered.map<Map<String, dynamic>>((item) {
+        final payload = response.data as Map;
+        final items = catalogItems(payload);
+        final products = items.whereType<Map>().map<Map<String, dynamic>>((
+          item,
+        ) {
           final name = item['name']?.toString() ?? '';
-          final cat = (item['category'] ?? item['categoryName'] ?? '')
-              .toString();
+          final categoryData = ProductCategoryData.fromProduct(item);
 
           // Try every possible image field the backend might use (robust version from home screen)
           String apiImage =
@@ -105,22 +127,46 @@ class _FeaturedProductsScreenState
           return <String, dynamic>{
             'id': item['id']?.toString() ?? item['_id']?.toString() ?? '',
             'name': name,
-            'category': cat,
+            'category': categoryData.displayName,
+            'categorySlug': categoryData.displaySlug,
+            'categories': categoryData.categories
+                .map((category) => category.toJson())
+                .toList(),
+            'primaryCategory': categoryData.primary?.toJson(),
+            'categoryIds': item['categoryIds'],
+            'primaryCategoryId': item['primaryCategoryId'],
             'price': item['price'] ?? item['retailPrice'] ?? 0,
             'originalPrice': item['mrp'] ?? item['originalPrice'] ?? 0,
             'image': apiImage,
           };
         }).toList();
+        final pagination = CatalogPageInfo.fromPayload(
+          payload,
+          requestedPage: requestedPage,
+          requestedLimit: 20,
+          itemCount: items.length,
+          loadedCount: loadMore ? _products.length : 0,
+        );
 
+        if (!mounted) return;
         setState(() {
-          _products = products;
+          _products = loadMore
+              ? dedupeProducts(_products, products)
+              : dedupeProducts(const [], products);
+          _page = pagination.page;
+          _hasNext = pagination.hasNext;
           _isLoading = false;
+          _isLoadingMore = false;
         });
+      } else {
+        throw StateError('Products request failed: ${response.statusCode}');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        if (!loadMore) _error = e.toString();
         _isLoading = false;
+        _isLoadingMore = false;
       });
     }
   }
@@ -197,27 +243,35 @@ class _FeaturedProductsScreenState
                   const SizedBox(height: 16),
                   Text(
                     t('No products available'),
-                    style: GoogleFonts.outfit(
-                      color: textMuted,
-                      fontSize: 16,
-                    ),
+                    style: GoogleFonts.outfit(color: textMuted, fontSize: 16),
                   ),
                 ],
               ),
             )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.52,
-              ),
-              itemCount: _products.length,
-              itemBuilder: (context, index) {
-                final product = _products[index];
-                return _buildProductCard(product, t);
-              },
+          : Column(
+              children: [
+                Expanded(
+                  child: GridView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.52,
+                        ),
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) =>
+                        _buildProductCard(_products[index], t),
+                  ),
+                ),
+                if (_isLoadingMore)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
             ),
     );
   }
@@ -361,10 +415,15 @@ class _FeaturedProductsScreenState
                     SizedBox(
                       height: 52,
                       child: Text(
-                        (product['name'] ?? '').toString().split(' ').map((word) {
-                          if (word.isEmpty) return word;
-                          return word[0].toUpperCase() + word.substring(1).toLowerCase();
-                        }).join(' '),
+                        (product['name'] ?? '')
+                            .toString()
+                            .split(' ')
+                            .map((word) {
+                              if (word.isEmpty) return word;
+                              return word[0].toUpperCase() +
+                                  word.substring(1).toLowerCase();
+                            })
+                            .join(' '),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.outfit(

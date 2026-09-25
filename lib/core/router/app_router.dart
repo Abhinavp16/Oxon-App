@@ -8,7 +8,9 @@ import '../../screens/auth/wholesaler_registration_screen.dart';
 import '../../screens/auth/apple_signup_screen.dart';
 import '../../screens/auth/auth_screen.dart';
 import '../../screens/home/marketplace_home_screen.dart';
+import '../../screens/categories/category_products_screen.dart';
 import '../../screens/home/featured_products_screen.dart';
+import '../../screens/home/brands_screen.dart';
 import '../../screens/product/product_detail_screen.dart';
 import '../../screens/product/product_negotiation_screen.dart';
 import '../../screens/product/power_tiller_detail_screen.dart';
@@ -110,6 +112,11 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: '/categories/:slug',
+      builder: (context, state) =>
+          CategoryProductsScreen(slug: state.pathParameters['slug'] ?? ''),
+    ),
+    GoRoute(
       path: '/popular-products',
       builder: (context, state) =>
           const FeaturedProductsScreen(isHotDeals: false),
@@ -121,10 +128,10 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/brand/:name',
-      builder: (context, state) => FeaturedProductsScreen(
-        brandName: state.pathParameters['name'],
-      ),
+      builder: (context, state) =>
+          FeaturedProductsScreen(brandName: state.pathParameters['name']),
     ),
+    GoRoute(path: '/brands', builder: (context, state) => const BrandsScreen()),
     GoRoute(
       path: '/product/:id',
       builder: (context, state) {
