@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/notification_service.dart';
 
 class NotificationsCenterScreen extends ConsumerStatefulWidget {
   const NotificationsCenterScreen({super.key, this.initialTab = 4});
@@ -10,10 +11,12 @@ class NotificationsCenterScreen extends ConsumerStatefulWidget {
   final int initialTab;
 
   @override
-  ConsumerState<NotificationsCenterScreen> createState() => _NotificationsCenterScreenState();
+  ConsumerState<NotificationsCenterScreen> createState() =>
+      _NotificationsCenterScreenState();
 }
 
-class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterScreen> {
+class _NotificationsCenterScreenState
+    extends ConsumerState<NotificationsCenterScreen> {
   List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
 
@@ -24,7 +27,6 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
   static const Color statusGreen = Color(0xFF22c55e);
   static const Color statusBlue = Color(0xFF3b82f6);
   static const Color statusOrange = Color(0xFFf97316);
-  static const Color gray100 = Color(0xFFf3f4f6);
   static const Color gray200 = Color(0xFFe5e7eb);
   static const Color gray400 = Color(0xFF9ca3af);
   static const Color gray500 = Color(0xFF6b7280);
@@ -72,20 +74,53 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
     }
   }
 
+  Future<void> _openNotification(Map<String, dynamic> notification) async {
+    final notificationId = notification['id']?.toString() ?? '';
+    if (notificationId.isNotEmpty && notification['isRead'] != true) {
+      try {
+        await ref
+            .read(apiClientProvider)
+            .post(
+              '/notifications/mark-read',
+              data: {
+                'ids': [notificationId],
+              },
+            );
+        if (mounted) {
+          setState(() => notification['isRead'] = true);
+        }
+      } catch (error) {
+        debugPrint('Error marking notification as read: $error');
+      }
+    }
+
+    final rawData = notification['data'];
+    final data = rawData is Map
+        ? Map<String, dynamic>.from(rawData)
+        : <String, dynamic>{};
+    data.putIfAbsent(
+      'type',
+      () => notification['type']?.toString() ?? 'general',
+    );
+    ref.read(notificationServiceProvider).handleNotificationData(data);
+  }
+
   IconData _getIconForType(String type) {
     switch (type) {
-      case 'order':
+      case 'order_update':
         return Icons.shopping_bag;
-      case 'payment':
+      case 'payment_verified':
+      case 'payment_rejected':
         return Icons.verified;
-      case 'shipping':
-        return Icons.local_shipping;
-      case 'negotiation':
+      case 'price_change':
+        return Icons.sell_outlined;
+      case 'negotiation_update':
+      case 'negotiation_accepted':
+      case 'negotiation_rejected':
+      case 'negotiation_countered':
         return Icons.handshake;
       case 'promotion':
         return Icons.campaign;
-      case 'system':
-        return Icons.info;
       default:
         return Icons.notifications;
     }
@@ -93,18 +128,21 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
 
   Color _getIconColor(String type) {
     switch (type) {
-      case 'order':
+      case 'order_update':
         return statusBlue;
-      case 'payment':
+      case 'payment_verified':
         return statusGreen;
-      case 'shipping':
-        return gray600;
-      case 'negotiation':
+      case 'payment_rejected':
+        return red500;
+      case 'price_change':
+        return statusOrange;
+      case 'negotiation_update':
+      case 'negotiation_accepted':
+      case 'negotiation_rejected':
+      case 'negotiation_countered':
         return const Color(0xFF7C3AED);
       case 'promotion':
         return statusOrange;
-      case 'system':
-        return gray500;
       default:
         return gray600;
     }
@@ -142,7 +180,7 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
         children: [
           // Header
           Container(
-            color: backgroundLight.withOpacity(0.8),
+            color: backgroundLight.withValues(alpha: 0.8),
             child: SafeArea(
               bottom: false,
               child: Container(
@@ -156,7 +194,11 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
                       width: 40,
                       height: 40,
                       child: IconButton(
-                        icon: Icon(Icons.arrow_back_ios_new, color: textDark, size: 18),
+                        icon: Icon(
+                          Icons.arrow_back_ios_new,
+                          color: textDark,
+                          size: 18,
+                        ),
                         onPressed: () {
                           if (context.canPop()) {
                             context.pop();
@@ -177,10 +219,7 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
                         ),
                       ),
                     ),
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                    ),
+                    SizedBox(width: 40, height: 40),
                   ],
                 ),
               ),
@@ -192,18 +231,18 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _notifications.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _fetchNotifications,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _notifications.length,
-                          itemBuilder: (context, index) {
-                            final notification = _notifications[index];
-                            return _buildNotificationItem(notification);
-                          },
-                        ),
-                      ),
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    onRefresh: _fetchNotifications,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _notifications[index];
+                        return _buildNotificationItem(notification);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -215,11 +254,7 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 64,
-            color: gray400,
-          ),
+          Icon(Icons.notifications_none, size: 64, color: gray400),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
@@ -232,10 +267,7 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
           const SizedBox(height: 8),
           Text(
             'You\'ll see your notifications here',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: gray500,
-            ),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: gray500),
           ),
         ],
       ),
@@ -256,22 +288,13 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
         borderRadius: BorderRadius.circular(12),
         border: isRead
             ? null
-            : Border.all(color: primary.withOpacity(0.3), width: 1),
+            : Border.all(color: primary.withValues(alpha: 0.3), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            // Handle notification tap based on type
-            final data = notification['data'];
-            if (data != null && data is Map) {
-              final orderId = data['orderId']?.toString();
-              if (orderId != null && orderId.isNotEmpty) {
-                context.push('/orders/$orderId');
-              }
-            }
-          },
+          onTap: () => _openNotification(notification),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -282,7 +305,7 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: _getIconColor(type).withOpacity(0.1),
+                    color: _getIconColor(type).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -304,7 +327,9 @@ class _NotificationsCenterScreenState extends ConsumerState<NotificationsCenterS
                               title,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
-                                fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                                fontWeight: isRead
+                                    ? FontWeight.w500
+                                    : FontWeight.w600,
                                 color: textDark,
                               ),
                             ),

@@ -1,14 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
-import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
+import 'core/theme/app_theme.dart';
 
-final GlobalKey<ScaffoldMessengerState> scafoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scafoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,8 +24,21 @@ Future<void> main() async {
   runApp(const ProviderScope(child: AgriMartApp()));
 }
 
-class AgriMartApp extends StatelessWidget {
+class AgriMartApp extends ConsumerStatefulWidget {
   const AgriMartApp({super.key});
+
+  @override
+  ConsumerState<AgriMartApp> createState() => _AgriMartAppState();
+}
+
+class _AgriMartAppState extends ConsumerState<AgriMartApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationServiceProvider).initialize();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
