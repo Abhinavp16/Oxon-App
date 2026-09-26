@@ -63,14 +63,11 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
 
   Future<void> _loadSavedAddresses() async {
     final addresses = await ShippingAddressService.getAddresses();
+    final selectedAddress = await ShippingAddressService.getSelectedAddress();
     if (!mounted) return;
 
-    // Determine which address to select
-    ShippingAddress? addressToSelect;
-    if (addresses.isNotEmpty) {
-      final primary = addresses.where((a) => a.slot == 'primary').toList();
-      addressToSelect = primary.isNotEmpty ? primary.first : addresses.first;
-    }
+    final addressToSelect =
+        selectedAddress ?? (addresses.isNotEmpty ? addresses.first : null);
 
     if (!mounted) return;
 
@@ -82,13 +79,13 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
     if (addressToSelect != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _selectAddress(addressToSelect!);
+          _selectAddress(addressToSelect);
         }
       });
     }
   }
 
-  void _selectAddress(ShippingAddress address) {
+  Future<void> _selectAddress(ShippingAddress address) async {
     setState(() {
       _selectedAddressId = address.id;
       _name = address.fullName;
@@ -97,8 +94,10 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
       _city = address.city;
       _state = address.state;
       _pincode = address.pincode;
-      _fullAddress = '${address.addressLine1}, ${address.city}, ${address.state} - ${address.pincode}';
+      _fullAddress =
+          '${address.addressLine1}, ${address.city}, ${address.state} - ${address.pincode}';
     });
+    await ShippingAddressService.setSelectedAddressId(address.id);
   }
 
   String _fmt(double price) {
@@ -130,7 +129,10 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                   children: [
                     IconButton(
                       onPressed: () => context.pop(),
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF0f172a)),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Color(0xFF0f172a),
+                      ),
                     ),
                     Expanded(
                       child: Text(
@@ -238,7 +240,10 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
   }
 
   bool _canProceed() {
-    return _fullAddress.isNotEmpty && _name.isNotEmpty && _phone.isNotEmpty && !_isCheckingOut;
+    return _fullAddress.isNotEmpty &&
+        _name.isNotEmpty &&
+        _phone.isNotEmpty &&
+        !_isCheckingOut;
   }
 
   Widget _buildProductCard() {
@@ -287,10 +292,14 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.productName.split(' ').map((word) {
-                    if (word.isEmpty) return word;
-                    return word[0].toUpperCase() + word.substring(1).toLowerCase();
-                  }).join(' '),
+                  widget.productName
+                      .split(' ')
+                      .map((word) {
+                        if (word.isEmpty) return word;
+                        return word[0].toUpperCase() +
+                            word.substring(1).toLowerCase();
+                      })
+                      .join(' '),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w400,
@@ -434,7 +443,9 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                         color: const Color(0xFF94a3b8),
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -536,13 +547,19 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFe2e8f0), style: BorderStyle.solid),
+                  border: Border.all(
+                    color: const Color(0xFFe2e8f0),
+                    style: BorderStyle.solid,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.add_location_alt, color: Color(0xFF135bec)),
+                    const Icon(
+                      Icons.add_location_alt,
+                      color: Color(0xFF135bec),
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Add Delivery Address',
@@ -568,7 +585,11 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.person, size: 16, color: Color(0xFF64748b)),
+                      const Icon(
+                        Icons.person,
+                        size: 16,
+                        color: Color(0xFF64748b),
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         _name,
@@ -579,7 +600,11 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Icon(Icons.phone, size: 16, color: Color(0xFF64748b)),
+                      const Icon(
+                        Icons.phone,
+                        size: 16,
+                        color: Color(0xFF64748b),
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         _phone,
@@ -594,7 +619,11 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, size: 16, color: Color(0xFF64748b)),
+                      const Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Color(0xFF64748b),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -637,12 +666,24 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildPriceRow('Subtotal', '₹${_fmt(widget.price * widget.quantity)}', const Color(0xFF64748b)),
+          _buildPriceRow(
+            'Subtotal',
+            '₹${_fmt(widget.price * widget.quantity)}',
+            const Color(0xFF64748b),
+          ),
           const SizedBox(height: 8),
-          _buildPriceRow('Delivery Fee', '₹${_fmt(50)}', const Color(0xFF64748b)),
+          _buildPriceRow(
+            'Delivery Fee',
+            '₹${_fmt(50)}',
+            const Color(0xFF64748b),
+          ),
           if (_couponSuccess && _discount > 0) ...[
             const SizedBox(height: 8),
-            _buildPriceRow('Discount', '-₹${_discount.toStringAsFixed(2)}', const Color(0xFF16a34a)),
+            _buildPriceRow(
+              'Discount',
+              '-₹${_discount.toStringAsFixed(2)}',
+              const Color(0xFF16a34a),
+            ),
           ],
           Container(
             margin: const EdgeInsets.symmetric(vertical: 12),
@@ -720,10 +761,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
 
       final response = await api.post(
         '/orders/preview-coupon',
-        data: {
-          'couponCode': _couponCode,
-          'subtotal': subtotal,
-        },
+        data: {'couponCode': _couponCode, 'subtotal': subtotal},
       );
 
       if (!mounted) return;
@@ -770,9 +808,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           margin: EdgeInsets.only(top: MediaQuery.of(ctx).padding.top + 40),
           decoration: const BoxDecoration(
@@ -807,25 +843,49 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _buildAddressField('Full Name', nameController, TextInputType.text),
+                  _buildAddressField(
+                    'Full Name',
+                    nameController,
+                    TextInputType.text,
+                  ),
                   const SizedBox(height: 12),
-                  _buildAddressField('Phone', phoneController, TextInputType.phone),
+                  _buildAddressField(
+                    'Phone',
+                    phoneController,
+                    TextInputType.phone,
+                  ),
                   const SizedBox(height: 12),
-                  _buildAddressField('Address Line 1', address1Controller, TextInputType.text),
+                  _buildAddressField(
+                    'Address Line 1',
+                    address1Controller,
+                    TextInputType.text,
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildAddressField('City', cityController, TextInputType.text),
+                        child: _buildAddressField(
+                          'City',
+                          cityController,
+                          TextInputType.text,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildAddressField('State', stateController, TextInputType.text),
+                        child: _buildAddressField(
+                          'State',
+                          stateController,
+                          TextInputType.text,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildAddressField('Pincode', pinController, TextInputType.number),
+                  _buildAddressField(
+                    'Pincode',
+                    pinController,
+                    TextInputType.number,
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -895,7 +955,11 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
     }
   }
 
-  Widget _buildAddressField(String label, TextEditingController controller, TextInputType keyboardType) {
+  Widget _buildAddressField(
+    String label,
+    TextEditingController controller,
+    TextInputType keyboardType,
+  ) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
@@ -923,7 +987,10 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xFFdc2626)),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -985,92 +1052,97 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            ..._savedAddresses.map((address) => InkWell(
-                  onTap: () {
-                    Navigator.pop(context, address.id);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(
+            ..._savedAddresses.map(
+              (address) => InkWell(
+                onTap: () {
+                  Navigator.pop(context, address.id);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _selectedAddressId == address.id
+                          ? const Color(0xFF135bec)
+                          : const Color(0xFFe2e8f0),
+                      width: _selectedAddressId == address.id ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _selectedAddressId == address.id
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
                         color: _selectedAddressId == address.id
                             ? const Color(0xFF135bec)
-                            : const Color(0xFFe2e8f0),
-                        width: _selectedAddressId == address.id ? 2 : 1,
+                            : const Color(0xFF94a3b8),
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _selectedAddressId == address.id
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off,
-                          color: _selectedAddressId == address.id
-                              ? const Color(0xFF135bec)
-                              : const Color(0xFF94a3b8),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    address.fullName,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF0f172a),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  address.fullName,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF0f172a),
+                                  ),
+                                ),
+                                if (address.slot == 'primary') ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF135bec,
+                                      ).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Primary',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF135bec),
+                                      ),
                                     ),
                                   ),
-                                  if (address.slot == 'primary') ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF135bec)
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        'Primary',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF135bec),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${address.addressLine1}, ${address.city}, ${address.state} - ${address.pincode}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: const Color(0xFF64748b),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${address.addressLine1}, ${address.city}, ${address.state} - ${address.pincode}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  color: const Color(0xFF64748b),
-                                ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Phone: ${address.phone}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: const Color(0xFF64748b),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Phone: ${address.phone}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  color: const Color(0xFF64748b),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                )),
+                ),
+              ),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -1078,8 +1150,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
     );
 
     if (result != null && mounted) {
-      final selectedAddress =
-          _savedAddresses.firstWhere((a) => a.id == result);
+      final selectedAddress = _savedAddresses.firstWhere((a) => a.id == result);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _selectAddress(selectedAddress);
@@ -1109,10 +1180,7 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
         '/orders',
         data: {
           'items': [
-            {
-              'productId': widget.productId,
-              'quantity': widget.quantity,
-            }
+            {'productId': widget.productId, 'quantity': widget.quantity},
           ],
           'shippingAddress': address,
           if (_appliedCouponCode != null && _appliedCouponCode!.isNotEmpty)
@@ -1148,7 +1216,10 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+          content: Text(
+            msg,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1157,7 +1228,10 @@ class _BuyNowScreenState extends ConsumerState<BuyNowScreen> {
       setState(() => _isCheckingOut = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to create order', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+          content: Text(
+            'Failed to create order',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
           backgroundColor: AppColors.error,
         ),
       );

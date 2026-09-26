@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/shipping_address_service.dart';
 
 class NegotiationDetailScreen extends ConsumerStatefulWidget {
   final String negotiationId;
@@ -217,9 +218,26 @@ class _NegotiationDetailScreenState
   Future<void> _proceedToOrder() async {
     debugPrint('_proceedToOrder called for ${widget.negotiationId}');
     try {
-      final checkoutData = await _showAddressDialog();
+      final savedAddress = await ShippingAddressService.getSelectedAddress();
+      final checkoutData =
+          savedAddress?.toOrderPayload() ?? await _showAddressDialog();
       debugPrint('Address dialog returned: $checkoutData');
       if (checkoutData == null || !mounted) return;
+
+      if (savedAddress == null) {
+        final addressToSave = ShippingAddress(
+          id: ShippingAddress.generateId(),
+          slot: ShippingAddressService.slotPrimary,
+          fullName: checkoutData['fullName'] ?? '',
+          phone: checkoutData['phone'] ?? '',
+          addressLine1: checkoutData['addressLine1'] ?? '',
+          city: checkoutData['city'] ?? '',
+          state: checkoutData['state'] ?? '',
+          pincode: checkoutData['pincode'] ?? '',
+        );
+        await ShippingAddressService.upsertAddress(addressToSave);
+        await ShippingAddressService.setSelectedAddressId(addressToSave.id);
+      }
 
       final address = Map<String, String>.from(checkoutData);
       final couponCode = (address.remove('couponCode') ?? '').trim();

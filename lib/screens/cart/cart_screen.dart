@@ -9,6 +9,7 @@ import '../../core/providers/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/shipping_address_service.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -78,10 +79,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       // Call backend to validate coupon
       final response = await api.post(
         '/orders/preview-coupon',
-        data: {
-          'couponCode': _couponCode,
-          'subtotal': subtotal,
-        },
+        data: {'couponCode': _couponCode, 'subtotal': subtotal},
       );
 
       if (!mounted) return;
@@ -135,9 +133,26 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return;
     }
 
-    // Show shipping address dialog
-    final address = await _showAddressDialog();
-    if (address == null || !mounted) return;
+    final selectedAddress = await ShippingAddressService.getSelectedAddress();
+    Map<String, String>? address = selectedAddress?.toOrderPayload();
+    if (address == null) {
+      final enteredAddress = await _showAddressDialog();
+      if (enteredAddress == null || !mounted) return;
+      final savedAddress = ShippingAddress(
+        id: ShippingAddress.generateId(),
+        slot: ShippingAddressService.slotPrimary,
+        fullName: enteredAddress['fullName'] ?? '',
+        phone: enteredAddress['phone'] ?? '',
+        addressLine1: enteredAddress['addressLine1'] ?? '',
+        city: enteredAddress['city'] ?? '',
+        state: enteredAddress['state'] ?? '',
+        pincode: enteredAddress['pincode'] ?? '',
+      );
+      await ShippingAddressService.upsertAddress(savedAddress);
+      await ShippingAddressService.setSelectedAddressId(savedAddress.id);
+      address = savedAddress.toOrderPayload();
+    }
+    if (!mounted) return;
 
     setState(() => _isCheckingOut = true);
     try {
@@ -183,8 +198,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         msg =
             'Cannot reach server. Check backend is running and API URL in api_config.dart.';
       }
-      final code =
-          map?['code']?.toString() ?? errorMap?['code']?.toString();
+      final code = map?['code']?.toString() ?? errorMap?['code']?.toString();
       // If stock issue from server, refresh cart to show updated stock
       if (code == 'INSUFFICIENT_STOCK') {
         await ref.read(cartProvider.notifier).fetchCart();
@@ -702,7 +716,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
                         // Coupon Input Row
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
@@ -710,7 +727,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.local_offer_outlined, size: 18, color: AppColors.textSecondary),
+                              Icon(
+                                Icons.local_offer_outlined,
+                                size: 18,
+                                color: AppColors.textSecondary,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: TextField(
@@ -721,33 +742,52 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   },
                                   decoration: InputDecoration(
                                     hintText: 'Enter coupon code',
-                                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    hintStyle: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(color: AppColors.gray300),
+                                      borderSide: BorderSide(
+                                        color: AppColors.gray300,
+                                      ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(color: AppColors.gray300),
+                                      borderSide: BorderSide(
+                                        color: AppColors.gray300,
+                                      ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(color: AppColors.primary),
+                                      borderSide: BorderSide(
+                                        color: AppColors.primary,
+                                      ),
                                     ),
                                   ),
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 14),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               SizedBox(
                                 height: 48,
                                 child: ElevatedButton(
-                                  onPressed: _isApplyingCoupon || _couponCode.isEmpty ? null : _applyCoupon,
+                                  onPressed:
+                                      _isApplyingCoupon || _couponCode.isEmpty
+                                      ? null
+                                      : _applyCoupon,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -790,7 +830,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                              Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: AppColors.success,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'Code applied: -₹${_fmt(_discount)}',
@@ -1191,7 +1235,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         child: Text(
                           item.stockIssue ??
                               (isOutOfStock
-                                  ? 'Out of stock — please remove this item'
+                                  ? 'Sold out — please remove this item'
                                   : 'Only ${item.stock} available (you selected ${item.quantity})'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
@@ -1238,7 +1282,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     );
   }
 
-  Widget _buildPriceRow(String label, String value, {Color? valueColor, bool isDiscount = false}) {
+  Widget _buildPriceRow(
+    String label,
+    String value, {
+    Color? valueColor,
+    bool isDiscount = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1254,7 +1303,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: isDiscount ? FontWeight.w600 : FontWeight.w500,
-            color: isDiscount ? AppColors.success : (valueColor ?? AppColors.textPrimary),
+            color: isDiscount
+                ? AppColors.success
+                : (valueColor ?? AppColors.textPrimary),
           ),
         ),
       ],
