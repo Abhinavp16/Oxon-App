@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../core/providers/auth_provider.dart';
-import '../../core/theme/app_fonts.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -39,15 +39,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
-  // Colors
-  static const _primaryGreen = Color(0xFF2D6A4F);
-  static const _primaryBlue = Color(0xFF1D4ED8);
-  static const _backgroundLight = Color(0xFFF8FAF9);
-  static const _textDark = Color(0xFF1A1A1A);
-  static const _textMuted = Color(0xFF6B7280);
-  static const _borderColor = Color(0xFFE5E7EB);
+  static const _surfaceWarm = Color(0xFFF7F7F6);
+  static const _textDark = Color(0xFF1C1917);
+  static const _textMuted = Color(0xFF78716C);
+  static const _borderColor = Color(0xFFE7E1D7);
 
-  Color get _primaryColor => _isWholesaler ? _primaryBlue : _primaryGreen;
+  Color get _primaryColor =>
+      _isWholesaler ? const Color(0xFFF97316) : const Color(0xFFF59E0B);
+  Color get _primaryDark =>
+      _isWholesaler ? const Color(0xFFEA580C) : const Color(0xFFD97706);
 
   @override
   void initState() {
@@ -190,7 +190,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: AppFonts.bodyMedium(color: Colors.white)),
+        content: Text(
+          message,
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: const Color(0xFFDC2626),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -206,76 +212,150 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: _backgroundLight,
+        backgroundColor: Colors.white,
         body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 40),
-
-                      // Logo
-                      _buildLogo(),
-                      const SizedBox(height: 32),
-
-                      // Title
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: Text(
-                          _isLogin ? 'Welcome Back' : 'Create Account',
-                          key: ValueKey(_isLogin),
-                          style: AppFonts.h1(color: _textDark),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isLogin
-                            ? 'Sign in to continue to OXON'
-                            : 'Join OXON today',
-                        style: AppFonts.bodyMedium(color: _textMuted),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Role Toggle
-                      if (_isLogin) ...[
-                        _buildRoleToggle(),
-                        const SizedBox(height: 28),
+          child: Stack(
+            children: [
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFFFFEFD),
+                        Color(0xFFFFF9F6),
+                        Color(0xFFFFFCFA),
                       ],
-
-                      // Error Message
-                      if (authState.error != null) ...[
-                        _buildErrorBanner(authState.error!),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // Form Fields
-                      _buildForm(),
-                      const SizedBox(height: 28),
-
-                      if (!_isLogin) ...[
-                        _buildOxonConsentCheckbox(),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // Submit Button
-                      _buildSubmitButton(authState.isLoading),
-                      const SizedBox(height: 24),
-
-                      // Toggle Auth Mode
-                      _buildAuthToggle(),
-                      const SizedBox(height: 40),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              Positioned(
+                top: -150,
+                right: -130,
+                child: Container(
+                  width: 360,
+                  height: 360,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        _primaryColor.withValues(alpha: 0.10),
+                        _primaryColor.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -190,
+                left: -160,
+                child: Container(
+                  width: 430,
+                  height: 430,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFFFB923C).withValues(alpha: 0.08),
+                        const Color(0xFFFB923C).withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _AuthBackgroundPainter(_primaryColor),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const BouncingScrollPhysics(),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 30),
+                              _buildLogo(),
+                              const SizedBox(height: 42),
+                              Container(
+                                width: 38,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: _primaryColor,
+                                  borderRadius: BorderRadius.circular(99),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  _isLogin
+                                      ? 'Welcome back'
+                                      : 'Create your account',
+                                  key: ValueKey(_isLogin),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: _textDark,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -1,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 9),
+                              Text(
+                                _isLogin
+                                    ? 'Sign in to pick up where you left off.'
+                                    : 'Set up your OXON account in a minute.',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: _textMuted,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.45,
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              if (_isLogin) ...[
+                                _buildRoleToggle(),
+                                const SizedBox(height: 28),
+                              ],
+                              if (authState.error != null) ...[
+                                _buildErrorBanner(authState.error!),
+                                const SizedBox(height: 18),
+                              ],
+                              _buildForm(),
+                              if (!_isLogin) ...[
+                                const SizedBox(height: 20),
+                                _buildOxonConsentCheckbox(),
+                              ],
+                              const SizedBox(height: 26),
+                              _buildSubmitButton(authState.isLoading),
+                              const SizedBox(height: 24),
+                              _buildAuthToggle(),
+                              const SizedBox(height: 36),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -283,27 +363,48 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   }
 
   Widget _buildLogo() {
-    return Center(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: _primaryColor.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+    return Row(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          width: 58,
+          height: 58,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.asset(
+              'assets/images/oxon logo.jpeg',
+              fit: BoxFit.cover,
             ),
-          ],
+          ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Image.asset('assets/images/oxon logo.jpeg', fit: BoxFit.cover),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'OXON',
+                style: GoogleFonts.plusJakartaSans(
+                  color: _textDark,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Marketplace',
+                style: GoogleFonts.plusJakartaSans(
+                  color: _textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -311,22 +412,46 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFFF4ECE7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE9DDD5)),
       ),
-      child: Row(
-        children: [
-          Expanded(child: _buildRoleButton('Customer', false)),
-          Expanded(child: _buildRoleButton('Wholesaler', true)),
-        ],
+      child: SizedBox(
+        height: 52,
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 340),
+              curve: Curves.easeOutCubic,
+              alignment: _isWholesaler
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: _primaryColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _primaryDark.withValues(alpha: 0.18),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(child: _buildRoleButton('Customer', false)),
+                Expanded(child: _buildRoleButton('Wholesaler', true)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -336,21 +461,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
     return GestureDetector(
       onTap: () => _toggleRole(isWholesaler),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? _primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: AppFonts.labelLarge(
-              color: isSelected ? Colors.white : _textMuted,
-            ),
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 220),
+          style: GoogleFonts.plusJakartaSans(
+            color: isSelected ? _textDark : const Color(0xFF76675F),
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
           ),
+          child: Text(label),
         ),
       ),
     );
@@ -375,7 +496,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           Expanded(
             child: Text(
               error,
-              style: AppFonts.bodySmall(color: const Color(0xFFDC2626)),
+              style: GoogleFonts.plusJakartaSans(
+                color: const Color(0xFFDC2626),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -470,8 +595,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 ),
                 child: Text(
                   'Forgot Password?',
-                  style: AppFonts.bodySmall(
-                    color: _primaryColor,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: _primaryDark,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -502,59 +628,88 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       children: [
         Row(
           children: [
-            Text(label, style: AppFonts.labelMedium(color: _textDark)),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                color: _textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             if (!required) ...[
               const SizedBox(width: 6),
-              Text('(Optional)', style: AppFonts.caption(color: _textMuted)),
+              Text(
+                '(Optional)',
+                style: GoogleFonts.plusJakartaSans(
+                  color: _textMuted,
+                  fontSize: 11,
+                ),
+              ),
             ],
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
+          maxLength: maxLength,
+          style: GoogleFonts.plusJakartaSans(
+            color: _textDark,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscureText,
-            keyboardType: keyboardType,
-            textCapitalization: textCapitalization,
-            maxLength: maxLength,
-            style: AppFonts.bodyLarge(color: _textDark),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppFonts.bodyMedium(color: const Color(0xFFADB5BD)),
-              prefixIcon: HugeIcon(icon: icon, color: _textMuted, size: 22),
-              prefixText: prefix,
-              prefixStyle: AppFonts.bodyLarge(color: _textDark),
-              suffixIcon: isPassword
-                  ? IconButton(
-                      icon: HugeIcon(
-                        icon: obscureText
-                            ? HugeIcons.strokeRoundedViewOff
-                            : HugeIcons.strokeRoundedView,
-                        color: _textMuted,
-                        size: 22,
-                      ),
-                      onPressed: onToggleObscure,
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              counterText: '',
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.plusJakartaSans(
+              color: const Color(0xFF57534E),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 12),
+              child: HugeIcon(icon: icon, color: _primaryDark, size: 21),
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 50,
+              minHeight: 54,
+            ),
+            prefixText: prefix,
+            prefixStyle: GoogleFonts.plusJakartaSans(
+              color: _textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            suffixIcon: isPassword
+                ? IconButton(
+                    icon: HugeIcon(
+                      icon: obscureText
+                          ? HugeIcons.strokeRoundedViewOff
+                          : HugeIcons.strokeRoundedView,
+                      color: _textMuted,
+                      size: 21,
+                    ),
+                    onPressed: onToggleObscure,
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: _primaryColor, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.only(
+              left: 0,
+              right: 14,
+              top: 15,
+              bottom: 15,
+            ),
+            counterText: '',
           ),
         ),
       ],
@@ -569,10 +724,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           children: [
             Text(
               'Business Document',
-              style: AppFonts.labelMedium(color: _textDark),
+              style: GoogleFonts.plusJakartaSans(
+                color: _textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(width: 6),
-            Text('(Optional)', style: AppFonts.caption(color: _textMuted)),
+            Text(
+              '(Optional)',
+              style: GoogleFonts.plusJakartaSans(
+                color: _textMuted,
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -583,8 +748,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: _documentFile != null
-                  ? _primaryColor.withOpacity(0.05)
-                  : Colors.white,
+                  ? _primaryColor.withValues(alpha: 0.08)
+                  : _surfaceWarm,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: _documentFile != null ? _primaryColor : _borderColor,
@@ -597,8 +762,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: _documentFile != null
-                        ? _primaryColor.withOpacity(0.1)
-                        : const Color(0xFFF3F4F6),
+                        ? _primaryColor.withValues(alpha: 0.14)
+                        : const Color(0xFFFFF3D6),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: HugeIcon(
@@ -618,8 +783,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         _documentFile != null
                             ? 'Document Selected'
                             : 'Upload Document',
-                        style: AppFonts.bodyMedium(
+                        style: GoogleFonts.plusJakartaSans(
                           color: _textDark,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -628,7 +794,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         _documentFile != null
                             ? _documentFile!.path.split('/').last
                             : 'GST certificate, trade license, etc.',
-                        style: AppFonts.caption(color: _textMuted),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: _textMuted,
+                          fontSize: 11,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -661,10 +830,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         onPressed: isLoading ? null : _handleSubmit,
         style: ElevatedButton.styleFrom(
           backgroundColor: _primaryColor,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: _primaryColor.withOpacity(0.6),
+          foregroundColor: _textDark,
+          disabledBackgroundColor: _primaryColor.withValues(alpha: 0.55),
           elevation: 0,
-          shadowColor: _primaryColor.withOpacity(0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -675,12 +843,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: Colors.white,
+                  color: _textDark,
                 ),
               )
             : Text(
                 _isLogin ? 'Sign In' : 'Create Account',
-                style: AppFonts.button(color: Colors.white),
+                style: GoogleFonts.plusJakartaSans(
+                  color: _textDark,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
       ),
     );
@@ -690,7 +862,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _surfaceWarm,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _borderColor),
       ),
@@ -719,8 +891,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                     'By continuing, you agree to our Terms & Conditions and Privacy Policy.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.bodyMedium(
+                    style: GoogleFonts.plusJakartaSans(
                       color: _textMuted,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -750,22 +923,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 children: [
                   Text(
                     '- We collect basic details like name, phone, email, and app usage data.',
-                    style: AppFonts.bodySmall(color: _textMuted),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _textMuted,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '- We use this data to process orders, provide support, and improve services.',
-                    style: AppFonts.bodySmall(color: _textMuted),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _textMuted,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '- We share data only with logistics, payment, service partners, or legal authorities.',
-                    style: AppFonts.bodySmall(color: _textMuted),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _textMuted,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '- You can request access, correction, or deletion of your data where permitted.',
-                    style: AppFonts.bodySmall(color: _textMuted),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _textMuted,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -784,14 +969,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         children: [
           Text(
             _isLogin ? "Don't have an account? " : 'Already have an account? ',
-            style: AppFonts.bodyMedium(color: _textMuted),
+            style: GoogleFonts.plusJakartaSans(
+              color: _textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           GestureDetector(
             onTap: _toggleAuthMode,
             child: Text(
               _isLogin ? 'Sign Up' : 'Sign In',
-              style: AppFonts.bodyMedium(
-                color: _primaryColor,
+              style: GoogleFonts.plusJakartaSans(
+                color: _primaryDark,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -800,4 +990,112 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       ),
     );
   }
+}
+
+class _AuthBackgroundPainter extends CustomPainter {
+  const _AuthBackgroundPainter(this.accentColor);
+
+  final Color accentColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final softLine = Paint()
+      ..color = accentColor.withValues(alpha: 0.10)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final faintLine = Paint()
+      ..color = accentColor.withValues(alpha: 0.055)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final softFill = Paint()
+      ..color = accentColor.withValues(alpha: 0.025)
+      ..style = PaintingStyle.fill;
+
+    final topShape = Path()
+      ..moveTo(size.width * 0.35, -20)
+      ..cubicTo(
+        size.width * 0.48,
+        size.height * 0.06,
+        size.width * 0.43,
+        size.height * 0.14,
+        size.width * 0.66,
+        size.height * 0.19,
+      )
+      ..cubicTo(
+        size.width * 0.82,
+        size.height * 0.23,
+        size.width * 0.97,
+        size.height * 0.16,
+        size.width * 1.08,
+        size.height * 0.18,
+      )
+      ..lineTo(size.width * 1.08, -20)
+      ..close();
+    canvas.drawPath(topShape, softFill);
+
+    final topSweep = Path()
+      ..moveTo(size.width * 0.08, -10)
+      ..cubicTo(
+        size.width * 0.10,
+        size.height * 0.13,
+        size.width * 0.18,
+        size.height * 0.18,
+        size.width * 0.43,
+        size.height * 0.20,
+      )
+      ..cubicTo(
+        size.width * 0.70,
+        size.height * 0.23,
+        size.width * 0.84,
+        size.height * 0.16,
+        size.width * 1.05,
+        size.height * 0.18,
+      );
+    canvas.drawPath(topSweep, softLine);
+
+    final upperEcho = Path()
+      ..moveTo(size.width * 0.18, -8)
+      ..cubicTo(
+        size.width * 0.22,
+        size.height * 0.09,
+        size.width * 0.24,
+        size.height * 0.14,
+        size.width * 0.50,
+        size.height * 0.17,
+      )
+      ..cubicTo(
+        size.width * 0.73,
+        size.height * 0.20,
+        size.width * 0.88,
+        size.height * 0.12,
+        size.width * 1.04,
+        size.height * 0.14,
+      );
+    canvas.drawPath(upperEcho, faintLine);
+
+    final lowerGeometry = Path()
+      ..moveTo(-20, size.height * 0.70)
+      ..lineTo(size.width * 0.24, size.height * 0.78)
+      ..lineTo(size.width * 0.07, size.height * 0.94)
+      ..lineTo(size.width * 0.34, size.height * 0.84)
+      ..lineTo(size.width * 0.22, size.height * 1.03);
+    canvas.drawPath(lowerGeometry, softLine);
+
+    final lowerEcho = Path()
+      ..moveTo(-10, size.height * 0.76)
+      ..lineTo(size.width * 0.16, size.height * 0.83)
+      ..lineTo(size.width * 0.02, size.height * 0.91)
+      ..lineTo(size.width * 0.27, size.height * 0.88);
+    canvas.drawPath(lowerEcho, faintLine);
+
+    canvas.drawCircle(
+      Offset(size.width * 0.91, size.height * 0.63),
+      size.width * 0.18,
+      faintLine,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _AuthBackgroundPainter oldDelegate) =>
+      oldDelegate.accentColor != accentColor;
 }
