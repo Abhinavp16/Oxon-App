@@ -12,9 +12,18 @@ import '../../widgets/app_image.dart';
 import '../../widgets/product_image_placeholder.dart';
 
 class CategoryProductsScreen extends ConsumerStatefulWidget {
-  final String slug;
+  final String? slug;
+  final bool embedded;
+  final VoidCallback? onSearchTap;
+  final String? initialCategoryName;
 
-  const CategoryProductsScreen({super.key, required this.slug});
+  const CategoryProductsScreen({
+    super.key,
+    this.slug,
+    this.embedded = false,
+    this.onSearchTap,
+    this.initialCategoryName,
+  });
 
   @override
   ConsumerState<CategoryProductsScreen> createState() =>
@@ -41,8 +50,9 @@ class _CategoryProductsScreenState
   int _totalProducts = 0;
   int _page = 1;
   int _requestGeneration = 0;
+  late String _selectedSlug = widget.slug?.trim().toLowerCase() ?? '';
 
-  String get _slug => widget.slug.trim().toLowerCase();
+  String get _slug => _selectedSlug;
 
   @override
   void initState() {
@@ -54,7 +64,11 @@ class _CategoryProductsScreenState
   @override
   void didUpdateWidget(covariant CategoryProductsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.slug != widget.slug) _loadInitial();
+    if (oldWidget.slug != widget.slug ||
+        oldWidget.initialCategoryName != widget.initialCategoryName) {
+      _selectedSlug = widget.slug?.trim().toLowerCase() ?? '';
+      _loadInitial();
+    }
   }
 
   @override
@@ -100,20 +114,6 @@ class _CategoryProductsScreenState
         );
         return response.data as Map;
       });
-      final responses = await Future.wait([
-        api.get('/categories/slug/${Uri.encodeComponent(_slug)}'),
-        api.get(
-          '/products',
-          queryParameters: {
-            'categorySlug': _slug,
-            'page': 1,
-            'limit': _pageSize,
-          },
-        ),
-      ]);
-      final category = _mapCategory(
-        Map<String, dynamic>.from(responses[0].data['data'] as Map),
-      );
       final categories = (await categoryPages)
           .map(_mapCategory)
           .where(
@@ -122,8 +122,42 @@ class _CategoryProductsScreenState
                 (item['count'] as int) > 0,
           )
           .toList();
+      if (categories.isEmpty) {
+        if (!mounted || generation != _requestGeneration) return;
+        setState(() {
+          _categories = [];
+          _isInitialLoading = false;
+        });
+        return;
+      }
+
+      final requestedName = widget.initialCategoryName?.trim().toLowerCase();
+      final selectedCategory =
+          categories.cast<Map<String, dynamic>?>().firstWhere((item) {
+            if (item == null) return false;
+            if (_selectedSlug.isNotEmpty && item['slug'] == _selectedSlug) {
+              return true;
+            }
+            return requestedName != null &&
+                requestedName.isNotEmpty &&
+                (item['name'].toString().toLowerCase() == requestedName ||
+                    item['nameHindi'].toString().toLowerCase() ==
+                        requestedName ||
+                    item['slug'].toString().toLowerCase() == requestedName);
+          }, orElse: () => null) ??
+          categories.first;
+      _selectedSlug = selectedCategory['slug'].toString().toLowerCase();
+      final productResponse =
+          (await api.get(
+                '/products',
+                queryParameters: {
+                  'categorySlug': _slug,
+                  'page': 1,
+                  'limit': _pageSize,
+                },
+              )).data
+              as Map;
       if (!mounted || generation != _requestGeneration) return;
-      final productResponse = responses[1].data as Map;
       final productItems = catalogItems(productResponse);
       final products = productItems.whereType<Map>().map(_mapProduct).toList();
       final pagination = CatalogPageInfo.fromPayload(
@@ -134,14 +168,69 @@ class _CategoryProductsScreenState
       );
 
       setState(() {
-        _category = category;
+        _category = selectedCategory;
         _categories = categories;
         _products = dedupeProducts(const [], products);
         _page = pagination.page;
         _hasNext = pagination.hasNext;
         _totalProducts = pagination.total > 0
             ? pagination.total
-            : _asInt(category['count']);
+            : _asInt(selectedCategory['count']);
+        _isInitialLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || generation != _requestGeneration) return;
+      setState(() {
+        _isInitialLoading = false;
+        _error = 'Unable to load this category. Pull down to try again.';
+      });
+    }
+  }
+
+  Future<void> _selectCategory(Map<String, dynamic> category) async {
+    final slug = category['slug'].toString().trim().toLowerCase();
+    if (slug.isEmpty || slug == _slug) return;
+
+    final generation = ++_requestGeneration;
+    _selectedSlug = slug;
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+    setState(() {
+      _category = category;
+      _products = [];
+      _page = 1;
+      _totalProducts = _asInt(category['count']);
+      _hasNext = false;
+      _error = null;
+      _isInitialLoading = true;
+      _isLoadingMore = false;
+    });
+
+    try {
+      final response = await ref
+          .read(apiClientProvider)
+          .get(
+            '/products',
+            queryParameters: {
+              'categorySlug': slug,
+              'page': 1,
+              'limit': _pageSize,
+            },
+          );
+      if (!mounted || generation != _requestGeneration) return;
+      final payload = response.data as Map;
+      final productItems = catalogItems(payload);
+      final products = productItems.whereType<Map>().map(_mapProduct).toList();
+      final pagination = CatalogPageInfo.fromPayload(
+        payload,
+        requestedPage: 1,
+        requestedLimit: _pageSize,
+        itemCount: productItems.length,
+      );
+      setState(() {
+        _products = dedupeProducts(const [], products);
+        _page = pagination.page;
+        _hasNext = pagination.hasNext;
+        if (pagination.total > 0) _totalProducts = pagination.total;
         _isInitialLoading = false;
       });
     } catch (_) {
@@ -303,8 +392,17 @@ class _CategoryProductsScreenState
         child: Column(
           children: [
             _buildHeader(categoryName),
-            if (_categories.isNotEmpty) _buildCategorySelector(),
-            Expanded(child: _buildProductContent(categoryName)),
+            const Divider(height: 1, color: _border),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: 106, child: _buildCategoryRail()),
+                  const VerticalDivider(width: 1, thickness: 1, color: _border),
+                  Expanded(child: _buildProductContent(categoryName)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -312,24 +410,26 @@ class _CategoryProductsScreenState
   }
 
   Widget _buildHeader(String categoryName) => Padding(
-    padding: const EdgeInsets.fromLTRB(8, 10, 16, 8),
+    padding: EdgeInsets.fromLTRB(widget.embedded ? 18 : 8, 12, 14, 10),
     child: Row(
       children: [
-        IconButton(
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
-          icon: const Icon(Icons.arrow_back_rounded, color: _textPrimary),
-          tooltip: 'Back',
-        ),
-        const SizedBox(width: 4),
+        if (!widget.embedded) ...[
+          IconButton(
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+            icon: const Icon(Icons.arrow_back_rounded, color: _textPrimary),
+            tooltip: 'Back',
+          ),
+          const SizedBox(width: 4),
+        ],
         Expanded(
           child: Text(
-            categoryName,
+            widget.embedded ? 'Categories' : categoryName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.outfit(
@@ -339,81 +439,110 @@ class _CategoryProductsScreenState
             ),
           ),
         ),
+        if (widget.embedded)
+          IconButton.filled(
+            onPressed:
+                widget.onSearchTap ??
+                () => context.go('/home', extra: {'tab': 1}),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: _primaryBlue,
+              side: const BorderSide(color: _border),
+            ),
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Search products',
+          ),
       ],
     ),
   );
 
-  Widget _buildCategorySelector() => SizedBox(
-    height: 108,
-    child: ListView.separated(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      itemCount: _categories.length,
-      separatorBuilder: (_, _) => const SizedBox(width: 10),
-      itemBuilder: (context, index) {
-        final category = _categories[index];
-        final selected = category['slug'] == _slug;
-        final name = category['name'].toString();
-        return Material(
-          color: selected ? _primaryBlue.withValues(alpha: 0.08) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: selected
-                ? null
-                : () => context.go(
-                    '/categories/${Uri.encodeComponent(category['slug'].toString())}',
-                  ),
-            child: Container(
-              width: 86,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: selected ? _primaryBlue : _border,
-                  width: selected ? 1.5 : 1,
+  Widget _buildCategoryRail() {
+    if (_categories.isEmpty) {
+      return _isInitialLoading
+          ? const SizedBox.shrink()
+          : const Center(
+              child: Icon(Icons.category_outlined, color: _textMuted),
+            );
+    }
+
+    return ColoredBox(
+      color: const Color(0xFFF4F7FB),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(8, 12, 8, 110),
+        itemCount: _categories.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final selected = category['slug'] == _slug;
+          final name = category['name'].toString();
+          return Material(
+            color: selected ? _primaryBlue : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: selected ? null : () => _selectCategory(category),
+              child: Container(
+                height: 108,
+                padding: const EdgeInsets.fromLTRB(7, 8, 7, 7),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: selected ? _primaryBlue : _border),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: _primaryBlue.withValues(alpha: 0.22),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? Colors.white
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: category['image'].toString().isEmpty
+                          ? Icon(_categoryIcon(name), color: _primaryBlue)
+                          : AppImage(
+                              imageUrl: category['image'].toString(),
+                              blurHash: category['blurHash'].toString(),
+                              category: name,
+                              name: name,
+                              fit: BoxFit.contain,
+                            ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      _displayCategoryName(category),
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 9.5,
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: selected ? Colors.white : _textPrimary,
+                        height: 1.05,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: category['image'].toString().isEmpty
-                        ? Icon(_categoryIcon(name), color: _primaryBlue)
-                        : AppImage(
-                            imageUrl: category['image'].toString(),
-                            blurHash: category['blurHash'].toString(),
-                            category: name,
-                            name: name,
-                            fit: BoxFit.contain,
-                          ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _displayCategoryName(category),
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                      color: selected ? _primaryBlue : _textMuted,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        );
-      },
-    ),
-  );
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildProductContent(String categoryName) {
     if (_isInitialLoading) {
@@ -477,14 +606,14 @@ class _CategoryProductsScreenState
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: const EdgeInsets.fromLTRB(12, 12, 10, 10),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
-                      '$categoryName products',
+                      categoryName,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: _textPrimary,
                       ),
@@ -500,7 +629,7 @@ class _CategoryProductsScreenState
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      '$_totalProducts items',
+                      '$_totalProducts',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -513,7 +642,7 @@ class _CategoryProductsScreenState
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             sliver: SliverGrid(
               delegate: SliverChildBuilderDelegate(
                 (context, index) => _buildProductCard(_products[index]),
@@ -521,9 +650,9 @@ class _CategoryProductsScreenState
               ),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.57,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 0.52,
               ),
             ),
           ),
@@ -537,16 +666,6 @@ class _CategoryProductsScreenState
                         child: CircularProgressIndicator(
                           color: _primaryBlue,
                           strokeWidth: 2,
-                        ),
-                      ),
-                    )
-                  : !_hasNext
-                  ? Center(
-                      child: Text(
-                        'You have reached all $_totalProducts products.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          color: _textMuted,
                         ),
                       ),
                     )
@@ -608,7 +727,7 @@ class _CategoryProductsScreenState
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'Out of stock',
+                            'Sold out',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
