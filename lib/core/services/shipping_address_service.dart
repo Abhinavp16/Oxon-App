@@ -103,7 +103,9 @@ class ShippingAddressService {
     return [...primary, ...secondary];
   }
 
-  static List<ShippingAddress> _normalizeSlots(List<ShippingAddress> addresses) {
+  static List<ShippingAddress> _normalizeSlots(
+    List<ShippingAddress> addresses,
+  ) {
     final normalized = <ShippingAddress>[];
     ShippingAddress? primary;
     ShippingAddress? secondary;
@@ -142,13 +144,19 @@ class ShippingAddressService {
     final raw = prefs.getString(_addressesKey);
     if (raw == null || raw.isEmpty) return [];
 
-    final parsed = jsonDecode(raw);
-    if (parsed is! List) return [];
-
-    final decoded = parsed
-        .whereType<Map>()
-        .map((e) => ShippingAddress.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    List<ShippingAddress> decoded;
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is! List) throw const FormatException();
+      decoded = parsed
+          .whereType<Map>()
+          .map((e) => ShippingAddress.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (_) {
+      await prefs.remove(_addressesKey);
+      await prefs.remove(_selectedAddressIdKey);
+      return [];
+    }
     final normalized = _normalizeSlots(decoded);
 
     if (jsonEncode(decoded.map((e) => e.toJson()).toList()) !=
@@ -185,20 +193,24 @@ class ShippingAddressService {
     final selectedId = await getSelectedAddressId();
     if (addresses.isEmpty) return null;
 
-    if (selectedId == null || selectedId.isEmpty) {
-      return addresses.first;
-    }
-
-    return addresses.firstWhere(
+    final selected = addresses.firstWhere(
       (a) => a.id == selectedId,
       orElse: () => addresses.first,
     );
+    if (selectedId != selected.id) await setSelectedAddressId(selected.id);
+    return selected;
   }
 
   static Future<void> upsertAddress(ShippingAddress address) async {
     final addresses = await getAddresses();
+    final existingIndex = addresses.indexWhere((a) => a.id == address.id);
+    final existingSlot = existingIndex >= 0
+        ? addresses[existingIndex].slot
+        : '';
     final safeSlot = _isValidSlot(address.slot)
         ? address.slot
+        : _isValidSlot(existingSlot)
+        ? existingSlot
         : _defaultSlotForNew(addresses);
     final incoming = address.copyWith(slot: safeSlot);
 
